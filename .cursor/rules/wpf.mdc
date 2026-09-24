@@ -1,0 +1,15 @@
+---
+description: WPF, XAML, MVVM, and CommunityToolkit rules
+globs: src/CalendarWidget.Presentation/**/*, src/CalendarWidget.App/**/*
+---
+
+# WPF & MVVM Rules
+
+- Use `CommunityToolkit.Mvvm` for ViewModels:
+  - Inherit from `ObservableObject`.
+  - Use `[ObservableProperty]` and `[RelayCommand]` attributes.
+- Keep View code-behind (`.xaml.cs`) minimal: only pure UI interactions like mouse drag or focus.
+- Never write business logic or database access inside code-behind.
+- Group styles and brushes into resource dictionaries in `Presentation/Themes/`.
+- Provide `AutomationProperties.Name` on buttons and interactive components for screen readers.
+- Keep layout responsive and DPI-aware; use device-independent units.

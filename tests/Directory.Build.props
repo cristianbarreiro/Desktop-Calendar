@@ -1,0 +1,9 @@
+<Project>
+
+  <!-- Suppress CA1707 (underscores in identifiers) for test projects.
+       Test method naming convention uses MethodName_Condition_ExpectedResult. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>

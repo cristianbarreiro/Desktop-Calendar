@@ -1,0 +1,14 @@
+---
+description: Testing standards and xUnit conventions
+globs: tests/**/*.cs
+---
+
+# Testing Rules
+
+- Framework: `xUnit` + `FluentAssertions`.
+- Test naming format: `MethodName_Condition_ExpectedResult`.
+- Follow Arrange-Act-Assert (AAA) structure.
+- Unit tests live in `CalendarWidget.UnitTests` (test domain logic, calculators, ViewModels).
+- Integration tests live in `CalendarWidget.IntegrationTests` (test EF Core, SQLite persistence).
+- Do not write trivial tests that merely check framework assignment.
+- All tests must pass before completing any task (`dotnet test`).

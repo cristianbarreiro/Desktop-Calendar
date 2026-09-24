@@ -1,0 +1,14 @@
+---
+description: UI/UX design system and accessibility rules
+globs: src/CalendarWidget.Presentation/**/*, docs/ui/**/*
+---
+
+# UI & UX Rules
+
+- Aesthetic: Modern, clean, minimal, native Windows Fluent feel.
+- Avoid excessive gradients, heavy glassmorphism, or noisy neon colors.
+- Maintain high contrast (minimum 4.5:1 for normal text).
+- Always show clear keyboard focus indicators (minimum 2px).
+- Support both Dark Theme (`#1E1E1E`) and Light Theme (`#F3F3F3`).
+- Transitions must be brief (< 200ms) and respect reduced-motion settings.
+- Follow interaction guidelines defined in `docs/ui/interaction-rules.md`.

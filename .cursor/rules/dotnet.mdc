@@ -1,0 +1,17 @@
+---
+description: C# coding style, standards, and conventions for .NET 10
+globs: **/*.cs
+---
+
+# .NET & C# Coding Rules
+
+- Target C# 14 / .NET 10.
+- Use file-scoped namespaces (`namespace CalendarWidget.Core;`).
+- Mark classes `sealed` by default unless explicitly designed for inheritance.
+- Mark immutable fields and references `readonly`.
+- Use primary constructors where clean and expressive.
+- Prefer records for DTOs and value objects.
+- Nullable reference types are enabled (`#nullable enable`). Do not suppress with `!` without concrete safety justification.
+- Avoid `var` when the underlying type is not obvious from the assignment.
+- All public APIs must have XML doc comments (`/// <summary>`).
+- Enforce formatting using `dotnet format`.

@@ -1,0 +1,14 @@
+---
+description: Architecture rules and layer boundary constraints for Desktop Calendar
+globs: src/**/*.cs, src/**/*.csproj
+---
+
+# Architecture Rules
+
+- Maintain strict Clean Architecture boundaries:
+  - `CalendarWidget.Core` has ZERO external dependencies. Never add project references or EF Core/WPF packages to Core.
+  - `CalendarWidget.Presentation` depends only on `CalendarWidget.Core`. It must NEVER reference `CalendarWidget.Infrastructure`.
+  - `CalendarWidget.Infrastructure` implements interfaces from `Core`. Never reference Presentation.
+  - `CalendarWidget.App` wires everything together via dependency injection.
+- UI ViewModels must never access EF Core `DbContext` directly. Always use repository interfaces (`ICalendarEventRepository`, `INoteRepository`).
+- Domain logic belongs in `Core`, not in ViewModels or UI code-behind.
