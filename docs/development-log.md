@@ -18,3 +18,14 @@
 - Implemented initial domain entities (`CalendarEvent`, `Note`) and repositories (`ICalendarEventRepository`, `INoteRepository`).
 - Configured `AppDbContext` and initial passing unit/integration smoke tests.
 - Authored product vision, requirements, user flows, architecture documents, UI design system, ADR-001, and knowledge base.
+
+## 2026-09-24 — Phase 3: Controlled Remediation
+
+### Activities
+- Unanchored `.gitignore` pattern `[Rr]elease*/` corrected and `!skills/**` added, ensuring `skills/release/SKILL.md` is tracked in git.
+- Untracked temporary MSBuild artifact `src/CalendarWidget.App/CalendarWidget.App_krlchx0l_wpftmp.csproj` and ignored via `*_wpftmp.csproj`.
+- Renamed test files `UnitTest1.cs` to match class fixtures (`Core/CalendarEventTests.cs`, `Persistence/AppDbContextTests.cs`).
+- Established complete `/specs/` hierarchy with 5 behavioral specifications (`calendar`, `widget`, `notes`, `settings`, `windows`).
+- Harmonized `docs/architecture/application-structure.md` by annotating planned Phase 2+ components.
+- Validated solution build, test suite execution (5/5 passed), and formatting verification.
+

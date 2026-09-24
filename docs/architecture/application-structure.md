@@ -1,6 +1,6 @@
 # Application Structure
 
-## Project Layout
+## Target Project Layout (Phased Architecture)
 
 ```
 Desktop Calendar/
@@ -8,23 +8,23 @@ Desktop Calendar/
 │   ├── CalendarWidget.App/
 │   │   ├── App.xaml / App.xaml.cs      # Host bootstrap and lifecycle
 │   │   ├── MainWindow.xaml / cs        # Host shell / navigation container
-│   │   └── Program.cs                  # Host builder entry point
+│   │   └── Program.cs                  # [Planned Phase 2] Host builder entry point
 │   ├── CalendarWidget.Core/
-│   │   ├── Entities/                   # CalendarEvent, Note, CalendarSettings
-│   │   ├── ValueObjects/               # DateRange, TimeRange, ColorHex
+│   │   ├── Entities/                   # CalendarEvent, Note, CalendarSettings (planned)
+│   │   ├── ValueObjects/               # DateRange, TimeRange (planned), ColorHex (planned)
 │   │   ├── Interfaces/                 # ICalendarEventRepository, INoteRepository
 │   │   └── Exceptions/                 # DomainValidationException
 │   ├── CalendarWidget.Infrastructure/
-│   │   ├── Persistence/                # AppDbContext, Configurations, Migrations
-│   │   ├── Repositories/               # EfCalendarEventRepository, EfNoteRepository
-│   │   ├── Services/                   # WindowsStartupService, NotificationService
+│   │   ├── Persistence/                # AppDbContext, Configurations, Migrations (Phase 5)
+│   │   ├── Repositories/               # [Planned Phase 5] EfCalendarEventRepository, EfNoteRepository
+│   │   ├── Services/                   # [Planned Phase 9] WindowsStartupService, NotificationService
 │   │   └── DependencyInjection.cs      # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
-│       ├── ViewModels/                 # WidgetViewModel, CalendarViewModel, NotesViewModel
-│       ├── Views/                      # WidgetView, CalendarView, NotesView, SettingsView
-│       ├── Controls/                   # CalendarGridControl, DayCellControl
-│       ├── Converters/                 # BoolToVisibilityConverter, DateFormatConverter
-│       └── Themes/                     # Light.xaml, Dark.xaml, Generic.xaml
+│       ├── ViewModels/                 # ViewModelBase; [Planned Phase 2+] WidgetViewModel, CalendarViewModel
+│       ├── Views/                      # [Planned Phase 2+] WidgetView, CalendarView, NotesView
+│       ├── Controls/                   # [Planned Phase 3] CalendarGridControl, DayCellControl
+│       ├── Converters/                 # [Planned Phase 3] BoolToVisibilityConverter, DateFormatConverter
+│       └── Themes/                     # [Planned Phase 3] Light.xaml, Dark.xaml
 └── tests/
     ├── CalendarWidget.UnitTests/       # Domain logic, ViewModels, validators
     └── CalendarWidget.IntegrationTests/# EF Core SQLite, database migrations
