@@ -3,8 +3,8 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: Not started
-- **Next Phase**: Phase 4 — Application Shell
+- **Product Implementation**: In Progress (Phase 4 complete)
+- **Next Phase**: Phase 5 — Widget UI
 - **Current Date**: 2026-09-24
 
 ---
@@ -17,8 +17,8 @@
 | **Phase 1** | Engineering Foundation | Architecture, Context & Boundaries | **COMPLETED** |
 | **Phase 2** | Engineering Foundation | Read-Only Repository Audit | **COMPLETED** |
 | **Phase 3** | Engineering Foundation | Controlled Audit Remediation | **COMPLETED** |
-| **Phase 4** | Product Implementation | Application Shell & Window Management | **NEXT** |
-| **Phase 5** | Product Implementation | Widget UI | **PLANNED** |
+| **Phase 4** | Product Implementation | Application Shell & Window Management | **COMPLETED** |
+| **Phase 5** | Product Implementation | Widget UI | **NEXT** |
 | **Phase 6** | Product Implementation | Calendar Grid & Navigation | **PLANNED** |
 | **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **PLANNED** |
 | **Phase 8** | Product Implementation | Events Management | **PLANNED** |
@@ -36,7 +36,7 @@
 - [x] Initial Entities (`CalendarEvent`, `Note`)
 - [x] Initial Interfaces (`ICalendarEventRepository`, `INoteRepository`)
 - [x] Initial Value Object (`DateRange`)
-- [ ] Value Objects (`TimeRange`, `ColorHex`)
+- [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned Phase 6/8
 - [x] Domain Exception (`DomainValidationException`)
 
 ### Specifications & AI Context
@@ -55,33 +55,38 @@
 - [ ] Windows Shell / Tray / Startup services — Planned Phase 11
 
 ### Presentation
-- [x] Presentation project created with `CommunityToolkit.Mvvm`
+- [x] Presentation project configured with `CommunityToolkit.Mvvm`
 - [x] Foundational `ViewModelBase` created
-- [ ] ViewModels (`WidgetViewModel`, `CalendarViewModel`, `NotesViewModel`, `SettingsViewModel`) — Planned Phase 4+
-- [ ] XAML Views (`WidgetWindow`, `MainWindow`) — Planned Phase 4+
-- [ ] Design System styles, colors, and controls — Planned Phase 4+
+- [x] ViewModels (`MainWindowViewModel`, `WidgetViewModel`, `CalendarViewModel`, `NotesViewModel`, `SettingsViewModel`)
+- [x] XAML Views (`CalendarView`, `NotesView`, `SettingsView`)
+- [x] Initial Design System (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`)
+- [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
 
 ### Host Application
 - [x] `CalendarWidget.App` setup with `Microsoft.Extensions.Hosting`
-- [ ] Host service builder and window lifecycle management — Planned Phase 4
+- [x] `Program.cs` composition root with Generic Host and DI container
+- [x] `App.xaml` and `App.xaml.cs` configured with explicit lifecycle
+- [x] Windows: `MainWindow` and `WidgetWindow`
+- [x] Window orchestration: `WindowManager` implementing `IWindowManager`
+- [x] Application lifetime service (`ApplicationLifetimeService`)
 
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
-- [x] Renamed tests matching class fixtures (`CalendarEventTests.cs`, `AppDbContextTests.cs`)
-- [x] 5 automated tests passing (0 failures)
+- [x] Comprehensive test suite covering grid calculations, view models, and window orchestration
+- [x] 40 automated tests passing (39 unit tests, 1 integration test, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings
+- [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
 ---
 
 ## Known Technical Debt
-- None. Intermediate build files removed, `.gitignore` anchored, and specifications layer established.
+- None.
 
 ---
 
 ## Current Priorities
-1. **Phase 4 — Application Shell**:
-   - Implement `Program.cs` host composition root (`Microsoft.Extensions.Hosting`).
-   - Wire dependency injection for windows, view models, and application services.
-   - Implement `MainWindow` and `WidgetWindow` shell containers with navigation placeholders.
-   - Implement basic `IWindowManager` service for switching between Widget and Main Application modes.
+1. **Phase 5 — Widget UI**:
+   - Deepen widget interaction model and smooth expand/collapse transitions.
+   - Refine compact day cell typography, states, and hit targets.
+   - Connect live events indicator display when Phase 8 is reached.

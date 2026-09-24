@@ -124,8 +124,9 @@ dotnet format
 Complete (Phases 0–3: Repository setup, clean architecture, audit, and remediation).
 
 ### Product Development
-Ready to start with:
-- **Phase 4 — Application Shell** (Next target)
+In progress:
+- **Phase 4 — Application Shell** (Completed)
+- **Phase 5 — Widget UI** (Next target)
 
 ## Roadmap
 
@@ -136,8 +137,8 @@ Ready to start with:
 - [x] **Phase 3 — Audit Remediation**: Controlled remediation of verified audit findings without introducing unrelated product functionality.
 
 ### Product Implementation
-- [ ] **Phase 4 — Application Shell** (NEXT): WPF application shell, host startup, DI integration, window lifecycle management, MainWindow, WidgetWindow, basic switching.
-- [ ] **Phase 5 — Widget UI** (PLANNED): Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators.
+- [x] **Phase 4 — Application Shell**: WPF application shell, host startup, DI integration, window lifecycle management, MainWindow, WidgetWindow, basic switching.
+- [ ] **Phase 5 — Widget UI** (NEXT): Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators.
 - [ ] **Phase 6 — Calendar** (PLANNED): 42-cell calendar grid, date selection, current date, keyboard navigation, configurable first day of week.
 - [ ] **Phase 7 — Persistence** (PLANNED): EF Core SQLite integration, migrations, repositories, database initialization.
 - [ ] **Phase 8 — Events** (PLANNED): Event CRUD, validation, event indicators, day details, event persistence.

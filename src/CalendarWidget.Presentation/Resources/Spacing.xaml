@@ -1,0 +1,30 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Spacing Multipliers (4px Base Grid) -->
+    <sys:Double x:Key="SpacingXS">4</sys:Double>
+    <sys:Double x:Key="SpacingSM">8</sys:Double>
+    <sys:Double x:Key="SpacingMD">12</sys:Double>
+    <sys:Double x:Key="SpacingLG">16</sys:Double>
+    <sys:Double x:Key="SpacingXL">24</sys:Double>
+    <sys:Double x:Key="SpacingXXL">32</sys:Double>
+
+    <!-- Thickness Resources -->
+    <Thickness x:Key="PaddingSmall">8</Thickness>
+    <Thickness x:Key="PaddingMedium">12</Thickness>
+    <Thickness x:Key="PaddingLarge">16</Thickness>
+    <Thickness x:Key="MarginSmall">8</Thickness>
+    <Thickness x:Key="MarginMedium">12</Thickness>
+    <Thickness x:Key="MarginLarge">16</Thickness>
+
+    <!-- Corner Radii -->
+    <CornerRadius x:Key="CornerRadiusWindow">8</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusCard">4</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusButton">4</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusDayCell">4</CornerRadius>
+
+    <!-- Day Cell Dimensions -->
+    <sys:Double x:Key="DayCellSize">32</sys:Double>
+
+</ResourceDictionary>

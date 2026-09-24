@@ -1,0 +1,187 @@
+<UserControl x:Class="CalendarWidget.Presentation.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:CalendarWidget.Presentation.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
+             d:DesignHeight="700" d:DesignWidth="800">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Title -->
+            <TextBlock Grid.Row="0"
+                       Text="{Binding Title}"
+                       Style="{DynamicResource HeaderLargeTextBlockStyle}"
+                       Margin="0,0,0,24" />
+
+            <!-- Settings Sections -->
+            <StackPanel Grid.Row="1" MaxWidth="600" HorizontalAlignment="Left">
+                
+                <!-- Appearance Section -->
+                <Border Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource BorderDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadiusCard}"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Appearance"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   Margin="0,0,0,12" />
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Theme"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                <TextBlock Text="Select the visual theme for widget and application windows."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SelectedTheme}"
+                                       VerticalAlignment="Center"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Window Behavior Section -->
+                <Border Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource BorderDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadiusCard}"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Window Behavior"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   Margin="0,0,0,12" />
+                        
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Always on Top"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                <TextBlock Text="Keep the desktop calendar widget pinned above other windows."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1"
+                                      IsChecked="{Binding AlwaysOnTop}"
+                                      IsEnabled="False"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,4,0,12" />
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Start with Windows"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                <TextBlock Text="Launch the desktop calendar widget automatically on user log on."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                            </StackPanel>
+                            <CheckBox Grid.Column="1"
+                                      IsChecked="{Binding StartWithWindows}"
+                                      IsEnabled="False"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Calendar Preferences Section -->
+                <Border Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource BorderDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadiusCard}"
+                        Padding="20"
+                        Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Calendar &amp; Time"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   Margin="0,0,0,12" />
+
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="First Day of Week"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                <TextBlock Text="The starting column of the 7-day calendar grid."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding FirstDayOfWeek}"
+                                       VerticalAlignment="Center"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                        </Grid>
+
+                        <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,4,0,12" />
+
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Time Format"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                <TextBlock Text="Format for displaying digital clock and event schedules."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding TimeFormat}"
+                                       VerticalAlignment="Center"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Data Management Section -->
+                <Border Background="{DynamicResource SurfaceCardBrush}"
+                        BorderBrush="{DynamicResource BorderDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadiusCard}"
+                        Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="Data Management"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Local database maintenance and backup utilities will be activated in Phase 10."
+                                   Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                   Margin="0,0,0,16" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Export Data"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    IsEnabled="False"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Import Data"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    IsEnabled="False"
+                                    Margin="0,0,8,0" />
+                            <Button Content="Reset Database"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

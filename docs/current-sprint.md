@@ -2,52 +2,58 @@
 
 ## Sprint Objective
 
-Prepare the repository for the first product implementation vertical slice and establish the Application Shell as the next implementation target.
+Transition from Phase 4 (Application Shell) into Phase 5 (Widget UI) to refine the compact desktop widget experience.
 
 ---
 
 ## Status
 
 - **Engineering Foundation (Phases 0–3)**: COMPLETE
-- **Product Implementation (Phases 4–13)**: READY TO START
+- **Phase 4 — Application Shell**: COMPLETE
+- **Next Target — Phase 5 (Widget UI)**: READY TO START
 
 ---
 
 ## Completed
 
 - [x] **Repository Foundation (Phase 0)**: Solution setup, 6 projects, Directory.Build.props, .editorconfig, git hygiene.
-- [x] **Architecture & Context (Phase 1)**: Clean Architecture boundaries, zero-outward Core, AGENTS.md canonical contract, multi-agent context files (Claude, Gemini, Cursor, Copilot), skills suite, internal knowledge base.
-- [x] **Specifications (Phase 1/3)**: Full behavioral specifications in `/specs/` (calendar, widget, notes, settings, windows).
+- [x] **Architecture & Context (Phase 1)**: Clean Architecture boundaries, zero-outward Core, AGENTS.md canonical contract, multi-agent context files, skills suite, internal knowledge base.
+- [x] **Specifications (Phase 1/3)**: Full behavioral specifications in `/specs/`.
 - [x] **Repository Audit (Phase 2)**: Comprehensive read-only audit across architecture, testing, CI, and AI context.
 - [x] **Audit Remediation (Phase 3)**: Fixed `.gitignore` release rule, untracked intermediate artifacts, renamed test fixtures, harmonized documentation.
-- [x] **Build & Test Validation**: 0 errors, 0 warnings, 5/5 automated tests passing, format verification passing.
+- [x] **Application Shell (Phase 4)**:
+  - Generic Host composition root (`Program.cs`) via `Microsoft.Extensions.Hosting`.
+  - Dependency Injection configured for windows, view models, and services.
+  - Windows: `MainWindow` (full application) and `WidgetWindow` (compact widget).
+  - Window switching: `IWindowManager` / `WindowManager` (`[APP]` ↔ `[WIDGET]`).
+  - Navigation: Calendar, Notes, Settings view switching with MVVM DataTemplates.
+  - Calendar shell: Deterministic 42-cell calendar grid generator (`CalendarGridService`).
+  - Widget shell: Month navigation, date selection with detail tray toggle, digital clock via `IClockService`.
+  - Initial Design System resources (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`).
+  - Test suite expanded to 40 passing automated tests (39 unit, 1 integration).
+  - Zero build warnings/errors, clean code formatting.
 
 ---
 
 ## Next Implementation Target
 
-### Phase 4 — Application Shell
+### Phase 5 — Widget UI
 
-- Implement `Program.cs` Generic Host composition root (`Microsoft.Extensions.Hosting`).
-- Register DI services, view models, and window management.
-- Establish `MainWindow` and `WidgetWindow` shell containers.
-- Implement basic navigation and view switching (`[APP]` ↔ `[WIDGET]`).
-- Integrate initial styling and design system tokens.
-- Add application-level validation tests.
+- Refine compact widget typography, styling, and transitions.
+- Day selection interaction model and smooth vertical tray expand/collapse animation.
+- Weekday headers and month navigation styling polish.
+- Keyboard navigation (arrow keys) inside the widget calendar grid.
 
 ---
 
-## Explicitly Out of Scope for Phase 4
+## Explicitly Out of Scope for Phase 5
 
-Do NOT implement during Application Shell:
+Do NOT implement during Widget UI:
 - SQLite database CRUD operations (Planned Phase 7)
 - EF Core migrations (Planned Phase 7)
 - Event persistence and validation forms (Planned Phase 8)
 - Notes persistence and text editor (Planned Phase 9)
-- Recurring events logic
-- Event reminders and notifications
-- External calendar synchronization
+- Settings persistence (Planned Phase 10)
 - System tray icon docking (Planned Phase 11)
 - Windows startup registration (Planned Phase 11)
-- Advanced Windows integrations (Planned Phase 11)
 - Packaging, installers, and release automation (Planned Phase 13)

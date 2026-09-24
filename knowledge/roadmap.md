@@ -27,7 +27,7 @@ This document serves as the canonical source of truth for project phase definiti
 ## Part II: Product Implementation
 
 ### Phase 4 — Application Shell
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
   - WPF application shell and Host startup lifecycle (`Microsoft.Extensions.Hosting`)
   - Dependency injection integration and service composition
@@ -41,7 +41,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Initial application-level automated tests
 
 ### Phase 5 — Widget UI
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Compact calendar widget layout
   - Real-time digital clock display

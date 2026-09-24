@@ -37,4 +37,18 @@
 - Normalized phase numbers across architecture documentation to designate Phase 4 (Application Shell) as the immediate next target.
 - Verified global consistency across all agent instructions, rules, and documentation files.
 
+## 2026-09-24 — Phase 4: Application Shell
+
+### Activities
+- Implemented Generic Host composition root in `CalendarWidget.App/Program.cs` (`Microsoft.Extensions.Hosting`).
+- Wired Dependency Injection in `Program.cs` for views, view models, lifecycle services, and window orchestration.
+- Created `IWindowManager` in `CalendarWidget.Presentation.Services` and concrete `WindowManager` in `CalendarWidget.App.Services` (per ADR-002).
+- Implemented `MainWindow.xaml` (full application) and `WidgetWindow.xaml` (compact desktop widget) with bidirectional window switching (`[APP]` ↔ `[WIDGET]`).
+- Implemented sidebar navigation with `NavigationTab` switching between `CalendarView`, `NotesView`, and `SettingsView` using MVVM `ContentControl` DataTemplates.
+- Implemented deterministic 42-cell calendar grid generator (`CalendarGridService`) and unit tests covering month navigation, leading/trailing days, leap years, and first-day-of-week settings.
+- Implemented `IClockService` and `SystemClockService` powering real-time digital clock display in the widget.
+- Created initial Fluent dark Design System resource dictionaries (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`).
+- Expanded automated test suite from 5 to 40 passing tests (39 unit tests, 1 integration test).
+- Validated solution build (0 errors, 0 warnings), test execution (40/40 passed), and code formatting (`dotnet format --verify-no-changes`).
+
 

@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CalendarWidget.App\CalendarWidget.App.csproj" />
     <ProjectReference Include="..\..\src\CalendarWidget.Core\CalendarWidget.Core.csproj" />
     <ProjectReference Include="..\..\src\CalendarWidget.Presentation\CalendarWidget.Presentation.csproj" />
   </ItemGroup>
