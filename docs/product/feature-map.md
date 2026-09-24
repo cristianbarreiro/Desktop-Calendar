@@ -44,4 +44,4 @@ Desktop Calendar Widget
 
 ## Current Status
 
-All features are 🔴 Not started — repository is in Phase 0-1 (initialization).
+All product features are 🔴 Not started. Engineering Foundation (Phases 0–3) is complete; product development begins with Phase 4 (Application Shell).

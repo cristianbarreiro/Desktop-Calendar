@@ -118,20 +118,34 @@ dotnet format
 | [docs/adr/](./docs/adr/) | Architecture Decision Records |
 | [knowledge/](./knowledge/) | Project knowledge base |
 
+## Project Status
+
+### Engineering Foundation
+Complete (Phases 0–3: Repository setup, clean architecture, audit, and remediation).
+
+### Product Development
+Ready to start with:
+- **Phase 4 — Application Shell** (Next target)
+
 ## Roadmap
 
-- [x] Phase 0: Repository + AI context infrastructure
-- [x] Phase 1: Solution + projects + dependency boundaries
-- [ ] Phase 2: Application shell + window management
-- [ ] Phase 3: Widget UI
-- [ ] Phase 4: Calendar domain
-- [ ] Phase 5: SQLite persistence
-- [ ] Phase 6: Events
-- [ ] Phase 7: Notes
-- [ ] Phase 8: Settings
-- [ ] Phase 9: Windows integration
-- [ ] Phase 10: Testing + polish
-- [ ] Phase 11: Packaging + release
+### Engineering Foundation
+- [x] **Phase 0 — Repository Foundation**: Initial repository structure, solution setup, project organization, baseline tooling.
+- [x] **Phase 1 — Architecture & Context**: Architecture definition, project boundaries, development conventions, AI context, documentation structure, specifications, engineering rules.
+- [x] **Phase 2 — Repository Audit**: Read-only comprehensive audit of architecture, implementation, documentation, testing, CI/CD, AI context, and project consistency.
+- [x] **Phase 3 — Audit Remediation**: Controlled remediation of verified audit findings without introducing unrelated product functionality.
+
+### Product Implementation
+- [ ] **Phase 4 — Application Shell** (NEXT): WPF application shell, host startup, DI integration, window lifecycle management, MainWindow, WidgetWindow, basic switching.
+- [ ] **Phase 5 — Widget UI** (PLANNED): Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators.
+- [ ] **Phase 6 — Calendar** (PLANNED): 42-cell calendar grid, date selection, current date, keyboard navigation, configurable first day of week.
+- [ ] **Phase 7 — Persistence** (PLANNED): EF Core SQLite integration, migrations, repositories, database initialization.
+- [ ] **Phase 8 — Events** (PLANNED): Event CRUD, validation, event indicators, day details, event persistence.
+- [ ] **Phase 9 — Notes** (PLANNED): Notes CRUD, list, timestamps, search, persistence integration.
+- [ ] **Phase 10 — Settings** (PLANNED): Theme switching, always-on-top, startup behavior, opacity, first day of week, date/time format, export/import.
+- [ ] **Phase 11 — Windows Integration** (PLANNED): Single-instance global mutex, secondary-instance activation, position persistence, DPI awareness, tray integration.
+- [ ] **Phase 12 — Testing & Polish** (PLANNED): Test expansion, UI validation, accessibility, performance, edge cases, reliability.
+- [ ] **Phase 13 — Packaging & Release** (PLANNED): Production build, packaging, installer/distribution, versioning, GitHub release.
 
 ## Contributing
 

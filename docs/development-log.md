@@ -26,6 +26,15 @@
 - Untracked temporary MSBuild artifact `src/CalendarWidget.App/CalendarWidget.App_krlchx0l_wpftmp.csproj` and ignored via `*_wpftmp.csproj`.
 - Renamed test files `UnitTest1.cs` to match class fixtures (`Core/CalendarEventTests.cs`, `Persistence/AppDbContextTests.cs`).
 - Established complete `/specs/` hierarchy with 5 behavioral specifications (`calendar`, `widget`, `notes`, `settings`, `windows`).
-- Harmonized `docs/architecture/application-structure.md` by annotating planned Phase 2+ components.
+- Harmonized `docs/architecture/application-structure.md` by annotating planned product implementation components.
 - Validated solution build, test suite execution (5/5 passed), and formatting verification.
+
+## 2026-09-24 — Phase Roadmap Normalization
+
+### Activities
+- Established Canonical Project Roadmap distinguishing Engineering Foundation (Phases 0–3) from Product Implementation (Phases 4–13).
+- Updated `README.md`, `knowledge/roadmap.md`, `docs/project-state.md`, `docs/current-sprint.md`, and `docs/product/feature-map.md`.
+- Normalized phase numbers across architecture documentation to designate Phase 4 (Application Shell) as the immediate next target.
+- Verified global consistency across all agent instructions, rules, and documentation files.
+
 
