@@ -79,7 +79,7 @@ Core has zero outward dependencies.
 
 ```bash
 git clone <repository-url>
-cd "Desktop Calendar"
+cd Desktop-Calendar
 dotnet restore
 dotnet build
 ```
