@@ -17,7 +17,7 @@ Desktop Calendar/
 │   ├── CalendarWidget.Infrastructure/
 │   │   ├── Persistence/                # AppDbContext, Configurations, Migrations (Planned Phase 7)
 │   │   ├── Repositories/               # [Planned Phase 7] EfCalendarEventRepository, EfNoteRepository
-│   │   ├── Services/                   # [Planned Phase 11] WindowsStartupService, NotificationService
+│   │   ├── Services/                   # [Planned Phase 11] WindowsStartupService; notifications are Future scope
 │   │   └── DependencyInjection.cs      # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
 │       ├── ViewModels/                 # ViewModelBase; [Planned Phase 4+] WidgetViewModel, CalendarViewModel
