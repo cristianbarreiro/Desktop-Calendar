@@ -41,13 +41,14 @@ The Desktop Calendar Widget employs a **Layered Architecture** adhering to **Cle
   - MUST NOT reference `Infrastructure` or direct EF Core DbContext.
 
 ### 4. CalendarWidget.App (Application Composition Root)
-- **Role**: Entry point, startup sequence, dependency injection wiring (`Microsoft.Extensions.Hosting`).
+- **Role**: Entry point, startup sequence, dependency injection wiring (`Microsoft.Extensions.Hosting`), and concrete window lifecycle composition.
 - **Dependencies**: References `Core`, `Infrastructure`, and `Presentation`.
 - **Rules**:
   - Configures services, registers repositories and view models.
-  - Coordinates window lifecycles (Widget Mode vs Full Application Mode).
+  - Coordinates concrete window lifecycles (Widget Mode vs Full Application Mode).
+  - Owns application-specific window orchestration; window-management contracts must remain outside Core.
 
 ## Cross-Cutting Guidelines
 - **Offline / Local First**: No network calls by default; data resides in a local SQLite file.
 - **Observability**: Structured logging via `Microsoft.Extensions.Logging`.
-- **Decoupled System Calls**: Windows API / shell hooks abstracted behind domain-level or infrastructure-level contracts.
+- **Decoupled System Calls**: Windows API / shell hooks are isolated behind infrastructure or application-facing contracts as appropriate; domain contracts remain technology-agnostic.
