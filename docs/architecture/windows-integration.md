@@ -2,7 +2,7 @@
 
 ## Core Integration Points
 
-The Desktop Calendar Widget connects with native Windows capabilities through clean interfaces defined in `Core` and implemented in `Infrastructure`.
+The Desktop Calendar Widget connects with native Windows capabilities through contracts owned by the layer that consumes them and implementations isolated in `Infrastructure`. Domain persistence contracts may live in `Core`; window/UI orchestration contracts do not.
 
 ### 1. System Tray & Shell Lifecycle
 - Minimizing widget can dock to the notification area (Tray Icon) using native Windows Shell APIs or NotifyIcon.
@@ -10,7 +10,7 @@ The Desktop Calendar Widget connects with native Windows capabilities through cl
 
 ### 2. Auto-Start with Windows
 - Configured via registry key `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` or Windows Startup Task API.
-- Wrapped in `IStartupManager` contract to enable unit/integration testing without modifying actual host registry during tests.
+- Wrapped in an application/infrastructure-facing `IStartupManager` contract to enable unit/integration testing without modifying the actual host registry during tests.
 
 ### 3. Window Positioning & Display Awareness
 - **Always-on-top**: Configurable `Topmost` WPF window property.
