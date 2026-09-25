@@ -422,7 +422,7 @@ public sealed class WidgetViewModelTests
     [Fact]
     public void SelectedState_SurvivesMonthNavigationWhenDateInGrid()
     {
-        // Arrange: select September 30 which will appear as trailing day in October grid
+        // Arrange: select September 30 which will appear as leading day in October grid
         CalendarDayModel day30 = _sut.Days.First(d => d.DayNumber == 30 && d.IsCurrentMonth);
         _sut.SelectDay(day30);
 
@@ -432,5 +432,58 @@ public sealed class WidgetViewModelTests
         // Assert: selected day should be preserved since Sept 30 is visible in October's grid
         _sut.SelectedDay.Should().NotBeNull();
         _sut.SelectedDay!.Date.Should().Be(new DateOnly(2026, 9, 30));
+    }
+
+    [Fact]
+    public void NextMonth_WhenSelectedDayLeavesVisibleGrid_ClearsSelectionAndCollapsesTray()
+    {
+        // Arrange: select September 15 which will NOT be in October grid
+        CalendarDayModel day15 = _sut.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        _sut.SelectDay(day15);
+        _sut.IsExpanded.Should().BeTrue();
+        _sut.SelectedDayHeader.Should().NotBeEmpty();
+
+        // Act
+        _sut.NextMonth();
+
+        // Assert: selection cleared, header cleared, tray collapsed
+        _sut.SelectedDay.Should().BeNull();
+        _sut.SelectedDayHeader.Should().BeEmpty();
+        _sut.IsExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PreviousMonth_WhenSelectedDayLeavesVisibleGrid_ClearsSelectionAndCollapsesTray()
+    {
+        // Arrange: select September 15 which will NOT be in August grid
+        CalendarDayModel day15 = _sut.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        _sut.SelectDay(day15);
+        _sut.IsExpanded.Should().BeTrue();
+        _sut.SelectedDayHeader.Should().NotBeEmpty();
+
+        // Act
+        _sut.PreviousMonth();
+
+        // Assert: selection cleared, header cleared, tray collapsed
+        _sut.SelectedDay.Should().BeNull();
+        _sut.SelectedDayHeader.Should().BeEmpty();
+        _sut.IsExpanded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void NavigateRight_WhenSelectedDayIsNull_SelectsFromFirstOfMonth()
+    {
+        // Arrange: clear selection by navigating to a month where selected date leaves grid
+        CalendarDayModel day15 = _sut.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        _sut.SelectDay(day15);
+        _sut.NextMonth();
+        _sut.SelectedDay.Should().BeNull();
+
+        // Act: navigate right from base (October 1)
+        _sut.NavigateRight();
+
+        // Assert: October 2 is selected
+        _sut.SelectedDay.Should().NotBeNull();
+        _sut.SelectedDay!.Date.Should().Be(new DateOnly(2026, 10, 2));
     }
 }

@@ -174,10 +174,7 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void Escape()
     {
-        if (IsExpanded)
-        {
-            IsExpanded = false;
-        }
+        IsExpanded = false;
     }
 
     /// <summary>
@@ -188,6 +185,7 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
     {
         DateOnly baseDate = SelectedDay?.Date ?? new DateOnly(CurrentYear, CurrentMonth, 1);
         DateOnly targetDate = baseDate.AddDays(daysDelta);
+        bool wasExpanded = IsExpanded;
 
         // If the target date is outside the currently displayed month, navigate to that month
         if (targetDate.Year != CurrentYear || targetDate.Month != CurrentMonth)
@@ -202,12 +200,7 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
         {
             SelectedDay = targetDay;
             UpdateSelectedDayHeader(targetDay);
-
-            if (IsExpanded)
-            {
-                // Keep expanded when navigating with keyboard while expanded
-                IsExpanded = true;
-            }
+            IsExpanded = wasExpanded;
         }
     }
 
@@ -280,7 +273,18 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
 
         if (SelectedDay is not null)
         {
-            SelectedDay = Days.FirstOrDefault(d => d.Date == SelectedDay.Date);
+            CalendarDayModel? matchingDay = Days.FirstOrDefault(d => d.Date == SelectedDay.Date);
+            if (matchingDay is not null)
+            {
+                SelectedDay = matchingDay;
+                UpdateSelectedDayHeader(matchingDay);
+            }
+            else
+            {
+                SelectedDay = null;
+                SelectedDayHeader = string.Empty;
+                IsExpanded = false;
+            }
         }
     }
 

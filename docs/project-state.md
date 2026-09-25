@@ -3,7 +3,7 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 5 complete)
+- **Product Implementation**: In Progress (Phase 5 complete & remediated)
 - **Next Phase**: Phase 6 — Calendar Grid & Navigation
 - **Current Date**: 2026-09-25
 
@@ -18,7 +18,7 @@
 | **Phase 2** | Engineering Foundation | Read-Only Repository Audit | **COMPLETED** |
 | **Phase 3** | Engineering Foundation | Controlled Audit Remediation | **COMPLETED** |
 | **Phase 4** | Product Implementation | Application Shell & Window Management | **COMPLETED** |
-| **Phase 5** | Product Implementation | Widget UI | **COMPLETED** |
+| **Phase 5** | Product Implementation | Widget UI (Completed & Remediated) | **COMPLETED** |
 | **Phase 6** | Product Implementation | Calendar Grid & Navigation | **NEXT** |
 | **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **PLANNED** |
 | **Phase 8** | Product Implementation | Events Management | **PLANNED** |
@@ -60,14 +60,16 @@
 - [x] ViewModels (`MainWindowViewModel`, `WidgetViewModel`, `CalendarViewModel`, `NotesViewModel`, `SettingsViewModel`)
 - [x] XAML Views (`CalendarView`, `NotesView`, `SettingsView`)
 - [x] Design System (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`)
-  - Added `SurfacePressedBrush` and `TodayBackgroundBrush` color tokens
+  - Added `SurfacePressedBrush`, `TodayBackgroundBrush`, `TodaySelectedBorderBrush`, and `SelectedEventDotBrush` color tokens
   - Added visible keyboard focus indicators and pressed states to action buttons
-- [x] Multi-value converter `IsSelectedDayConverter` for MVVM date selection state binding
-- [x] Widget interactive refinement:
-  - Day selection interaction model with toggle expand/collapse behavior
-  - Keyboard navigation (Left/Right/Up/Down arrow keys) with month/year boundary crossing
-  - Escape shortcut for tray collapse
-  - Storyboard-driven expand/collapse animation for detail tray (height and opacity transitions)
+- [x] Multi-value converter `IsSelectedDayConverter` for MVVM date selection state binding (fully unit-tested)
+- [x] Widget interactive refinement & remediation (Phase 5):
+  - Coexistence of `Today + Selected` visual states via MultiDataTrigger (accent fill + high-contrast white border)
+  - Contrast preservation for `Selected + HasEvents` via `SelectedEventDotBrush`
+  - Contextual keyboard navigation: arrow keys scoped to `CalendarGrid`, `Escape` available at window level
+  - Coherent focus model on day cells with visible focus borders
+  - Selection consistency on month navigation: stale selection cleared when date leaves visible 42-cell grid
+  - Zero-footprint collapsed detail tray using `ThicknessAnimation` for margin, padding, and border thickness alongside height and opacity
   - Accessibility labels and tooltips on widget header and calendar controls
 - [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
 
@@ -82,8 +84,8 @@
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, and selection edge cases
-- [x] 73 automated tests passing (72 unit tests, 1 integration test, 0 failures)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, and converter logic
+- [x] 83 automated tests passing (82 unit tests, 1 integration test, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 

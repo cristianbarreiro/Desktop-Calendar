@@ -33,15 +33,19 @@ Transition from Phase 5 (Widget UI) into Phase 6 (Calendar Grid & Navigation) to
   - Initial Design System resources (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`).
   - Test suite with automated tests covering grid, view models, window orchestration, and application shutdown lifecycle.
   - Zero build warnings/errors, clean code formatting.
-- [x] **Widget UI (Phase 5)**:
+- [x] **Widget UI (Phase 5 & Phase 5 Remediation)**:
   - Visual polish: distinct day cell states (normal, other month, today, hover, pressed, selected, has events).
-  - Selected day multi-value converter (`IsSelectedDayConverter`) preserving immutable record architecture.
+  - Selected day multi-value converter (`IsSelectedDayConverter`) preserving immutable record architecture, with 100% unit test coverage.
+  - Coexistence of `Today + Selected` visual signals via MultiDataTrigger (blue accent background + high-contrast white border + bold text).
+  - High contrast for `Selected + HasEvents` via `SelectedEventDotBrush`.
   - Interactive selection: click to select and open tray, click selected day again to collapse tray.
-  - Keyboard navigation: arrow keys (Left/Right/Up/Down) with automatic month/year boundary crossing, Escape to collapse.
-  - Smooth animation: XAML Storyboard vertical expand/collapse and opacity transitions for day detail tray.
-  - Design tokens: added `SurfacePressedBrush` and `TodayBackgroundBrush` color tokens, keyboard focus indicators on action buttons.
+  - Contextual keyboard navigation: arrow keys (Left/Right/Up/Down) scoped to `CalendarGrid` with automatic month/year boundary crossing, Escape to collapse from anywhere in window.
+  - Focus model: day cells are focusable with visible accent border focus indicator.
+  - Stale selection prevention: `SelectedDay = null`, `SelectedDayHeader = string.Empty`, and `IsExpanded = false` when date leaves visible 42-cell grid upon month navigation.
+  - Clean collapsed state: detail tray leaves zero layout footprint when collapsed, with smooth Storyboard `ThicknessAnimation` for margin/padding/borders alongside height and opacity.
+  - Design tokens: added `SurfacePressedBrush`, `TodayBackgroundBrush`, `TodaySelectedBorderBrush`, and `SelectedEventDotBrush`.
   - Accessibility: `AutomationProperties.Name` and tooltips on all widget buttons and day cells.
-  - Comprehensive unit test suite: 72 unit tests + 1 integration test (73 total passing).
+  - Comprehensive unit test suite expanded to 83 automated tests (82 unit tests + 1 integration test, 0 failures).
 
 ---
 

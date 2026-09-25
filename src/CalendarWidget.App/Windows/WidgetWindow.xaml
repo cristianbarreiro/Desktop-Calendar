@@ -24,10 +24,6 @@
 
     <Window.InputBindings>
         <KeyBinding Key="Escape" Command="{Binding EscapeCommand}" />
-        <KeyBinding Key="Left" Command="{Binding NavigateLeftCommand}" />
-        <KeyBinding Key="Right" Command="{Binding NavigateRightCommand}" />
-        <KeyBinding Key="Up" Command="{Binding NavigateUpCommand}" />
-        <KeyBinding Key="Down" Command="{Binding NavigateDownCommand}" />
     </Window.InputBindings>
 
     <!-- Outer Rounded Shell -->
@@ -164,9 +160,20 @@
             </ItemsControl>
 
             <!-- 4. Compact 7x6 Calendar Grid -->
-            <ItemsControl Grid.Row="3"
+            <!-- 4. Compact 7x6 Calendar Grid -->
+            <ItemsControl x:Name="CalendarGrid"
+                          Grid.Row="3"
                           ItemsSource="{Binding Days}"
-                          Focusable="False">
+                          Focusable="True"
+                          FocusVisualStyle="{x:Null}"
+                          KeyboardNavigation.TabNavigation="Once"
+                          KeyboardNavigation.DirectionalNavigation="None">
+                <ItemsControl.InputBindings>
+                    <KeyBinding Key="Left" Command="{Binding NavigateLeftCommand}" />
+                    <KeyBinding Key="Right" Command="{Binding NavigateRightCommand}" />
+                    <KeyBinding Key="Up" Command="{Binding NavigateUpCommand}" />
+                    <KeyBinding Key="Down" Command="{Binding NavigateDownCommand}" />
+                </ItemsControl.InputBindings>
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="7" Rows="6" />
@@ -180,7 +187,8 @@
                                 MinHeight="28"
                                 MinWidth="28"
                                 Cursor="Hand"
-                                Focusable="False"
+                                Focusable="True"
+                                FocusVisualStyle="{x:Null}"
                                 AutomationProperties.Name="{Binding Date, StringFormat='{}{0:MMMM d, yyyy}'}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
@@ -216,7 +224,7 @@
                                             <Setter TargetName="DayCellBorder" Property="Opacity" Value="0.4" />
                                         </DataTrigger>
 
-                                        <!-- Today indicator: accent tinted background + bold -->
+                                        <!-- Today indicator: accent tinted background + accent border + bold -->
                                         <DataTrigger Binding="{Binding IsToday}" Value="True">
                                             <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource TodayBackgroundBrush}" />
                                             <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
@@ -233,6 +241,11 @@
                                             <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfacePressedBrush}" />
                                         </Trigger>
 
+                                        <!-- Keyboard focus indicator -->
+                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                            <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                        </Trigger>
+
                                         <!-- Selected state: accent background with high-contrast text -->
                                         <DataTrigger Value="True">
                                             <DataTrigger.Binding>
@@ -244,14 +257,52 @@
                                             </DataTrigger.Binding>
                                             <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
                                             <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource SurfaceSelectedBrush}" />
-                                            <Setter TargetName="DayText" Property="Foreground" Value="#FFFFFF" />
+                                            <Setter TargetName="DayText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                             <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
                                         </DataTrigger>
+
+                                        <!-- Today + Selected: both coexist with SurfaceSelected background and high-contrast Today border -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsToday}" Value="True" />
+                                                <Condition Value="True">
+                                                    <Condition.Binding>
+                                                        <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                            <Binding Path="DataContext.SelectedDay"
+                                                                     RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                            <Binding />
+                                                        </MultiBinding>
+                                                    </Condition.Binding>
+                                                </Condition>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                            <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource TodaySelectedBorderBrush}" />
+                                            <Setter TargetName="DayText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                            <Setter TargetName="DayText" Property="FontWeight" Value="Bold" />
+                                        </MultiDataTrigger>
 
                                         <!-- Has events dot -->
                                         <DataTrigger Binding="{Binding HasEvents}" Value="True">
                                             <Setter TargetName="EventDot" Property="Visibility" Value="Visible" />
                                         </DataTrigger>
+
+                                        <!-- Selected + HasEvents: high-contrast white dot on blue background -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding HasEvents}" Value="True" />
+                                                <Condition Value="True">
+                                                    <Condition.Binding>
+                                                        <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                            <Binding Path="DataContext.SelectedDay"
+                                                                     RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                            <Binding />
+                                                        </MultiBinding>
+                                                    </Condition.Binding>
+                                                </Condition>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="EventDot" Property="Visibility" Value="Visible" />
+                                            <Setter TargetName="EventDot" Property="Fill" Value="{DynamicResource SelectedEventDotBrush}" />
+                                        </MultiDataTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Button.Template>
@@ -265,19 +316,30 @@
                     Grid.Row="4"
                     Background="{DynamicResource SurfaceCardBrush}"
                     BorderBrush="{DynamicResource BorderDividerBrush}"
-                    BorderThickness="0,1,0,0"
-                    Padding="10"
-                    Margin="0,8,0,0"
                     ClipToBounds="True">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="MaxHeight" Value="0" />
                         <Setter Property="Opacity" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="BorderThickness" Value="0" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsExpanded}" Value="True">
                                 <DataTrigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
+                                            <ThicknessAnimation Storyboard.TargetProperty="Margin"
+                                                                To="0,8,0,0"
+                                                                Duration="0:0:0.18"
+                                                                DecelerationRatio="0.7" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="Padding"
+                                                                To="10"
+                                                                Duration="0:0:0.18"
+                                                                DecelerationRatio="0.7" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="BorderThickness"
+                                                                To="0,1,0,0"
+                                                                Duration="0:0:0.05" />
                                             <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
                                                              To="140"
                                                              Duration="0:0:0.18"
@@ -292,6 +354,18 @@
                                 <DataTrigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
+                                            <ThicknessAnimation Storyboard.TargetProperty="Margin"
+                                                                To="0"
+                                                                Duration="0:0:0.15"
+                                                                AccelerationRatio="0.5" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="Padding"
+                                                                To="0"
+                                                                Duration="0:0:0.15"
+                                                                AccelerationRatio="0.5" />
+                                            <ThicknessAnimation Storyboard.TargetProperty="BorderThickness"
+                                                                To="0"
+                                                                BeginTime="0:0:0.14"
+                                                                Duration="0:0:0.01" />
                                             <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
                                                              To="0"
                                                              Duration="0:0:0.15"

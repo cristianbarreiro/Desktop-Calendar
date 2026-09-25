@@ -8,6 +8,8 @@
     <Color x:Key="ColorSurfaceSelected">#0078D4</Color>
     <Color x:Key="ColorSurfacePressed">#1A1A1C</Color>
     <Color x:Key="ColorTodayBackground">#1A3A5C</Color>
+    <Color x:Key="ColorTodaySelectedBorder">#FFFFFF</Color>
+    <Color x:Key="ColorSelectedEventDot">#FFFFFF</Color>
     <Color x:Key="ColorBorderDivider">#3E3E42</Color>
     <Color x:Key="ColorTextPrimary">#FFFFFF</Color>
     <Color x:Key="ColorTextSecondary">#CCCCCC</Color>
@@ -21,6 +23,8 @@
     <SolidColorBrush x:Key="SurfaceSelectedBrush" Color="{StaticResource ColorSurfaceSelected}" />
     <SolidColorBrush x:Key="SurfacePressedBrush" Color="{StaticResource ColorSurfacePressed}" />
     <SolidColorBrush x:Key="TodayBackgroundBrush" Color="{StaticResource ColorTodayBackground}" />
+    <SolidColorBrush x:Key="TodaySelectedBorderBrush" Color="{StaticResource ColorTodaySelectedBorder}" />
+    <SolidColorBrush x:Key="SelectedEventDotBrush" Color="{StaticResource ColorSelectedEventDot}" />
     <SolidColorBrush x:Key="BorderDividerBrush" Color="{StaticResource ColorBorderDivider}" />
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource ColorTextPrimary}" />
     <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource ColorTextSecondary}" />
