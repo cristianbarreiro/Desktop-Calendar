@@ -1,5 +1,8 @@
+using System.IO;
 using CalendarWidget.App.Services;
 using CalendarWidget.App.Windows;
+using CalendarWidget.Infrastructure;
+using CalendarWidget.Infrastructure.Persistence;
 using CalendarWidget.Presentation.Services;
 using CalendarWidget.Presentation.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +22,21 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        string dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "DesktopCalendar",
+            "calendar.db");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+
+        string connectionString = $"Data Source={dbPath}";
+
         IHost host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((_, services) =>
             {
+                // Infrastructure (persistence, repositories)
+                services.AddInfrastructure(connectionString);
+
                 // Application Lifecycle and Window Management
                 services.AddSingleton<App>();
                 services.AddSingleton<IWindowManager, WindowManager>();
@@ -45,6 +60,13 @@ public static class Program
             .Build();
 
         host.Start();
+
+        // Initialize database (apply migrations, enable WAL)
+        using (IServiceScope scope = host.Services.CreateScope())
+        {
+            DatabaseInitializer initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
+            initializer.InitializeAsync().GetAwaiter().GetResult();
+        }
 
         App app = host.Services.GetRequiredService<App>();
         app.InitializeComponent();

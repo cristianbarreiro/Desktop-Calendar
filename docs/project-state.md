@@ -4,7 +4,7 @@
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
 - **Product Implementation**: In Progress (Phase 6 complete)
-- **Next Phase**: Phase 7 — Persistence & SQLite Repositories
+- **Next Phase**: Phase 8 — Events Management
 - **Current Date**: 2026-09-25
 
 ---
@@ -20,8 +20,8 @@
 | **Phase 4** | Product Implementation | Application Shell & Window Management | **COMPLETED** |
 | **Phase 5** | Product Implementation | Widget UI (Completed & Remediated) | **COMPLETED** |
 | **Phase 6** | Product Implementation | Calendar Grid & Navigation | **COMPLETED** |
-| **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **NEXT** |
-| **Phase 8** | Product Implementation | Events Management | **PLANNED** |
+| **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **COMPLETED** |
+| **Phase 8** | Product Implementation | Events Management | **NEXT** |
 | **Phase 9** | Product Implementation | Notes Management | **PLANNED** |
 | **Phase 10** | Product Implementation | Settings & Appearance | **PLANNED** |
 | **Phase 11** | Product Implementation | Windows OS Integration | **PLANNED** |
@@ -50,8 +50,8 @@
 ### Infrastructure
 - [x] EF Core `AppDbContext` configured with entity models
 - [x] Infrastructure DI extension method (`AddInfrastructure`)
-- [ ] SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`) — Planned Phase 7
-- [ ] Database migration pipeline — Planned Phase 7
+- [x] SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`) — Phase 7
+- [x] Database migration pipeline — Phase 7
 - [ ] Windows Shell / Tray / Startup services — Planned Phase 11
 
 ### Presentation
@@ -96,7 +96,7 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, and converter logic
-- [x] 100 automated tests passing (99 unit tests, 1 integration test, 0 failures)
+- [x] 132 automated tests passing (99 unit tests, 33 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -108,7 +108,7 @@
 ---
 
 ## Current Priorities
-1. **Phase 7 — Persistence & SQLite Repositories**:
-   - Implement `EfCalendarEventRepository` and `EfNoteRepository` with EF Core.
-   - Configure SQLite schema and initial migrations pipeline.
-   - Author integration tests for SQLite persistence lifecycle.
+1. **Phase 8 — Events Management**:
+   - Event CRUD UI in CalendarView.
+   - Event indicators on calendar day cells.
+   - Day detail panel with event list.

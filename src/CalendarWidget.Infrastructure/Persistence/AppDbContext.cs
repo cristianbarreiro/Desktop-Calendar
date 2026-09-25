@@ -8,14 +8,20 @@ namespace CalendarWidget.Infrastructure.Persistence;
 /// </summary>
 public sealed class AppDbContext : DbContext
 {
+    /// <summary>
+    /// Initializes a new instance of <see cref="AppDbContext"/>.
+    /// </summary>
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
     }
 
+    /// <summary>Gets the calendar events set.</summary>
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
 
+    /// <summary>Gets the notes set.</summary>
     public DbSet<Note> Notes => Set<Note>();
 
+    /// <inheritdoc />
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -32,6 +38,7 @@ public sealed class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Content).HasMaxLength(50_000);
         });
     }
 }
