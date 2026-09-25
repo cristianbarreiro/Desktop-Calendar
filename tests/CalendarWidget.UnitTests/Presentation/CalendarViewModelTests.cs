@@ -417,4 +417,271 @@ public sealed class CalendarViewModelTests
         vm.SelectedDay.Should().NotBeNull();
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 9, 2));
     }
+
+    // === PageUp / PageDown ===
+
+    [Fact]
+    public void NavigatePreviousMonthKeepingSelection_OnMiddleOfMonth_SelectsSameDayPreviousMonth()
+    {
+        // Arrange: September 15, 2026
+        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        vm.SelectDay(sept15);
+
+        // Act
+        vm.NavigatePreviousMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(8);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 8, 15));
+        vm.SelectedDateFormatted.Should().Contain("August 15, 2026");
+    }
+
+    [Fact]
+    public void NavigatePreviousMonthKeepingSelection_FromJanuary_CrossesIntoPreviousYear()
+    {
+        // Arrange: January 15, 2026
+        TestClockService clock = new(new DateTime(2026, 1, 15));
+        CalendarViewModel vm = new(_gridService, clock);
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 1, 15));
+
+        // Act
+        vm.NavigatePreviousMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2025);
+        vm.CurrentMonth.Should().Be(12);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2025, 12, 15));
+    }
+
+    [Fact]
+    public void NavigatePreviousMonthKeepingSelection_FromDay31_ClampsToPreviousShortMonth()
+    {
+        // Arrange: March 31, 2026 → February has 28 days (non-leap)
+        TestClockService clock = new(new DateTime(2026, 3, 31));
+        CalendarViewModel vm = new(_gridService, clock);
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 3, 31));
+
+        // Act
+        vm.NavigatePreviousMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(2);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 2, 28));
+    }
+
+    [Fact]
+    public void NavigateNextMonthKeepingSelection_OnMiddleOfMonth_SelectsSameDayNextMonth()
+    {
+        // Arrange: September 15, 2026
+        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        vm.SelectDay(sept15);
+
+        // Act
+        vm.NavigateNextMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(10);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 10, 15));
+        vm.SelectedDateFormatted.Should().Contain("October 15, 2026");
+    }
+
+    [Fact]
+    public void NavigateNextMonthKeepingSelection_FromDecember_CrossesIntoNextYear()
+    {
+        // Arrange: December 15, 2026
+        TestClockService clock = new(new DateTime(2026, 12, 15));
+        CalendarViewModel vm = new(_gridService, clock);
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 12, 15));
+
+        // Act
+        vm.NavigateNextMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2027);
+        vm.CurrentMonth.Should().Be(1);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2027, 1, 15));
+    }
+
+    [Fact]
+    public void NavigateNextMonthKeepingSelection_FromDay31_ClampsToNextShortMonth()
+    {
+        // Arrange: January 31, 2026 → February has 28 days (non-leap)
+        TestClockService clock = new(new DateTime(2026, 1, 31));
+        CalendarViewModel vm = new(_gridService, clock);
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 1, 31));
+
+        // Act
+        vm.NavigateNextMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(2);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 2, 28));
+    }
+
+    // === Home / End ===
+
+    [Fact]
+    public void NavigateToMonthStart_OnSelectedDate_SelectsFirstDayOfCurrentMonth()
+    {
+        // Arrange: September 18, 2026
+        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarDayModel sept18 = vm.Days.First(d => d.DayNumber == 18 && d.IsCurrentMonth);
+        vm.SelectDay(sept18);
+
+        // Act
+        vm.NavigateToMonthStart();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(9);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 9, 1));
+        vm.SelectedDateFormatted.Should().Contain("September 1, 2026");
+    }
+
+    [Fact]
+    public void NavigateToMonthStart_OnFebruary_SelectsFebruaryFirst()
+    {
+        // Arrange: February 2026
+        TestClockService clock = new(new DateTime(2026, 2, 14));
+        CalendarViewModel vm = new(_gridService, clock);
+
+        // Act
+        vm.NavigateToMonthStart();
+
+        // Assert
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 2, 1));
+        vm.CurrentMonth.Should().Be(2);
+    }
+
+    [Fact]
+    public void NavigateToMonthEnd_OnSelectedDate_SelectsLastDayOfCurrentMonth()
+    {
+        // Arrange: September 18, 2026 (September has 30 days)
+        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarDayModel sept18 = vm.Days.First(d => d.DayNumber == 18 && d.IsCurrentMonth);
+        vm.SelectDay(sept18);
+
+        // Act
+        vm.NavigateToMonthEnd();
+
+        // Assert
+        vm.CurrentYear.Should().Be(2026);
+        vm.CurrentMonth.Should().Be(9);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 9, 30));
+        vm.SelectedDateFormatted.Should().Contain("September 30, 2026");
+    }
+
+    [Fact]
+    public void NavigateToMonthEnd_OnLeapYearFebruary_SelectsFebruary29()
+    {
+        // Arrange: February 2024 (leap year)
+        TestClockService clock = new(new DateTime(2024, 2, 10));
+        CalendarViewModel vm = new(_gridService, clock);
+
+        // Act
+        vm.NavigateToMonthEnd();
+
+        // Assert
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2024, 2, 29));
+    }
+
+    [Fact]
+    public void NavigateToMonthEnd_OnNonLeapYearFebruary_SelectsFebruary28()
+    {
+        // Arrange: February 2026 (non-leap year)
+        TestClockService clock = new(new DateTime(2026, 2, 10));
+        CalendarViewModel vm = new(_gridService, clock);
+
+        // Act
+        vm.NavigateToMonthEnd();
+
+        // Assert
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 2, 28));
+    }
+
+    [Fact]
+    public void NavigateToMonthEnd_OnThirtyDayMonth_SelectsDay30()
+    {
+        // Arrange: April 2026 (30 days)
+        TestClockService clock = new(new DateTime(2026, 4, 10));
+        CalendarViewModel vm = new(_gridService, clock);
+
+        // Act
+        vm.NavigateToMonthEnd();
+
+        // Assert
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 4, 30));
+    }
+
+    [Fact]
+    public void NavigateToMonthEnd_OnThirtyOneDayMonth_SelectsDay31()
+    {
+        // Arrange: October 2026 (31 days)
+        TestClockService clock = new(new DateTime(2026, 10, 10));
+        CalendarViewModel vm = new(_gridService, clock);
+
+        // Act
+        vm.NavigateToMonthEnd();
+
+        // Assert
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 10, 31));
+    }
+
+    // === PageUp/PageDown with FirstDayOfWeek ===
+
+    [Fact]
+    public void NavigateNextMonthKeepingSelection_WithSundayFirstDayOfWeek_SelectsCorrectDay()
+    {
+        // Arrange: September 15, 2026, Sunday-first grid
+        CalendarViewModel vm = new(_gridService, _clockService);
+        vm.FirstDayOfWeek = DayOfWeek.Sunday;
+        CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
+        vm.SelectDay(sept15);
+
+        // Act
+        vm.NavigateNextMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentMonth.Should().Be(10);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 10, 15));
+        vm.DayHeaders[0].Should().Be("Su");
+    }
+
+    [Fact]
+    public void NavigatePreviousMonthKeepingSelection_WithMondayFirstDayOfWeek_SelectsCorrectDay()
+    {
+        // Arrange: September 10, 2026, Monday-first grid (default)
+        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarDayModel sept10 = vm.Days.First(d => d.DayNumber == 10 && d.IsCurrentMonth);
+        vm.SelectDay(sept10);
+
+        // Act
+        vm.NavigatePreviousMonthKeepingSelection();
+
+        // Assert
+        vm.CurrentMonth.Should().Be(8);
+        vm.SelectedDay.Should().NotBeNull();
+        vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 8, 10));
+        vm.DayHeaders[0].Should().Be("Mo");
+    }
 }

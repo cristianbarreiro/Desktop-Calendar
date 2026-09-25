@@ -79,7 +79,9 @@
   - Configurable `FirstDayOfWeek` with automatic headers and grid synchronization
   - Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`
   - Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible
-  - Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`
+  - Contextual keyboard navigation (Left, Right, Up, Down, PageUp, PageDown, Home, End) with month/year crossing scoped to `CalendarGrid`
+  - PageUp/PageDown navigate to previous/next month preserving day-of-month selection (clamped to last valid day)
+  - Home/End navigate to first/last day of the currently displayed month
   - Coherent focus model with visible keyboard focus indicators on buttons and day cells
   - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells
 - [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
@@ -96,7 +98,7 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, and converter logic
-- [x] 132 automated tests passing (99 unit tests, 33 integration tests, 0 failures)
+- [x] 147 automated tests passing (114 unit tests, 33 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 

@@ -224,6 +224,102 @@ public sealed partial class CalendarViewModel : ViewModelBase
         NavigateByDays(7);
     }
 
+    /// <summary>
+    /// Navigates to the previous month, preserving the selected day-of-month where possible,
+    /// clamping to the last valid day of the target month when necessary.
+    /// </summary>
+    [RelayCommand]
+    public void NavigatePreviousMonthKeepingSelection()
+    {
+        NavigateMonthWithSelection(forward: false);
+    }
+
+    /// <summary>
+    /// Navigates to the next month, preserving the selected day-of-month where possible,
+    /// clamping to the last valid day of the target month when necessary.
+    /// </summary>
+    [RelayCommand]
+    public void NavigateNextMonthKeepingSelection()
+    {
+        NavigateMonthWithSelection(forward: true);
+    }
+
+    /// <summary>
+    /// Moves the selection to the first or last day of the currently displayed month.
+    /// </summary>
+    /// <param name="lastDay"><c>true</c> to select the last day; <c>false</c> to select the first day.</param>
+    public void NavigateToMonthBoundary(bool lastDay)
+    {
+        int targetDay = lastDay
+            ? DateTime.DaysInMonth(CurrentYear, CurrentMonth)
+            : 1;
+
+        DateOnly targetDate = new(CurrentYear, CurrentMonth, targetDay);
+        CalendarDayModel? targetModel = Days.FirstOrDefault(d => d.Date == targetDate);
+        if (targetModel is not null)
+        {
+            SelectDay(targetModel);
+        }
+    }
+
+    /// <summary>
+    /// Moves the selection to the first day of the currently displayed month.
+    /// </summary>
+    [RelayCommand]
+    public void NavigateToMonthStart()
+    {
+        NavigateToMonthBoundary(lastDay: false);
+    }
+
+    /// <summary>
+    /// Moves the selection to the last day of the currently displayed month.
+    /// </summary>
+    [RelayCommand]
+    public void NavigateToMonthEnd()
+    {
+        NavigateToMonthBoundary(lastDay: true);
+    }
+
+    private void NavigateMonthWithSelection(bool forward)
+    {
+        int currentDay = SelectedDay?.Date.Day ?? 1;
+
+        if (forward)
+        {
+            if (CurrentMonth == 12)
+            {
+                CurrentYear++;
+                CurrentMonth = 1;
+            }
+            else
+            {
+                CurrentMonth++;
+            }
+        }
+        else
+        {
+            if (CurrentMonth == 1)
+            {
+                CurrentYear--;
+                CurrentMonth = 12;
+            }
+            else
+            {
+                CurrentMonth--;
+            }
+        }
+
+        RefreshGrid();
+
+        int clampedDay = Math.Min(currentDay, DateTime.DaysInMonth(CurrentYear, CurrentMonth));
+        DateOnly targetDate = new(CurrentYear, CurrentMonth, clampedDay);
+        CalendarDayModel? targetModel = Days.FirstOrDefault(d => d.Date == targetDate);
+        if (targetModel is not null)
+        {
+            SelectDay(targetModel);
+        }
+    }
+
     private void UpdateSelectedDateText(CalendarDayModel? day)
     {
         if (day is null)

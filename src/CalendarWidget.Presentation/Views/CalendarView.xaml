@@ -125,6 +125,10 @@
                             <KeyBinding Key="Right" Command="{Binding NavigateRightCommand}" />
                             <KeyBinding Key="Up" Command="{Binding NavigateUpCommand}" />
                             <KeyBinding Key="Down" Command="{Binding NavigateDownCommand}" />
+                            <KeyBinding Key="PageUp" Command="{Binding NavigatePreviousMonthKeepingSelectionCommand}" />
+                            <KeyBinding Key="PageDown" Command="{Binding NavigateNextMonthKeepingSelectionCommand}" />
+                            <KeyBinding Key="Home" Command="{Binding NavigateToMonthStartCommand}" />
+                            <KeyBinding Key="End" Command="{Binding NavigateToMonthEndCommand}" />
                         </ItemsControl.InputBindings>
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>

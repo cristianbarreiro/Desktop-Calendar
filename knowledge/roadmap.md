@@ -57,7 +57,7 @@ This document serves as the canonical source of truth for project phase definiti
   - 42-cell calendar grid calculation and rendering
   - Month navigation and boundary month trailing/leading days
   - Date selection and today indicator
-  - Full keyboard navigation (Arrow keys, PageUp/PageDown, Home/End)
+  - Full keyboard navigation (Arrow keys Left/Right/Up/Down, PageUp/PageDown, Home/End)
   - Configurable first day of week (Monday / Sunday)
   - Calendar presentation behavior and styling
 

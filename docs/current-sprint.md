@@ -56,7 +56,9 @@ Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events
   - Configurable `FirstDayOfWeek` with automatic headers and grid synchronization.
   - Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`.
   - Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible.
-  - Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`.
+  - Contextual keyboard navigation (Left, Right, Up, Down, PageUp, PageDown, Home, End) with month/year crossing scoped to `CalendarGrid`.
+  - PageUp/PageDown navigate to previous/next month preserving day-of-month selection (clamped to last valid day of target month).
+  - Home/End navigate to first/last day of the currently displayed month.
   - Coherent focus model with visible keyboard focus indicators on buttons and day cells.
   - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
   - Comprehensive test suite expanded to 100 automated tests (99 unit tests + 1 integration test, 0 failures).
@@ -70,7 +72,7 @@ Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events
   - Infrastructure DI extension (`AddInfrastructure`) registering repositories and `DatabaseInitializer` as scoped.
   - Isolated SQLite test helper (`SqliteTestContext`) with `SqliteConnection.ClearAllPools()` for safe temp-file cleanup.
   - 33 integration tests: 11 event repository tests, 17 note repository tests, 5 migration/schema tests.
-  - Total automated tests: 132 (99 unit + 33 integration, 0 failures).
+  - Total automated tests: 147 (114 unit + 33 integration, 0 failures).
 
 ---
 
