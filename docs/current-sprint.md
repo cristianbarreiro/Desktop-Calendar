@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 6 (Calendar Grid & Navigation) into Phase 7 (Persistence & SQLite Repositories).
+Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events Management).
 
 ---
 
@@ -12,7 +12,8 @@ Transition from Phase 6 (Calendar Grid & Navigation) into Phase 7 (Persistence &
 - **Phase 4 — Application Shell**: COMPLETE
 - **Phase 5 — Widget UI**: COMPLETE
 - **Phase 6 — Calendar Grid & Navigation**: COMPLETE
-- **Next Target — Phase 7 (Persistence & SQLite Repositories)**: READY TO START
+- **Phase 7 — Persistence & SQLite Repositories**: COMPLETE
+- **Next Target — Phase 8 (Events Management)**: READY TO START
 
 ---
 
@@ -59,25 +60,35 @@ Transition from Phase 6 (Calendar Grid & Navigation) into Phase 7 (Persistence &
   - Coherent focus model with visible keyboard focus indicators on buttons and day cells.
   - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
   - Comprehensive test suite expanded to 100 automated tests (99 unit tests + 1 integration test, 0 failures).
+- [x] **Persistence & SQLite Repositories (Phase 7)**:
+  - EF Core SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`).
+  - `AppDbContext` entity configuration with max-length constraints.
+  - `DatabaseInitializer` running `MigrateAsync()` and enabling WAL mode via `PRAGMA journal_mode=WAL`.
+  - `AppDbContextFactory` (`IDesignTimeDbContextFactory`) for `dotnet ef` tooling without WPF startup project.
+  - Initial migration `20260925191413_InitialCreate` creating `CalendarEvents` and `Notes` tables with composite index.
+  - DB path: `%LOCALAPPDATA%\DesktopCalendar\calendar.db`; initialized in a scoped service scope before `app.Run()`.
+  - Infrastructure DI extension (`AddInfrastructure`) registering repositories and `DatabaseInitializer` as scoped.
+  - Isolated SQLite test helper (`SqliteTestContext`) with `SqliteConnection.ClearAllPools()` for safe temp-file cleanup.
+  - 33 integration tests: 11 event repository tests, 17 note repository tests, 5 migration/schema tests.
+  - Total automated tests: 132 (99 unit + 33 integration, 0 failures).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 7 — Persistence & SQLite Repositories
+### Phase 8 — Events Management
 
-- Entity Framework Core SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`).
-- SQLite schema generation and migrations pipeline.
-- Concrete persistence integration tests with SQLite file and in-memory providers.
-- Repository unit tests validating domain rules and constraints.
+- Event CRUD UI in `CalendarView` (create, edit, delete dialogs or inline forms).
+- Event indicators on calendar day cells.
+- Day detail panel with event list.
+- Validation rules (`EndTime >= StartTime`, mandatory title).
+- Event persistence via `ICalendarEventRepository`.
 
 ---
 
-## Explicitly Out of Scope for Phase 7
+## Explicitly Out of Scope for Phase 8
 
-Do NOT implement during Phase 7:
-- Event UI forms, editors, or dialogs (Planned Phase 8)
-- Recurring event expansion engines (Planned Phase 8)
+Do NOT implement during Phase 8:
 - Notes editor UI (Planned Phase 9)
 - Settings persistence UI (Planned Phase 10)
 - System tray icon docking (Planned Phase 11)

@@ -44,4 +44,4 @@ Desktop Calendar Widget
 
 ## Current Status
 
-Engineering Foundation (Phases 0–3) and Phase 4 (Application Shell) are complete. The application shell provides Generic Host composition root, DI container, explicit application lifecycle with coordinated shutdown, bidirectional window switching between compact widget and main application, month navigation, 42-cell deterministic grid rendering, real-time clock, and navigation placeholders. The next phase is Phase 5 (Widget UI).
+Engineering Foundation (Phases 0–3) and Phases 4–7 (Application Shell, Widget UI, Calendar Grid & Navigation, Persistence) are complete. The application has a Generic Host composition root, DI container, explicit application lifecycle, bidirectional window switching, month navigation, 42-cell deterministic grid rendering, real-time clock, navigation placeholders, and a fully operational SQLite persistence layer with EF Core migrations and repository implementations. The next phase is Phase 8 (Events Management).

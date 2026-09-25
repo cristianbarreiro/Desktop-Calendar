@@ -21,8 +21,8 @@ Desktop Calendar/
 │   │   ├── Interfaces/                       # ICalendarEventRepository, INoteRepository
 │   │   └── Exceptions/                       # DomainValidationException
 │   ├── CalendarWidget.Infrastructure/
-│   │   ├── Persistence/                      # AppDbContext, Configurations, Migrations (Planned Phase 7)
-│   │   ├── Repositories/                     # [Planned Phase 7] EfCalendarEventRepository, EfNoteRepository
+│   │   ├── Persistence/                      # AppDbContext, Configurations, Migrations, DatabaseInitializer, AppDbContextFactory
+│   │   ├── Repositories/                     # EfCalendarEventRepository, EfNoteRepository (Phase 7)
 │   │   ├── Services/                         # [Planned Phase 11] WindowsStartupService; notifications are Future scope
 │   │   └── DependencyInjection.cs            # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
@@ -30,8 +30,8 @@ Desktop Calendar/
 │       ├── Views/                            # CalendarView, NotesView, SettingsView
 │       ├── Services/                         # IWindowManager, IClockService, SystemClockService, ICalendarGridService, CalendarGridService
 │       ├── Resources/                        # Colors.xaml, Typography.xaml, Spacing.xaml, Controls.xaml, Theme.xaml
-│       ├── Controls/                         # [Planned Phase 5/6] CalendarGridControl, DayCellControl
-│       └── Converters/                       # [Planned Phase 5/6] BoolToVisibilityConverter, DateFormatConverter
+│       ├── Controls/                         # [Planned Phase 8] CalendarGridControl, DayCellControl
+│       └── Converters/                       # IsSelectedDayConverter; [Planned Phase 8] DateFormatConverter
 └── tests/
     ├── CalendarWidget.UnitTests/             # Domain logic, ViewModels, Grid, WindowManager, Lifetime tests
     └── CalendarWidget.IntegrationTests/      # EF Core SQLite, database migrations
@@ -42,11 +42,11 @@ Desktop Calendar/
 | Project | Target Framework | Output Type | Key Packages |
 |---|---|---|---|
 | `CalendarWidget.Core` | `net10.0` | Class Library | None (zero dependency) |
-| `CalendarWidget.Infrastructure` | `net10.0` | Class Library | `Microsoft.EntityFrameworkCore.Sqlite` |
+| `CalendarWidget.Infrastructure` | `net10.0` | Class Library | `Microsoft.EntityFrameworkCore.Sqlite`, `Microsoft.EntityFrameworkCore.Design` |
 | `CalendarWidget.Presentation` | `net10.0-windows` | WPF Class Library | `CommunityToolkit.Mvvm` |
 | `CalendarWidget.App` | `net10.0-windows` | WinExe | `Microsoft.Extensions.Hosting` |
 | `CalendarWidget.UnitTests` | `net10.0-windows` | Unit Tests | `xUnit`, `FluentAssertions` |
-| `CalendarWidget.IntegrationTests` | `net10.0-windows` | Unit Tests | `xUnit`, `FluentAssertions`, `EF Core InMemory/Sqlite` |
+| `CalendarWidget.IntegrationTests` | `net10.0-windows` | Unit Tests | `xUnit`, `FluentAssertions`, `EF Core Sqlite` |
 
 ## Enforcement Rules
 1. Never link `CalendarWidget.Infrastructure` into `CalendarWidget.Presentation`.

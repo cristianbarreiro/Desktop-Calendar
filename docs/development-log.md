@@ -64,3 +64,54 @@
 - Validated solution build (Debug & Release), test execution (54/54 passed in 299ms), and code formatting (`dotnet format --verify-no-changes`).
 
 
+
+## 2026-09-24 — Phase 5: Widget UI & Remediation
+
+### Activities
+- Implemented visual polish for widget day cells: distinct states (normal, other-month, today, hover, pressed, selected, has-events).
+- Implemented `IsSelectedDayConverter` (multi-value converter) preserving immutable record architecture; 100% unit test coverage.
+- Coexistence of `Today + Selected` visual signals via MultiDataTrigger (accent fill + high-contrast white border + bold text).
+- High-contrast `Selected + HasEvents` via `SelectedEventDotBrush` design token.
+- Interactive selection: click to select/open tray, click again to collapse.
+- Contextual keyboard navigation: arrow keys scoped to `CalendarGrid` with automatic month/year boundary crossing; Escape collapses from anywhere.
+- Focus model: day cells focusable with visible accent border focus indicator.
+- Stale selection prevention on month navigation.
+- Zero-footprint collapsed detail tray via `ThicknessAnimation` Storyboard.
+- Design tokens added: `SurfacePressedBrush`, `TodayBackgroundBrush`, `TodaySelectedBorderBrush`, `SelectedEventDotBrush`.
+- Accessibility: `AutomationProperties.Name` and tooltips on all widget buttons and day cells.
+- Expanded automated test suite to 83 tests (82 unit + 1 integration, 0 failures).
+- Validated solution build (0 errors, 0 warnings), test execution, and code formatting.
+
+## 2026-09-25 — Phase 6: Calendar Grid & Navigation
+
+### Activities
+- Implemented full application calendar view (`CalendarView.xaml`) and view model (`CalendarViewModel`).
+- Deterministic 42-cell calendar grid displaying current, trailing, and leading days.
+- Month navigation with robust year boundary transitions (Jan ↔ Dec).
+- Jump to today (`Today` / `GoToToday`) resetting grid and selecting current date.
+- Configurable `FirstDayOfWeek` with automatic header and grid synchronization.
+- Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`.
+- Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible.
+- Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`.
+- Coherent focus model with visible keyboard focus indicators on buttons and day cells.
+- Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
+- Expanded automated test suite to 100 tests (99 unit + 1 integration, 0 failures).
+- Validated solution build (Debug & Release, 0 errors, 0 warnings), test execution, and code formatting.
+
+## 2026-09-25 — Phase 7: Persistence & SQLite Repositories
+
+### Activities
+- Added `Microsoft.EntityFrameworkCore.Design` (v10.0.12, PrivateAssets=all) to Infrastructure project.
+- Updated `AppDbContext` Note entity config: `Content.HasMaxLength(50_000)`; added XML doc comments.
+- Implemented `EfCalendarEventRepository`: `AsNoTracking` reads, overlap semantics (`StartTime < end AND EndTime > start`), ordered by `StartTime`.
+- Implemented `EfNoteRepository`: `AsNoTracking` reads, `EF.Functions.Like` for case-insensitive search, ordered by `CreatedAt`.
+- Implemented `DatabaseInitializer`: runs `MigrateAsync()` then `PRAGMA journal_mode=WAL` via direct `SqliteConnection`; uses `LoggerMessage.Define` (CA1848).
+- Implemented `AppDbContextFactory` (`IDesignTimeDbContextFactory<AppDbContext>`) for `dotnet ef` tooling without WPF startup project.
+- Generated migration `20260925191413_InitialCreate`: `CalendarEvents` and `Notes` tables with all constraints; composite index `IX_CalendarEvents_StartTime_EndTime`.
+- Updated `DependencyInjection.cs`: registered `EfCalendarEventRepository`, `EfNoteRepository`, and `DatabaseInitializer` as scoped.
+- Updated `Program.cs`: DB path `%LOCALAPPDATA%\DesktopCalendar\calendar.db`; calls `AddInfrastructure(connectionString)`; runs `DatabaseInitializer.InitializeAsync()` in a scoped service scope before `app.Run()`.
+- Implemented `SqliteTestContext` test helper: isolated SQLite DB per test using migrations; `SqliteConnection.ClearAllPools()` before file deletion.
+- Added 33 integration tests: 11 event repository tests (CRUD + 7 date-range overlap scenarios), 17 note repository tests (CRUD + 7 search scenarios), 5 migration/schema tests.
+- Total automated tests: 132 (99 unit + 33 integration, 0 failures).
+- Validated solution build (Debug & Release, 0 errors, 0 warnings), test execution (132/132 passed), and code formatting (`dotnet format --verify-no-changes`).
+- Committed as `feat: phase 7` (SHA `992faba`).

@@ -15,4 +15,4 @@
 
 3. **Database Concurrency in SQLite**:
    - *Risk*: `database is locked` errors during concurrent reads and writes.
-   - *Mitigation*: Enable SQLite WAL mode (`PRAGMA journal_mode=WAL;`) during database initialization.
+   - *Mitigation*: WAL mode enabled via `PRAGMA journal_mode=WAL` in `DatabaseInitializer.EnableWalModeAsync` (implemented Phase 7).

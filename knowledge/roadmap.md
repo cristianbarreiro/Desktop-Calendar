@@ -41,7 +41,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Initial application-level automated tests
 
 ### Phase 5 — Widget UI
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
   - Compact calendar widget layout
   - Real-time digital clock display
@@ -52,7 +52,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Initial widget interaction and hover models
 
 ### Phase 6 — Calendar
-- **Status**: PLANNED
+- **Status**: COMPLETED
 - **Scope**:
   - 42-cell calendar grid calculation and rendering
   - Month navigation and boundary month trailing/leading days
@@ -62,7 +62,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Calendar presentation behavior and styling
 
 ### Phase 7 — Persistence
-- **Status**: PLANNED
+- **Status**: COMPLETED
 - **Scope**:
   - EF Core SQLite integration and configuration
   - Deterministic database migrations pipeline
@@ -71,7 +71,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Database initialization, WAL mode configuration, and safe startup checks
 
 ### Phase 8 — Events
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Event CRUD operations (Create, Read, Update, Delete)
   - Validation rules (`EndTime >= StartTime`, mandatory title)
