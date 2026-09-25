@@ -126,7 +126,8 @@ Complete (Phases 0–3: Repository setup, clean architecture, audit, and remedia
 ### Product Development
 In progress:
 - **Phase 4 — Application Shell** (Completed)
-- **Phase 5 — Widget UI** (Next target)
+- **Phase 5 — Widget UI** (Completed)
+- **Phase 6 — Calendar Grid & Navigation** (Next target)
 
 ## Roadmap
 
@@ -138,8 +139,8 @@ In progress:
 
 ### Product Implementation
 - [x] **Phase 4 — Application Shell**: WPF application shell, host startup, DI integration, window lifecycle management, MainWindow, WidgetWindow, basic switching.
-- [ ] **Phase 5 — Widget UI** (NEXT): Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators.
-- [ ] **Phase 6 — Calendar** (PLANNED): 42-cell calendar grid, date selection, current date, keyboard navigation, configurable first day of week.
+- [x] **Phase 5 — Widget UI**: Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators, keyboard navigation, and transitions.
+- [ ] **Phase 6 — Calendar** (NEXT): 42-cell calendar grid, date selection, current date, keyboard navigation, configurable first day of week.
 - [ ] **Phase 7 — Persistence** (PLANNED): EF Core SQLite integration, migrations, repositories, database initialization.
 - [ ] **Phase 8 — Events** (PLANNED): Event CRUD, validation, event indicators, day details, event persistence.
 - [ ] **Phase 9 — Notes** (PLANNED): Notes CRUD, list, timestamps, search, persistence integration.

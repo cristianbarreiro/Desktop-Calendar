@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:CalendarWidget.Presentation.ViewModels;assembly=CalendarWidget.Presentation"
+        xmlns:conv="clr-namespace:CalendarWidget.Presentation.Converters;assembly=CalendarWidget.Presentation"
         mc:Ignorable="d"
         Title="Desktop Calendar Widget"
         Width="288"
@@ -18,7 +19,16 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <conv:IsSelectedDayConverter x:Key="IsSelectedDayConverter" />
     </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding EscapeCommand}" />
+        <KeyBinding Key="Left" Command="{Binding NavigateLeftCommand}" />
+        <KeyBinding Key="Right" Command="{Binding NavigateRightCommand}" />
+        <KeyBinding Key="Up" Command="{Binding NavigateUpCommand}" />
+        <KeyBinding Key="Down" Command="{Binding NavigateDownCommand}" />
+    </Window.InputBindings>
 
     <!-- Outer Rounded Shell -->
     <Border Background="{DynamicResource BackgroundRootBrush}"
@@ -29,7 +39,7 @@
             SnapsToDevicePixels="True">
         <Grid>
             <Grid.RowDefinitions>
-                <!-- Top Header: [APP] and [─] -->
+                <!-- Top Header: [APP] and [─] [✕] -->
                 <RowDefinition Height="Auto" />
                 <!-- Subheader: Month Year & Clock -->
                 <RowDefinition Height="Auto" />
@@ -55,30 +65,34 @@
                 <!-- Switch to Full App Button -->
                 <Button Grid.Column="0"
                         Command="{Binding SwitchToAppCommand}"
-                        Content="[APP]"
+                        Content="APP"
                         Style="{DynamicResource HeaderActionButtonStyle}"
                         FontWeight="SemiBold"
-                        ToolTip="Switch to full desktop application" />
+                        FontSize="10"
+                        ToolTip="Switch to full desktop application"
+                        AutomationProperties.Name="Switch to application"
+                        Focusable="True" />
 
                 <!-- Drag region spacer -->
-                <TextBlock Grid.Column="1"
-                           Text="⋮⋮"
-                           Foreground="{DynamicResource TextDisabledBrush}"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"
-                           Opacity="0.4" />
+                <Border Grid.Column="1"
+                        Background="Transparent"
+                        Cursor="SizeAll" />
 
                 <!-- Window Controls: Minimize and Close -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button Command="{Binding MinimizeCommand}"
-                            Content="[─]"
+                            Content="─"
                             Style="{DynamicResource HeaderActionButtonStyle}"
                             ToolTip="Minimize widget"
-                            Margin="0,0,2,0" />
+                            AutomationProperties.Name="Minimize"
+                            Margin="0,0,2,0"
+                            Focusable="True" />
                     <Button Click="OnCloseClick"
-                            Content="[✕]"
+                            Content="✕"
                             Style="{DynamicResource HeaderActionButtonStyle}"
-                            ToolTip="Close application" />
+                            ToolTip="Close application"
+                            AutomationProperties.Name="Close"
+                            Focusable="True" />
                 </StackPanel>
             </Grid>
 
@@ -92,34 +106,45 @@
                 <!-- Month Year with subtle arrows -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button Command="{Binding PreviousMonthCommand}"
-                            Content="&lt;"
+                            Content="‹"
                             Style="{DynamicResource HeaderActionButtonStyle}"
-                            Padding="4,1"
-                            Margin="0,0,2,0" />
+                            FontSize="16"
+                            Padding="6,2"
+                            Margin="0,0,4,0"
+                            ToolTip="Previous month"
+                            AutomationProperties.Name="Previous month"
+                            Focusable="True" />
                     <TextBlock Text="{Binding MonthYearText}"
                                Style="{DynamicResource BodyRegularTextBlockStyle}"
                                FontWeight="SemiBold"
                                VerticalAlignment="Center"
                                Margin="2,0" />
                     <Button Command="{Binding NextMonthCommand}"
-                            Content="&gt;"
+                            Content="›"
                             Style="{DynamicResource HeaderActionButtonStyle}"
-                            Padding="4,1"
-                            Margin="2,0,0,0" />
+                            FontSize="16"
+                            Padding="6,2"
+                            Margin="4,0,0,0"
+                            ToolTip="Next month"
+                            AutomationProperties.Name="Next month"
+                            Focusable="True" />
                 </StackPanel>
 
                 <!-- Digital Clock -->
                 <TextBlock Grid.Column="1"
                            Text="{Binding CurrentTimeText}"
                            Style="{DynamicResource BodySubtleTextBlockStyle}"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
                            FontWeight="Medium"
+                           FontFamily="Consolas, Segoe UI"
                            VerticalAlignment="Center" />
             </Grid>
 
             <!-- 3. Weekday Column Headers -->
             <ItemsControl Grid.Row="2"
                           ItemsSource="{Binding DayHeaders}"
-                          Margin="0,0,0,4">
+                          Margin="0,0,0,4"
+                          Focusable="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="7" Rows="1" />
@@ -132,14 +157,16 @@
                                    VerticalAlignment="Center"
                                    FontSize="{DynamicResource FontSizeCaption}"
                                    Foreground="{DynamicResource TextDisabledBrush}"
-                                   FontWeight="SemiBold" />
+                                   FontWeight="SemiBold"
+                                   FontFamily="{DynamicResource AppFontFamily}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
             <!-- 4. Compact 7x6 Calendar Grid -->
             <ItemsControl Grid.Row="3"
-                          ItemsSource="{Binding Days}">
+                          ItemsSource="{Binding Days}"
+                          Focusable="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <UniformGrid Columns="7" Rows="6" />
@@ -150,14 +177,17 @@
                         <Button Command="{Binding DataContext.SelectDayCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                 CommandParameter="{Binding}"
                                 Margin="1"
-                                Height="26"
-                                Cursor="Hand">
+                                MinHeight="28"
+                                MinWidth="28"
+                                Cursor="Hand"
+                                Focusable="False"
+                                AutomationProperties.Name="{Binding Date, StringFormat='{}{0:MMMM d, yyyy}'}">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="DayCellBorder"
                                             Background="Transparent"
                                             BorderBrush="Transparent"
-                                            BorderThickness="1"
+                                            BorderThickness="2"
                                             CornerRadius="{DynamicResource CornerRadiusDayCell}"
                                             SnapsToDevicePixels="True">
                                         <Grid>
@@ -166,10 +196,11 @@
                                                        HorizontalAlignment="Center"
                                                        VerticalAlignment="Center"
                                                        FontSize="{DynamicResource FontSizeBodySubtle}"
+                                                       FontFamily="{DynamicResource AppFontFamily}"
                                                        Foreground="{DynamicResource TextPrimaryBrush}" />
-                                            
+
                                             <Ellipse x:Name="EventDot"
-                                                     Width="3" Height="3"
+                                                     Width="4" Height="4"
                                                      Fill="{DynamicResource AccentDotBrush}"
                                                      HorizontalAlignment="Center"
                                                      VerticalAlignment="Bottom"
@@ -179,17 +210,45 @@
                                     </Border>
 
                                     <ControlTemplate.Triggers>
+                                        <!-- Outside current month: muted -->
                                         <DataTrigger Binding="{Binding IsCurrentMonth}" Value="False">
                                             <Setter TargetName="DayText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
                                             <Setter TargetName="DayCellBorder" Property="Opacity" Value="0.4" />
                                         </DataTrigger>
+
+                                        <!-- Today indicator: accent tinted background + bold -->
                                         <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                            <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource TodayBackgroundBrush}" />
                                             <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                            <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
+                                            <Setter TargetName="DayText" Property="FontWeight" Value="Bold" />
                                         </DataTrigger>
+
+                                        <!-- Hover: subtle background transition -->
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                         </Trigger>
+
+                                        <!-- Pressed: darker feedback -->
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfacePressedBrush}" />
+                                        </Trigger>
+
+                                        <!-- Selected state: accent background with high-contrast text -->
+                                        <DataTrigger Value="True">
+                                            <DataTrigger.Binding>
+                                                <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                    <Binding Path="DataContext.SelectedDay"
+                                                             RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                    <Binding />
+                                                </MultiBinding>
+                                            </DataTrigger.Binding>
+                                            <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                            <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                            <Setter TargetName="DayText" Property="Foreground" Value="#FFFFFF" />
+                                            <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
+                                        </DataTrigger>
+
+                                        <!-- Has events dot -->
                                         <DataTrigger Binding="{Binding HasEvents}" Value="True">
                                             <Setter TargetName="EventDot" Property="Visibility" Value="Visible" />
                                         </DataTrigger>
@@ -201,15 +260,54 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- 5. Expandable Day Detail Tray -->
-            <Border Grid.Row="4"
-                    Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVis}}"
+            <!-- 5. Expandable Day Detail Tray with animation -->
+            <Border x:Name="DetailTray"
+                    Grid.Row="4"
                     Background="{DynamicResource SurfaceCardBrush}"
                     BorderBrush="{DynamicResource BorderDividerBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource CornerRadiusCard}"
+                    BorderThickness="0,1,0,0"
                     Padding="10"
-                    Margin="0,10,0,0">
+                    Margin="0,8,0,0"
+                    ClipToBounds="True">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="MaxHeight" Value="0" />
+                        <Setter Property="Opacity" Value="0" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
+                                                             To="140"
+                                                             Duration="0:0:0.18"
+                                                             DecelerationRatio="0.7" />
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             To="1"
+                                                             Duration="0:0:0.15"
+                                                             DecelerationRatio="0.5" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="MaxHeight"
+                                                             To="0"
+                                                             Duration="0:0:0.15"
+                                                             AccelerationRatio="0.5" />
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                             To="0"
+                                                             Duration="0:0:0.12"
+                                                             AccelerationRatio="0.5" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
                 <StackPanel>
                     <Grid Margin="0,0,0,4">
                         <Grid.ColumnDefinitions>
@@ -219,20 +317,25 @@
                         <TextBlock Grid.Column="0"
                                    Text="{Binding SelectedDayHeader}"
                                    Style="{DynamicResource BodySubtleTextBlockStyle}"
-                                   FontWeight="SemiBold" />
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontWeight="SemiBold"
+                                   AutomationProperties.Name="Selected day" />
                         <Button Grid.Column="1"
                                 Command="{Binding ToggleExpandedCommand}"
                                 Content="✕"
                                 Style="{DynamicResource HeaderActionButtonStyle}"
                                 Padding="4,0"
                                 FontSize="9"
-                                ToolTip="Close details" />
+                                ToolTip="Close details"
+                                AutomationProperties.Name="Close details"
+                                Focusable="True" />
                     </Grid>
 
                     <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,2,0,6" />
 
                     <TextBlock Text="No events scheduled"
                                Style="{DynamicResource BodySubtleTextBlockStyle}"
+                               Foreground="{DynamicResource TextDisabledBrush}"
                                HorizontalAlignment="Center"
                                Margin="0,4,0,2" />
                 </StackPanel>

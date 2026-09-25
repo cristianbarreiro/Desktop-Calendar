@@ -62,6 +62,8 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
                             Background="{TemplateBinding Background}"
+                            BorderBrush="Transparent"
+                            BorderThickness="2"
                             CornerRadius="{DynamicResource CornerRadiusButton}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center"
@@ -75,6 +77,10 @@
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource BorderDividerBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="border" Property="BorderThickness" Value="2" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

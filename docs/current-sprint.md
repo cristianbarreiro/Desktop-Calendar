@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 4 (Application Shell) into Phase 5 (Widget UI) to refine the compact desktop widget experience.
+Transition from Phase 5 (Widget UI) into Phase 6 (Calendar Grid & Navigation) to implement full application calendar grid capabilities.
 
 ---
 
@@ -10,7 +10,8 @@ Transition from Phase 4 (Application Shell) into Phase 5 (Widget UI) to refine t
 
 - **Engineering Foundation (Phases 0–3)**: COMPLETE
 - **Phase 4 — Application Shell**: COMPLETE
-- **Next Target — Phase 5 (Widget UI)**: READY TO START
+- **Phase 5 — Widget UI**: COMPLETE
+- **Next Target — Phase 6 (Calendar Grid & Navigation)**: READY TO START
 
 ---
 
@@ -30,25 +31,35 @@ Transition from Phase 4 (Application Shell) into Phase 5 (Widget UI) to refine t
   - Calendar shell: Deterministic 42-cell calendar grid generator (`CalendarGridService`).
   - Widget shell: Month navigation, date selection with detail tray toggle, digital clock via `IClockService`, minimize and close actions.
   - Initial Design System resources (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`).
-  - Test suite expanded to 54 passing automated tests (53 unit, 1 integration) covering grid, view models, window orchestration, and application shutdown lifecycle.
+  - Test suite with automated tests covering grid, view models, window orchestration, and application shutdown lifecycle.
   - Zero build warnings/errors, clean code formatting.
+- [x] **Widget UI (Phase 5)**:
+  - Visual polish: distinct day cell states (normal, other month, today, hover, pressed, selected, has events).
+  - Selected day multi-value converter (`IsSelectedDayConverter`) preserving immutable record architecture.
+  - Interactive selection: click to select and open tray, click selected day again to collapse tray.
+  - Keyboard navigation: arrow keys (Left/Right/Up/Down) with automatic month/year boundary crossing, Escape to collapse.
+  - Smooth animation: XAML Storyboard vertical expand/collapse and opacity transitions for day detail tray.
+  - Design tokens: added `SurfacePressedBrush` and `TodayBackgroundBrush` color tokens, keyboard focus indicators on action buttons.
+  - Accessibility: `AutomationProperties.Name` and tooltips on all widget buttons and day cells.
+  - Comprehensive unit test suite: 72 unit tests + 1 integration test (73 total passing).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 5 — Widget UI
+### Phase 6 — Calendar Grid & Navigation
 
-- Refine compact widget typography, styling, and transitions.
-- Day selection interaction model and smooth vertical tray expand/collapse animation.
-- Weekday headers and month navigation styling polish.
-- Keyboard navigation (arrow keys) inside the widget calendar grid.
+- Full application calendar grid view (`CalendarView`).
+- Navigation controls (previous/next month, jump to today, year selection).
+- Multi-view presentation (month view, week view preparation).
+- Configurable first day of week.
+- Selected date synchronization.
 
 ---
 
-## Explicitly Out of Scope for Phase 5
+## Explicitly Out of Scope for Phase 6
 
-Do NOT implement during Widget UI:
+Do NOT implement during Phase 6:
 - SQLite database CRUD operations (Planned Phase 7)
 - EF Core migrations (Planned Phase 7)
 - Event persistence and validation forms (Planned Phase 8)

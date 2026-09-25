@@ -168,6 +168,85 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
         IsExpanded = !IsExpanded;
     }
 
+    /// <summary>
+    /// Collapses the expanded detail tray. No-op when already collapsed.
+    /// </summary>
+    [RelayCommand]
+    public void Escape()
+    {
+        if (IsExpanded)
+        {
+            IsExpanded = false;
+        }
+    }
+
+    /// <summary>
+    /// Navigates the selected date by the given number of days, crossing month boundaries as needed.
+    /// </summary>
+    /// <param name="daysDelta">Number of days to move (negative for previous, positive for next).</param>
+    public void NavigateByDays(int daysDelta)
+    {
+        DateOnly baseDate = SelectedDay?.Date ?? new DateOnly(CurrentYear, CurrentMonth, 1);
+        DateOnly targetDate = baseDate.AddDays(daysDelta);
+
+        // If the target date is outside the currently displayed month, navigate to that month
+        if (targetDate.Year != CurrentYear || targetDate.Month != CurrentMonth)
+        {
+            CurrentYear = targetDate.Year;
+            CurrentMonth = targetDate.Month;
+            RefreshGrid();
+        }
+
+        CalendarDayModel? targetDay = Days.FirstOrDefault(d => d.Date == targetDate);
+        if (targetDay is not null)
+        {
+            SelectedDay = targetDay;
+            UpdateSelectedDayHeader(targetDay);
+
+            if (IsExpanded)
+            {
+                // Keep expanded when navigating with keyboard while expanded
+                IsExpanded = true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Navigates the selection one day to the left (previous day).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateLeft()
+    {
+        NavigateByDays(-1);
+    }
+
+    /// <summary>
+    /// Navigates the selection one day to the right (next day).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateRight()
+    {
+        NavigateByDays(1);
+    }
+
+    /// <summary>
+    /// Navigates the selection one week up (previous 7 days).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateUp()
+    {
+        NavigateByDays(-7);
+    }
+
+    /// <summary>
+    /// Navigates the selection one week down (next 7 days).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateDown()
+    {
+        NavigateByDays(7);
+    }
+
     private void OnClockTimeChanged(object? sender, DateTime time)
     {
         UpdateTimeText(time);
@@ -180,8 +259,15 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
 
     private void UpdateSelectedDayHeader(CalendarDayModel day)
     {
-        DateTime dt = day.Date.ToDateTime(TimeOnly.MinValue);
-        SelectedDayHeader = dt.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+        if (day.IsToday)
+        {
+            SelectedDayHeader = "TODAY";
+        }
+        else
+        {
+            DateTime dt = day.Date.ToDateTime(TimeOnly.MinValue);
+            SelectedDayHeader = dt.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+        }
     }
 
     private void RefreshGrid()
