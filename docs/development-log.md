@@ -51,4 +51,16 @@
 - Expanded automated test suite from 5 to 40 passing tests (39 unit tests, 1 integration test).
 - Validated solution build (0 errors, 0 warnings), test execution (40/40 passed), and code formatting (`dotnet format --verify-no-changes`).
 
+## 2026-09-24 — Phase 4.1: Application Shell Lifecycle & Tests Remediation
+
+### Activities
+- Connected explicit application shutdown path via `ApplicationLifetimeService` with thread-safe `_isShuttingDown` guard, Dispatcher deadlock prevention (`CheckAccess`), and Generic Host termination (`StopApplication`).
+- Established `IManagedWindow` abstraction in `CalendarWidget.App.Services` implemented by `MainWindow` and `WidgetWindow`, enabling deterministic, headless lifecycle and orchestration unit testing.
+- Updated `WindowManager` to coordinate with `ApplicationLifetimeService`: handles `Closed` events, nulls closed/disposed references, allows recreation, distinguishes window switching and minimization from application close, and triggers host shutdown on real window close.
+- Added `[✕]` close button to `WidgetWindow.xaml` alongside `[─]` minimize, providing distinct controls for window switching (`[APP]`), minimization (`[─]`), and full application shutdown (`[✕]`).
+- Updated `App.xaml.cs` to inject `ApplicationLifetimeService` and delegate `OnExit` to ensure host termination.
+- Expanded automated test suite from 40 to 54 passing tests (53 unit tests, 1 integration test), adding full coverage for `ApplicationLifetimeService` and 12 state/lifecycle test scenarios in `WindowManagerTests`.
+- Harmonized documentation in `docs/product/feature-map.md`, `docs/architecture/application-structure.md`, `docs/project-state.md`, and `docs/current-sprint.md`.
+- Validated solution build (Debug & Release), test execution (54/54 passed in 299ms), and code formatting (`dotnet format --verify-no-changes`).
+
 

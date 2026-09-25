@@ -1,4 +1,5 @@
 using System.Windows;
+using CalendarWidget.App.Services;
 using CalendarWidget.Presentation.ViewModels;
 
 namespace CalendarWidget.App.Windows;
@@ -6,7 +7,7 @@ namespace CalendarWidget.App.Windows;
 /// <summary>
 /// Interaction logic for the primary desktop application window.
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IManagedWindow
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.

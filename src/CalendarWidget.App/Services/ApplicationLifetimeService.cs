@@ -9,6 +9,7 @@ namespace CalendarWidget.App.Services;
 public sealed class ApplicationLifetimeService
 {
     private readonly IHostApplicationLifetime _hostLifetime;
+    private int _isShuttingDown;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApplicationLifetimeService"/> class.
@@ -20,17 +21,31 @@ public sealed class ApplicationLifetimeService
     }
 
     /// <summary>
-    /// Gracefully initiates application shutdown.
+    /// Gets a value indicating whether application shutdown has been initiated.
+    /// </summary>
+    public bool IsShuttingDown => Volatile.Read(ref _isShuttingDown) != 0;
+
+    /// <summary>
+    /// Gracefully initiates application shutdown and stops the generic host.
     /// </summary>
     /// <param name="exitCode">The exit code to return to the operating system.</param>
     public void Shutdown(int exitCode = 0)
     {
+        if (Interlocked.Exchange(ref _isShuttingDown, 1) != 0)
+        {
+            return;
+        }
+
         if (Application.Current is not null)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            if (Application.Current.Dispatcher.CheckAccess())
             {
                 Application.Current.Shutdown(exitCode);
-            });
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(() => Application.Current.Shutdown(exitCode));
+            }
         }
 
         _hostLifetime.StopApplication();

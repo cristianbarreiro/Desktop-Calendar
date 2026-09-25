@@ -6,34 +6,41 @@
 Desktop Calendar/
 ├── src/
 │   ├── CalendarWidget.App/
-│   │   ├── App.xaml / App.xaml.cs      # Host bootstrap and lifecycle
-│   │   ├── MainWindow.xaml / cs        # Host shell / navigation container
-│   │   └── Program.cs                  # [Planned Phase 4] Host builder entry point
+│   │   ├── App.xaml / App.xaml.cs            # Host bootstrap and lifecycle
+│   │   ├── Program.cs                        # Generic Host builder entry point and DI root
+│   │   ├── Windows/
+│   │   │   ├── MainWindow.xaml / cs          # Full application shell / navigation container
+│   │   │   └── WidgetWindow.xaml / cs        # Compact desktop widget window
+│   │   └── Services/
+│   │       ├── WindowManager.cs              # Window orchestration and lifecycle management
+│   │       ├── ApplicationLifetimeService.cs # Application shutdown and Host lifetime coordination
+│   │       └── IManagedWindow.cs             # Window abstraction for testable orchestration
 │   ├── CalendarWidget.Core/
-│   │   ├── Entities/                   # CalendarEvent, Note, CalendarSettings (planned Phase 10)
-│   │   ├── ValueObjects/               # DateRange, TimeRange (planned Phase 6), ColorHex (planned Phase 8)
-│   │   ├── Interfaces/                 # ICalendarEventRepository, INoteRepository
-│   │   └── Exceptions/                 # DomainValidationException
+│   │   ├── Entities/                         # CalendarEvent, Note, CalendarSettings (planned Phase 10)
+│   │   ├── ValueObjects/                     # DateRange, TimeRange (planned Phase 6), ColorHex (planned Phase 8)
+│   │   ├── Interfaces/                       # ICalendarEventRepository, INoteRepository
+│   │   └── Exceptions/                       # DomainValidationException
 │   ├── CalendarWidget.Infrastructure/
-│   │   ├── Persistence/                # AppDbContext, Configurations, Migrations (Planned Phase 7)
-│   │   ├── Repositories/               # [Planned Phase 7] EfCalendarEventRepository, EfNoteRepository
-│   │   ├── Services/                   # [Planned Phase 11] WindowsStartupService; notifications are Future scope
-│   │   └── DependencyInjection.cs      # IServiceCollection extensions
+│   │   ├── Persistence/                      # AppDbContext, Configurations, Migrations (Planned Phase 7)
+│   │   ├── Repositories/                     # [Planned Phase 7] EfCalendarEventRepository, EfNoteRepository
+│   │   ├── Services/                         # [Planned Phase 11] WindowsStartupService; notifications are Future scope
+│   │   └── DependencyInjection.cs            # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
-│       ├── ViewModels/                 # ViewModelBase; [Planned Phase 4+] WidgetViewModel, CalendarViewModel
-│       ├── Views/                      # [Planned Phase 4+] WidgetView, CalendarView, NotesView
-│       ├── Controls/                   # [Planned Phase 5/6] CalendarGridControl, DayCellControl
-│       ├── Converters/                 # [Planned Phase 5/6] BoolToVisibilityConverter, DateFormatConverter
-│       └── Themes/                     # [Planned Phase 4/5] Light.xaml, Dark.xaml
+│       ├── ViewModels/                       # ViewModelBase, MainWindowViewModel, WidgetViewModel, CalendarViewModel, NotesViewModel, SettingsViewModel, NavigationTab
+│       ├── Views/                            # CalendarView, NotesView, SettingsView
+│       ├── Services/                         # IWindowManager, IClockService, SystemClockService, ICalendarGridService, CalendarGridService
+│       ├── Resources/                        # Colors.xaml, Typography.xaml, Spacing.xaml, Controls.xaml, Theme.xaml
+│       ├── Controls/                         # [Planned Phase 5/6] CalendarGridControl, DayCellControl
+│       └── Converters/                       # [Planned Phase 5/6] BoolToVisibilityConverter, DateFormatConverter
 └── tests/
-    ├── CalendarWidget.UnitTests/       # Domain logic, ViewModels, validators
-    └── CalendarWidget.IntegrationTests/# EF Core SQLite, database migrations
+    ├── CalendarWidget.UnitTests/             # Domain logic, ViewModels, Grid, WindowManager, Lifetime tests
+    └── CalendarWidget.IntegrationTests/      # EF Core SQLite, database migrations
 ```
 
 ## Assembly & Package Manifest
 
 | Project | Target Framework | Output Type | Key Packages |
-|---------|-----------------|-------------|--------------|
+|---|---|---|---|
 | `CalendarWidget.Core` | `net10.0` | Class Library | None (zero dependency) |
 | `CalendarWidget.Infrastructure` | `net10.0` | Class Library | `Microsoft.EntityFrameworkCore.Sqlite` |
 | `CalendarWidget.Presentation` | `net10.0-windows` | WPF Class Library | `CommunityToolkit.Mvvm` |

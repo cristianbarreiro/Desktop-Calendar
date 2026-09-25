@@ -68,12 +68,18 @@
                            VerticalAlignment="Center"
                            Opacity="0.4" />
 
-                <!-- Minimize Button -->
-                <Button Grid.Column="2"
-                        Command="{Binding MinimizeCommand}"
-                        Content="[─]"
-                        Style="{DynamicResource HeaderActionButtonStyle}"
-                        ToolTip="Minimize widget" />
+                <!-- Window Controls: Minimize and Close -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button Command="{Binding MinimizeCommand}"
+                            Content="[─]"
+                            Style="{DynamicResource HeaderActionButtonStyle}"
+                            ToolTip="Minimize widget"
+                            Margin="0,0,2,0" />
+                    <Button Click="OnCloseClick"
+                            Content="[✕]"
+                            Style="{DynamicResource HeaderActionButtonStyle}"
+                            ToolTip="Close application" />
+                </StackPanel>
             </Grid>
 
             <!-- 2. Subheader: Month/Year navigation and Digital Clock -->

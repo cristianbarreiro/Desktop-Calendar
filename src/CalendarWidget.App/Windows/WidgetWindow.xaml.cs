@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Input;
+using CalendarWidget.App.Services;
 using CalendarWidget.Presentation.ViewModels;
 
 namespace CalendarWidget.App.Windows;
@@ -7,7 +8,7 @@ namespace CalendarWidget.App.Windows;
 /// <summary>
 /// Interaction logic for the compact desktop calendar widget window.
 /// </summary>
-public partial class WidgetWindow : Window
+public partial class WidgetWindow : Window, IManagedWindow
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="WidgetWindow"/> class.
@@ -25,5 +26,10 @@ public partial class WidgetWindow : Window
         {
             DragMove();
         }
+    }
+
+    private void OnCloseClick(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 }

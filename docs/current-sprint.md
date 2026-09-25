@@ -25,12 +25,12 @@ Transition from Phase 4 (Application Shell) into Phase 5 (Widget UI) to refine t
   - Generic Host composition root (`Program.cs`) via `Microsoft.Extensions.Hosting`.
   - Dependency Injection configured for windows, view models, and services.
   - Windows: `MainWindow` (full application) and `WidgetWindow` (compact widget).
-  - Window switching: `IWindowManager` / `WindowManager` (`[APP]` ↔ `[WIDGET]`).
+  - Window switching & lifecycle: `IWindowManager` / `WindowManager` (`[APP]` ↔ `[WIDGET]`) with reference cleanup and coordinated host shutdown via `ApplicationLifetimeService`.
   - Navigation: Calendar, Notes, Settings view switching with MVVM DataTemplates.
   - Calendar shell: Deterministic 42-cell calendar grid generator (`CalendarGridService`).
-  - Widget shell: Month navigation, date selection with detail tray toggle, digital clock via `IClockService`.
+  - Widget shell: Month navigation, date selection with detail tray toggle, digital clock via `IClockService`, minimize and close actions.
   - Initial Design System resources (`Colors.xaml`, `Typography.xaml`, `Spacing.xaml`, `Controls.xaml`, `Theme.xaml`).
-  - Test suite expanded to 40 passing automated tests (39 unit, 1 integration).
+  - Test suite expanded to 54 passing automated tests (53 unit, 1 integration) covering grid, view models, window orchestration, and application shutdown lifecycle.
   - Zero build warnings/errors, clean code formatting.
 
 ---
