@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 5 (Widget UI) into Phase 6 (Calendar Grid & Navigation) to implement full application calendar grid capabilities.
+Transition from Phase 6 (Calendar Grid & Navigation) into Phase 7 (Persistence & SQLite Repositories).
 
 ---
 
@@ -11,7 +11,8 @@ Transition from Phase 5 (Widget UI) into Phase 6 (Calendar Grid & Navigation) to
 - **Engineering Foundation (Phases 0–3)**: COMPLETE
 - **Phase 4 — Application Shell**: COMPLETE
 - **Phase 5 — Widget UI**: COMPLETE
-- **Next Target — Phase 6 (Calendar Grid & Navigation)**: READY TO START
+- **Phase 6 — Calendar Grid & Navigation**: COMPLETE
+- **Next Target — Phase 7 (Persistence & SQLite Repositories)**: READY TO START
 
 ---
 
@@ -46,29 +47,39 @@ Transition from Phase 5 (Widget UI) into Phase 6 (Calendar Grid & Navigation) to
   - Design tokens: added `SurfacePressedBrush`, `TodayBackgroundBrush`, `TodaySelectedBorderBrush`, and `SelectedEventDotBrush`.
   - Accessibility: `AutomationProperties.Name` and tooltips on all widget buttons and day cells.
   - Comprehensive unit test suite expanded to 83 automated tests (82 unit tests + 1 integration test, 0 failures).
+- [x] **Calendar Grid & Navigation (Phase 6)**:
+  - Full application calendar view (`CalendarView`) and view model (`CalendarViewModel`).
+  - Deterministic 42-cell calendar grid displaying current, trailing, and leading days.
+  - Month navigation with robust year boundary transitions (Jan ↔ Dec).
+  - Jump to today (`Today`, `GoToToday`) resetting grid and selecting current date.
+  - Configurable `FirstDayOfWeek` with automatic headers and grid synchronization.
+  - Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`.
+  - Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible.
+  - Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`.
+  - Coherent focus model with visible keyboard focus indicators on buttons and day cells.
+  - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
+  - Comprehensive test suite expanded to 100 automated tests (99 unit tests + 1 integration test, 0 failures).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 6 — Calendar Grid & Navigation
+### Phase 7 — Persistence & SQLite Repositories
 
-- Full application calendar grid view (`CalendarView`).
-- Navigation controls (previous/next month, jump to today, year selection).
-- Multi-view presentation (month view, week view preparation).
-- Configurable first day of week.
-- Selected date synchronization.
+- Entity Framework Core SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`).
+- SQLite schema generation and migrations pipeline.
+- Concrete persistence integration tests with SQLite file and in-memory providers.
+- Repository unit tests validating domain rules and constraints.
 
 ---
 
-## Explicitly Out of Scope for Phase 6
+## Explicitly Out of Scope for Phase 7
 
-Do NOT implement during Phase 6:
-- SQLite database CRUD operations (Planned Phase 7)
-- EF Core migrations (Planned Phase 7)
-- Event persistence and validation forms (Planned Phase 8)
-- Notes persistence and text editor (Planned Phase 9)
-- Settings persistence (Planned Phase 10)
+Do NOT implement during Phase 7:
+- Event UI forms, editors, or dialogs (Planned Phase 8)
+- Recurring event expansion engines (Planned Phase 8)
+- Notes editor UI (Planned Phase 9)
+- Settings persistence UI (Planned Phase 10)
 - System tray icon docking (Planned Phase 11)
 - Windows startup registration (Planned Phase 11)
 - Packaging, installers, and release automation (Planned Phase 13)

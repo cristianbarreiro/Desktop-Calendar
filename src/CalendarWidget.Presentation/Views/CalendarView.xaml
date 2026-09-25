@@ -4,9 +4,15 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:CalendarWidget.Presentation.ViewModels"
+             xmlns:conv="clr-namespace:CalendarWidget.Presentation.Converters"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=vm:CalendarViewModel}"
              d:DesignHeight="600" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <conv:IsSelectedDayConverter x:Key="IsSelectedDayConverter" />
+    </UserControl.Resources>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <!-- Header Row -->
@@ -24,9 +30,10 @@
 
             <!-- Month & Year Title -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="{Binding MonthYearTitle}"
+                <TextBlock Text="{Binding MonthYearText}"
                            Style="{DynamicResource HeaderLargeTextBlockStyle}"
-                           VerticalAlignment="Center" />
+                           VerticalAlignment="Center"
+                           AutomationProperties.Name="Current month and year" />
             </StackPanel>
 
             <!-- Navigation Controls -->
@@ -34,16 +41,29 @@
                 <Button Command="{Binding TodayCommand}"
                         Content="Today"
                         Style="{DynamicResource StandardButtonStyle}"
-                        Margin="0,0,12,0" />
+                        Margin="0,0,12,0"
+                        ToolTip="Go to today"
+                        AutomationProperties.Name="Go to today"
+                        Focusable="True" />
                 <Button Command="{Binding PreviousMonthCommand}"
-                        Content="&lt;"
+                        Content="‹"
                         Style="{DynamicResource StandardButtonStyle}"
                         Width="36"
-                        Margin="0,0,4,0" />
+                        FontSize="16"
+                        Padding="0"
+                        Margin="0,0,4,0"
+                        ToolTip="Previous month"
+                        AutomationProperties.Name="Previous month"
+                        Focusable="True" />
                 <Button Command="{Binding NextMonthCommand}"
-                        Content="&gt;"
+                        Content="›"
                         Style="{DynamicResource StandardButtonStyle}"
-                        Width="36" />
+                        Width="36"
+                        FontSize="16"
+                        Padding="0"
+                        ToolTip="Next month"
+                        AutomationProperties.Name="Next month"
+                        Focusable="True" />
             </StackPanel>
         </Grid>
 
@@ -73,7 +93,8 @@
                     <!-- Day of Week Headers -->
                     <ItemsControl Grid.Row="0"
                                   ItemsSource="{Binding DayHeaders}"
-                                  Margin="0,0,0,8">
+                                  Margin="0,0,0,8"
+                                  Focusable="False">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="7" Rows="1" />
@@ -92,8 +113,19 @@
                     </ItemsControl>
 
                     <!-- 42 Days Grid -->
-                    <ItemsControl Grid.Row="1"
-                                  ItemsSource="{Binding Days}">
+                    <ItemsControl x:Name="CalendarGrid"
+                                  Grid.Row="1"
+                                  ItemsSource="{Binding Days}"
+                                  Focusable="True"
+                                  FocusVisualStyle="{x:Null}"
+                                  KeyboardNavigation.TabNavigation="Once"
+                                  KeyboardNavigation.DirectionalNavigation="None">
+                        <ItemsControl.InputBindings>
+                            <KeyBinding Key="Left" Command="{Binding NavigateLeftCommand}" />
+                            <KeyBinding Key="Right" Command="{Binding NavigateRightCommand}" />
+                            <KeyBinding Key="Up" Command="{Binding NavigateUpCommand}" />
+                            <KeyBinding Key="Down" Command="{Binding NavigateDownCommand}" />
+                        </ItemsControl.InputBindings>
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <UniformGrid Columns="7" Rows="6" />
@@ -104,13 +136,19 @@
                                 <Button Command="{Binding DataContext.SelectDayCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}"
                                         Margin="2"
-                                        Cursor="Hand">
+                                        MinHeight="36"
+                                        MinWidth="36"
+                                        Cursor="Hand"
+                                        Focusable="True"
+                                        FocusVisualStyle="{x:Null}"
+                                        AutomationProperties.Name="{Binding Date, StringFormat='{}{0:MMMM d, yyyy}'}"
+                                        ToolTip="{Binding Date, StringFormat='{}{0:dddd, MMMM d, yyyy}'}">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
                                             <Border x:Name="DayCellBorder"
                                                     Background="Transparent"
                                                     BorderBrush="Transparent"
-                                                    BorderThickness="1"
+                                                    BorderThickness="2"
                                                     CornerRadius="{DynamicResource CornerRadiusDayCell}"
                                                     SnapsToDevicePixels="True">
                                                 <Grid>
@@ -118,7 +156,8 @@
                                                                Text="{Binding DayNumber}"
                                                                HorizontalAlignment="Center"
                                                                VerticalAlignment="Center"
-                                                               Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                                               Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}" />
                                                     
                                                     <!-- Optional Event Indicator Dot Placeholder -->
                                                     <Ellipse x:Name="EventDot"
@@ -138,10 +177,11 @@
                                                     <Setter TargetName="DayCellBorder" Property="Opacity" Value="0.4" />
                                                 </DataTrigger>
 
-                                                <!-- Today Highlight -->
+                                                <!-- Today indicator: accent tinted background + accent border + bold -->
                                                 <DataTrigger Binding="{Binding IsToday}" Value="True">
+                                                    <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource TodayBackgroundBrush}" />
                                                     <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                                    <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
+                                                    <Setter TargetName="DayText" Property="FontWeight" Value="Bold" />
                                                 </DataTrigger>
 
                                                 <!-- Hover effect -->
@@ -149,10 +189,73 @@
                                                     <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
                                                 </Trigger>
 
+                                                <!-- Pressed feedback -->
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfacePressedBrush}" />
+                                                </Trigger>
+
+                                                <!-- Keyboard focus indicator -->
+                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                    <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                </Trigger>
+
+                                                <!-- Selected state: accent background with high-contrast text -->
+                                                <DataTrigger Value="True">
+                                                    <DataTrigger.Binding>
+                                                        <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                            <Binding Path="DataContext.SelectedDay"
+                                                                     RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                            <Binding />
+                                                        </MultiBinding>
+                                                    </DataTrigger.Binding>
+                                                    <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                    <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                    <Setter TargetName="DayText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                    <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
+                                                </DataTrigger>
+
+                                                <!-- Today + Selected: both coexist with SurfaceSelected background and high-contrast Today border -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding IsToday}" Value="True" />
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                                    <Binding Path="DataContext.SelectedDay"
+                                                                             RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                                    <Binding />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="DayCellBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                    <Setter TargetName="DayCellBorder" Property="BorderBrush" Value="{DynamicResource TodaySelectedBorderBrush}" />
+                                                    <Setter TargetName="DayText" Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                                    <Setter TargetName="DayText" Property="FontWeight" Value="Bold" />
+                                                </MultiDataTrigger>
+
                                                 <!-- Has events dot -->
                                                 <DataTrigger Binding="{Binding HasEvents}" Value="True">
                                                     <Setter TargetName="EventDot" Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
+
+                                                <!-- Selected + HasEvents: high-contrast white dot on blue background -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding HasEvents}" Value="True" />
+                                                        <Condition Value="True">
+                                                            <Condition.Binding>
+                                                                <MultiBinding Converter="{StaticResource IsSelectedDayConverter}">
+                                                                    <Binding Path="DataContext.SelectedDay"
+                                                                             RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                                    <Binding />
+                                                                </MultiBinding>
+                                                            </Condition.Binding>
+                                                        </Condition>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="EventDot" Property="Visibility" Value="Visible" />
+                                                    <Setter TargetName="EventDot" Property="Fill" Value="{DynamicResource SelectedEventDotBrush}" />
+                                                </MultiDataTrigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
                                     </Button.Template>
@@ -174,12 +277,24 @@
                     <TextBlock Text="DAY DETAILS"
                                Style="{DynamicResource BodySubtleTextBlockStyle}"
                                FontWeight="SemiBold"
-                               Margin="0,0,0,8" />
+                               Margin="0,0,0,8"
+                               AutomationProperties.Name="Day details header" />
                     
-                    <TextBlock Text="{Binding SelectedDateFormatted}"
-                               Style="{DynamicResource HeaderMediumTextBlockStyle}"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,16" />
+                    <TextBlock TextWrapping="Wrap"
+                               Margin="0,0,0,16"
+                               AutomationProperties.Name="Selected date summary">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderMediumTextBlockStyle}">
+                                <Setter Property="Text" Value="{Binding SelectedDateFormatted}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedDay}" Value="{x:Null}">
+                                        <Setter Property="Text" Value="No date selected" />
+                                        <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
                     <Separator Background="{DynamicResource BorderDividerBrush}"
                                Margin="0,0,0,16" />

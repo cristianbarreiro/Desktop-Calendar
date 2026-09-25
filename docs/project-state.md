@@ -3,8 +3,8 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 5 complete & remediated)
-- **Next Phase**: Phase 6 — Calendar Grid & Navigation
+- **Product Implementation**: In Progress (Phase 6 complete)
+- **Next Phase**: Phase 7 — Persistence & SQLite Repositories
 - **Current Date**: 2026-09-25
 
 ---
@@ -19,8 +19,8 @@
 | **Phase 3** | Engineering Foundation | Controlled Audit Remediation | **COMPLETED** |
 | **Phase 4** | Product Implementation | Application Shell & Window Management | **COMPLETED** |
 | **Phase 5** | Product Implementation | Widget UI (Completed & Remediated) | **COMPLETED** |
-| **Phase 6** | Product Implementation | Calendar Grid & Navigation | **NEXT** |
-| **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **PLANNED** |
+| **Phase 6** | Product Implementation | Calendar Grid & Navigation | **COMPLETED** |
+| **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **NEXT** |
 | **Phase 8** | Product Implementation | Events Management | **PLANNED** |
 | **Phase 9** | Product Implementation | Notes Management | **PLANNED** |
 | **Phase 10** | Product Implementation | Settings & Appearance | **PLANNED** |
@@ -36,7 +36,7 @@
 - [x] Initial Entities (`CalendarEvent`, `Note`)
 - [x] Initial Interfaces (`ICalendarEventRepository`, `INoteRepository`)
 - [x] Initial Value Object (`DateRange`)
-- [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned Phase 6/8
+- [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned Phase 8
 - [x] Domain Exception (`DomainValidationException`)
 
 ### Specifications & AI Context
@@ -71,6 +71,17 @@
   - Selection consistency on month navigation: stale selection cleared when date leaves visible 42-cell grid
   - Zero-footprint collapsed detail tray using `ThicknessAnimation` for margin, padding, and border thickness alongside height and opacity
   - Accessibility labels and tooltips on widget header and calendar controls
+- [x] Full application calendar grid & navigation (Phase 6):
+  - Full application calendar grid view (`CalendarView`) and view model (`CalendarViewModel`)
+  - Deterministic 42-cell calendar grid displaying current, trailing, and leading days
+  - Month navigation with robust year boundary transitions (Jan ↔ Dec)
+  - Jump to today (`Today`, `GoToToday`) resetting grid and selecting current date
+  - Configurable `FirstDayOfWeek` with automatic headers and grid synchronization
+  - Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`
+  - Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible
+  - Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`
+  - Coherent focus model with visible keyboard focus indicators on buttons and day cells
+  - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells
 - [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
 
 ### Host Application
@@ -85,7 +96,7 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, and converter logic
-- [x] 83 automated tests passing (82 unit tests, 1 integration test, 0 failures)
+- [x] 100 automated tests passing (99 unit tests, 1 integration test, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -97,8 +108,7 @@
 ---
 
 ## Current Priorities
-1. **Phase 6 — Calendar Grid & Navigation**:
-   - Comprehensive full-application calendar grid view (`CalendarView`).
-   - Month/week navigation and view modes.
-   - Configurable first day of week.
-   - Selected date sync across views.
+1. **Phase 7 — Persistence & SQLite Repositories**:
+   - Implement `EfCalendarEventRepository` and `EfNoteRepository` with EF Core.
+   - Configure SQLite schema and initial migrations pipeline.
+   - Author integration tests for SQLite persistence lifecycle.

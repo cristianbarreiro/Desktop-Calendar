@@ -21,6 +21,9 @@ public sealed partial class CalendarViewModel : ViewModelBase
     private int _currentMonth;
 
     [ObservableProperty]
+    private string _monthYearText = string.Empty;
+
+    [ObservableProperty]
     private string _monthYearTitle = string.Empty;
 
     [ObservableProperty]
@@ -34,6 +37,12 @@ public sealed partial class CalendarViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _selectedDateFormatted = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedDayHeader = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedDateHeader = string.Empty;
 
     [ObservableProperty]
     private DayOfWeek _firstDayOfWeek = DayOfWeek.Monday;
@@ -63,7 +72,16 @@ public sealed partial class CalendarViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Navigates to the previous month.
+    /// Responds to changes in <see cref="FirstDayOfWeek"/> by regenerating headers and the calendar grid.
+    /// </summary>
+    /// <param name="value">The new first day of the week.</param>
+    partial void OnFirstDayOfWeekChanged(DayOfWeek value)
+    {
+        RefreshGrid();
+    }
+
+    /// <summary>
+    /// Navigates to the previous month, crossing year boundaries from January to December.
     /// </summary>
     [RelayCommand]
     public void PreviousMonth()
@@ -82,7 +100,7 @@ public sealed partial class CalendarViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Navigates to the next month.
+    /// Navigates to the next month, crossing year boundaries from December to January.
     /// </summary>
     [RelayCommand]
     public void NextMonth()
@@ -101,7 +119,7 @@ public sealed partial class CalendarViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Resets the calendar view to the current system date.
+    /// Resets the calendar view and selection to the current system date.
     /// </summary>
     [RelayCommand]
     public void Today()
@@ -120,35 +138,132 @@ public sealed partial class CalendarViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Selects the specified calendar day.
+    /// Resets the calendar view and selection to the current system date (alias for <see cref="Today"/>).
     /// </summary>
-    /// <param name="day">The day model to select.</param>
+    [RelayCommand]
+    public void GoToToday()
+    {
+        Today();
+    }
+
+    /// <summary>
+    /// Selects the specified calendar day and updates formatted date representations.
+    /// </summary>
+    /// <param name="day">The day model to select, or <c>null</c> to clear selection.</param>
     [RelayCommand]
     public void SelectDay(CalendarDayModel? day)
     {
         if (day is null)
         {
+            SelectedDay = null;
+            UpdateSelectedDateText(null);
             return;
         }
 
         SelectedDay = day;
+        UpdateSelectedDateText(day);
+    }
+
+    /// <summary>
+    /// Navigates the selected date by the given number of days, crossing month and year boundaries as needed.
+    /// </summary>
+    /// <param name="daysDelta">Number of days to move (negative for previous, positive for next).</param>
+    public void NavigateByDays(int daysDelta)
+    {
+        DateOnly baseDate = SelectedDay?.Date ?? new DateOnly(CurrentYear, CurrentMonth, 1);
+        DateOnly targetDate = baseDate.AddDays(daysDelta);
+
+        // If target date is outside the currently displayed month, navigate to that month
+        if (targetDate.Year != CurrentYear || targetDate.Month != CurrentMonth)
+        {
+            CurrentYear = targetDate.Year;
+            CurrentMonth = targetDate.Month;
+            RefreshGrid();
+        }
+
+        CalendarDayModel? targetDay = Days.FirstOrDefault(d => d.Date == targetDate);
+        if (targetDay is not null)
+        {
+            SelectDay(targetDay);
+        }
+    }
+
+    /// <summary>
+    /// Navigates the selection one day to the left (previous day).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateLeft()
+    {
+        NavigateByDays(-1);
+    }
+
+    /// <summary>
+    /// Navigates the selection one day to the right (next day).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateRight()
+    {
+        NavigateByDays(1);
+    }
+
+    /// <summary>
+    /// Navigates the selection one week up (previous 7 days).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateUp()
+    {
+        NavigateByDays(-7);
+    }
+
+    /// <summary>
+    /// Navigates the selection one week down (next 7 days).
+    /// </summary>
+    [RelayCommand]
+    public void NavigateDown()
+    {
+        NavigateByDays(7);
+    }
+
+    private void UpdateSelectedDateText(CalendarDayModel? day)
+    {
+        if (day is null)
+        {
+            SelectedDateFormatted = string.Empty;
+            SelectedDayHeader = string.Empty;
+            SelectedDateHeader = string.Empty;
+            return;
+        }
+
         DateTime dt = day.Date.ToDateTime(TimeOnly.MinValue);
         SelectedDateFormatted = dt.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture);
+        SelectedDateHeader = dt.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
+        SelectedDayHeader = day.IsToday
+            ? "TODAY"
+            : SelectedDateHeader;
     }
 
     private void RefreshGrid()
     {
-        MonthYearTitle = new DateTime(CurrentYear, CurrentMonth, 1)
-            .ToString("MMMM yyyy", CultureInfo.InvariantCulture)
-            .ToUpperInvariant();
+        DateTime currentMonthDate = new(CurrentYear, CurrentMonth, 1);
+        MonthYearText = currentMonthDate.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+        MonthYearTitle = MonthYearText.ToUpperInvariant();
 
         DayHeaders = _gridService.GetDayHeaders(FirstDayOfWeek);
         Days = _gridService.GenerateGrid(CurrentYear, CurrentMonth, FirstDayOfWeek, _clockService.Today);
 
-        // Keep selection if date is still in new grid, otherwise select null or match
         if (SelectedDay is not null)
         {
-            SelectedDay = Days.FirstOrDefault(d => d.Date == SelectedDay.Date);
+            CalendarDayModel? matchingDay = Days.FirstOrDefault(d => d.Date == SelectedDay.Date);
+            if (matchingDay is not null)
+            {
+                SelectedDay = matchingDay;
+                UpdateSelectedDateText(matchingDay);
+            }
+            else
+            {
+                SelectedDay = null;
+                UpdateSelectedDateText(null);
+            }
         }
     }
 }
