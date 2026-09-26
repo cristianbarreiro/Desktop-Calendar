@@ -92,7 +92,9 @@
 - Configurable `FirstDayOfWeek` with automatic header and grid synchronization.
 - Selection handling via `IsSelectedDayConverter` with full coexistence of `Today + Selected`.
 - Stale selection prevention: selection cleared if date leaves 42-cell grid, preserved if still visible.
-- Contextual keyboard navigation (Left, Right, Up, Down) with month/year crossing scoped to `CalendarGrid`.
+- Contextual keyboard navigation (Left, Right, Up, Down, PageUp, PageDown, Home, End) with month/year crossing scoped to `CalendarGrid`.
+- PageUp/PageDown navigate to previous/next month preserving day-of-month selection (clamped to last valid day of target month).
+- Home/End navigate to first/last day of the currently displayed month.
 - Coherent focus model with visible keyboard focus indicators on buttons and day cells.
 - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
 - Expanded automated test suite to 100 tests (99 unit + 1 integration, 0 failures).
@@ -112,6 +114,6 @@
 - Updated `Program.cs`: DB path `%LOCALAPPDATA%\DesktopCalendar\calendar.db`; calls `AddInfrastructure(connectionString)`; runs `DatabaseInitializer.InitializeAsync()` in a scoped service scope before `app.Run()`.
 - Implemented `SqliteTestContext` test helper: isolated SQLite DB per test using migrations; `SqliteConnection.ClearAllPools()` before file deletion.
 - Added 33 integration tests: 11 event repository tests (CRUD + 7 date-range overlap scenarios), 17 note repository tests (CRUD + 7 search scenarios), 5 migration/schema tests.
-- Total automated tests: 132 (99 unit + 33 integration, 0 failures).
+- Total automated tests at Phase 7 completion: 132 (99 unit + 33 integration, 0 failures); subsequently expanded to 147 (114 unit + 33 integration) by Phase 6 keyboard navigation remediation.
 - Validated solution build (Debug & Release, 0 errors, 0 warnings), test execution (132/132 passed), and code formatting (`dotnet format --verify-no-changes`).
 - Committed as `feat: phase 7` (SHA `992faba`).

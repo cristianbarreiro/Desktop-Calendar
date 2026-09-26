@@ -61,7 +61,7 @@ Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events
   - Home/End navigate to first/last day of the currently displayed month.
   - Coherent focus model with visible keyboard focus indicators on buttons and day cells.
   - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells.
-  - Comprehensive test suite expanded to 100 automated tests (99 unit tests + 1 integration test, 0 failures).
+  - Expanded the Phase 6 calendar navigation test coverage to 100 tests (99 unit + 1 integration, 0 failures).
 - [x] **Persistence & SQLite Repositories (Phase 7)**:
   - EF Core SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`).
   - `AppDbContext` entity configuration with max-length constraints.
