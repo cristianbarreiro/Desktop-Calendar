@@ -13,6 +13,7 @@
 | Event creation | P0 | Complete |
 | Event editing | P0 | Complete |
 | Event deletion | P0 | Complete |
+| Event validation | P0 | Complete |
 | Event indicators on calendar days | P0 | Complete |
 | Day detail panel | P0 | Complete |
 | Local persistence (SQLite) | P0 | Complete |

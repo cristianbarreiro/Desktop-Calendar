@@ -13,8 +13,8 @@ Transition from Phase 8 (Events Management) into Phase 9 (Notes Management).
 - **Phase 5 — Widget UI**: COMPLETE
 - **Phase 6 — Calendar Grid & Navigation**: COMPLETE
 - **Phase 7 — Persistence & SQLite Repositories**: COMPLETE
-- **Phase 8 — Events Management**: COMPLETE
-- **Next Target — Phase 9 (Notes Management)**: READY TO START
+- **Phase 8 — Events Management**: COMPLETED
+- **Next Target — Phase 9 (Notes Management)**: NEXT / READY
 
 ---
 

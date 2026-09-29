@@ -129,7 +129,8 @@ In progress:
 - **Phase 5 — Widget UI** (Completed)
 - **Phase 6 — Calendar Grid & Navigation** (Completed)
 - **Phase 7 — Persistence** (Completed)
-- **Phase 8 — Events Management** (Next target)
+- **Phase 8 — Events Management** (Completed)
+- **Phase 9 — Notes Management** (Next target)
 
 ## Roadmap
 
@@ -144,8 +145,8 @@ In progress:
 - [x] **Phase 5 — Widget UI**: Compact calendar widget, time display, month navigation, selected date, expand/collapse detail tray, event indicators, keyboard navigation, and transitions.
 - [x] **Phase 6 — Calendar**: 42-cell calendar grid, date selection, current date, keyboard navigation (Arrow keys, PageUp/PageDown, Home/End), configurable first day of week.
 - [x] **Phase 7 — Persistence**: EF Core SQLite integration, migrations, repositories, database initialization.
-- [ ] **Phase 8 — Events** (NEXT): Event CRUD, validation, event indicators, day details, event persistence.
-- [ ] **Phase 9 — Notes** (PLANNED): Notes CRUD, list, timestamps, search, persistence integration.
+- [x] **Phase 8 — Events**: Event CRUD, validation, event indicators, day details, event persistence.
+- [ ] **Phase 9 — Notes** (NEXT): Notes CRUD, list, timestamps, search, persistence integration.
 - [ ] **Phase 10 — Settings** (PLANNED): Theme switching, always-on-top, startup behavior, opacity, first day of week, date/time format, export/import.
 - [ ] **Phase 11 — Windows Integration** (PLANNED): Single-instance global mutex, secondary-instance activation, position persistence, DPI awareness, tray integration.
 - [ ] **Phase 12 — Testing & Polish** (PLANNED): Test expansion, UI validation, accessibility, performance, edge cases, reliability.

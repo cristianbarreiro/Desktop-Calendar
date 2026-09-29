@@ -137,4 +137,5 @@
 - Added integration tests in `CalendarEventRepositoryTests` verifying `Validate()` behavior on persistence and preservation of `CreatedAt` with updated `UpdatedAt`.
 - Total automated tests expanded from 147 to 201 (166 unit + 35 integration, 0 failures).
 - Validated solution build (0 errors, 0 warnings), test execution (201/201 passed), and code formatting (`dotnet format --verify-no-changes`).
+- Committed as `feat: phase 8` (SHA `5ca3eed27fe225980dda747a2b6d96f4b3553fa0`).
 

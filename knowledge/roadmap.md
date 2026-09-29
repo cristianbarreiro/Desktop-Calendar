@@ -71,7 +71,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Database initialization, WAL mode configuration, and safe startup checks
 
 ### Phase 8 — Events
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
   - Event CRUD operations (Create, Read, Update, Delete)
   - Validation rules (`EndTime >= StartTime`, mandatory title)
@@ -80,7 +80,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Event persistence integration
 
 ### Phase 9 — Notes
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Notes CRUD operations
   - Note list view and editor view

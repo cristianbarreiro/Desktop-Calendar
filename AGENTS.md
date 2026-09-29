@@ -10,7 +10,7 @@
 - **UI Framework**: WPF (XAML)
 - **Architecture**: MVVM + Layered Architecture
 - **Storage**: SQLite via Entity Framework Core
-- **Status**: Phase 7 Complete — Ready for Phase 8: Events Management
+- **Status**: Phase 8 Complete — Ready for Phase 9: Notes
 
 ## Architecture
 
