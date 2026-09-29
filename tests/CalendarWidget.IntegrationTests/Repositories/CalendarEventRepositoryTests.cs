@@ -229,4 +229,65 @@ public sealed class CalendarEventRepositoryTests
         Func<Task> act = () => repo.DeleteAsync(Guid.NewGuid());
         await act.Should().NotThrowAsync();
     }
+
+    [Fact]
+    public async Task AddAsync_ValidEventWithValidate_PersistsAllProperties()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository repo = new(db.Context);
+
+        CalendarEvent ev = new()
+        {
+            Id = Guid.NewGuid(),
+            Title = "Important Strategy Meeting",
+            Description = "Quarterly planning and review session",
+            StartTime = new DateTime(2026, 9, 15, 14, 0, 0, DateTimeKind.Utc),
+            EndTime = new DateTime(2026, 9, 15, 16, 0, 0, DateTimeKind.Utc),
+            IsAllDay = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        ev.Validate();
+        await repo.AddAsync(ev);
+
+        CalendarEvent? retrieved = await repo.GetByIdAsync(ev.Id);
+        retrieved.Should().NotBeNull();
+        retrieved!.Title.Should().Be("Important Strategy Meeting");
+        retrieved.Description.Should().Be("Quarterly planning and review session");
+        retrieved.IsAllDay.Should().BeFalse();
+        retrieved.StartTime.Should().Be(ev.StartTime);
+        retrieved.EndTime.Should().Be(ev.EndTime);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_PreservesCreatedAtAndUpdatesUpdatedAt()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository repo = new(db.Context);
+
+        DateTime created = DateTime.UtcNow.AddHours(-3);
+        DateTime updated = DateTime.UtcNow.AddHours(-2);
+        CalendarEvent ev = new()
+        {
+            Id = Guid.NewGuid(),
+            Title = "Initial Title",
+            StartTime = new DateTime(2026, 9, 20, 10, 0, 0, DateTimeKind.Utc),
+            EndTime = new DateTime(2026, 9, 20, 11, 0, 0, DateTimeKind.Utc),
+            CreatedAt = created,
+            UpdatedAt = updated,
+        };
+        await repo.AddAsync(ev);
+
+        DateTime newUpdated = DateTime.UtcNow;
+        ev.Title = "Modified Title";
+        ev.UpdatedAt = newUpdated;
+        ev.Validate();
+        await repo.UpdateAsync(ev);
+
+        CalendarEvent? retrieved = await repo.GetByIdAsync(ev.Id);
+        retrieved.Should().NotBeNull();
+        retrieved!.Title.Should().Be("Modified Title");
+        retrieved.CreatedAt.Should().Be(created);
+        retrieved.UpdatedAt.Should().Be(newUpdated);
+    }
 }

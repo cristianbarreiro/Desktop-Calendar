@@ -17,7 +17,8 @@ public sealed class MainWindowViewModelTests
 
     public MainWindowViewModelTests()
     {
-        _calendarViewModel = new CalendarViewModel(_gridService, _clockService);
+        TestScopeFactory scopeFactory = new(new TestCalendarEventRepository());
+        _calendarViewModel = new CalendarViewModel(_gridService, _clockService, scopeFactory);
         _sut = new MainWindowViewModel(_windowManager, _calendarViewModel, _notesViewModel, _settingsViewModel);
     }
 

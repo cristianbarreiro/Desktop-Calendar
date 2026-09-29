@@ -5,12 +5,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:CalendarWidget.Presentation.ViewModels"
              xmlns:conv="clr-namespace:CalendarWidget.Presentation.Converters"
+             xmlns:models="clr-namespace:CalendarWidget.Presentation.Models"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=vm:CalendarViewModel}"
              d:DesignHeight="600" d:DesignWidth="800">
 
     <UserControl.Resources>
         <conv:IsSelectedDayConverter x:Key="IsSelectedDayConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
     </UserControl.Resources>
 
     <Grid Margin="24">
@@ -277,14 +279,24 @@
                     BorderThickness="1"
                     CornerRadius="{DynamicResource CornerRadiusCard}"
                     Padding="20">
-                <StackPanel>
-                    <TextBlock Text="DAY DETAILS"
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Text="DAY DETAILS"
                                Style="{DynamicResource BodySubtleTextBlockStyle}"
                                FontWeight="SemiBold"
                                Margin="0,0,0,8"
                                AutomationProperties.Name="Day details header" />
-                    
-                    <TextBlock TextWrapping="Wrap"
+
+                    <TextBlock Grid.Row="1"
+                               TextWrapping="Wrap"
                                Margin="0,0,0,16"
                                AutomationProperties.Name="Selected date summary">
                         <TextBlock.Style>
@@ -300,27 +312,368 @@
                         </TextBlock.Style>
                     </TextBlock>
 
-                    <Separator Background="{DynamicResource BorderDividerBrush}"
+                    <Separator Grid.Row="2"
+                               Background="{DynamicResource BorderDividerBrush}"
                                Margin="0,0,0,16" />
 
-                    <!-- Events Empty State Shell -->
+                    <!-- Add Event Button -->
+                    <Button Grid.Row="3"
+                            Command="{Binding OpenCreateEventFormCommand}"
+                            Content="+ Add Event"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,0,0,16"
+                            ToolTip="Schedule a new event for the selected day"
+                            AutomationProperties.Name="Add event button">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedDay}" Value="{x:Null}">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <!-- Events Container -->
+                    <Grid Grid.Row="4">
+                        <!-- Empty State: No Day Selected -->
+                        <Border Background="{DynamicResource BackgroundRootBrush}"
+                                BorderBrush="{DynamicResource BorderDividerBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource CornerRadiusCard}"
+                                Padding="16"
+                                Margin="0,0,0,12">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedDay}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="No Date Selected"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,6" />
+                                <TextBlock Text="Select a day from the calendar to view or schedule events."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Empty State: Day Selected with No Events -->
+                        <Border Background="{DynamicResource BackgroundRootBrush}"
+                                BorderBrush="{DynamicResource BorderDividerBrush}"
+                                BorderThickness="1"
+                                CornerRadius="{DynamicResource CornerRadiusCard}"
+                                Padding="16"
+                                Margin="0,0,0,12"
+                                Visibility="{Binding HasNoSelectedDayEvents, Converter={StaticResource BoolToVisConverter}}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="No Events Scheduled"
+                                           Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,6" />
+                                <TextBlock Text="Click '+ Add Event' to schedule an event for this day."
+                                           Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Event List -->
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Visibility="{Binding HasSelectedDayEvents, Converter={StaticResource BoolToVisConverter}}">
+                            <ItemsControl ItemsSource="{Binding SelectedDayEvents}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:EventListItemModel}">
+                                        <Border Background="{DynamicResource BackgroundRootBrush}"
+                                                BorderBrush="{DynamicResource BorderDividerBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="{DynamicResource CornerRadiusCard}"
+                                                Padding="12,10"
+                                                Margin="0,0,0,8"
+                                                SnapsToDevicePixels="True">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Event Info -->
+                                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextPrimaryBrush}"
+                                                               FontSize="{DynamicResource FontSizeBodyRegular}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               AutomationProperties.Name="{Binding Title, StringFormat='Event: {0}'}" />
+
+                                                    <TextBlock Text="{Binding TimeLabel}"
+                                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"
+                                                               Margin="0,3,0,0" />
+
+                                                    <TextBlock Text="{Binding Description}"
+                                                               Foreground="{DynamicResource TextDisabledBrush}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Margin="0,4,0,0">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource BodySubtleTextBlockStyle}">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Description}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Description}" Value="">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+
+                                                <!-- Edit & Delete Buttons -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                                    <Button Content="Edit"
+                                                            Command="{Binding DataContext.OpenEditEventFormCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Style="{DynamicResource StandardButtonStyle}"
+                                                            Padding="8,4"
+                                                            Margin="0,0,6,0"
+                                                            ToolTip="Edit this event"
+                                                            AutomationProperties.Name="{Binding Title, StringFormat='Edit event {0}'}" />
+
+                                                    <Button Content="Delete"
+                                                            Command="{Binding DataContext.RequestDeleteEventCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Style="{DynamicResource StandardButtonStyle}"
+                                                            Padding="8,4"
+                                                            ToolTip="Delete this event"
+                                                            AutomationProperties.Name="{Binding Title, StringFormat='Delete event {0}'}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Event Form Modal Overlay -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Visibility="{Binding IsEventFormVisible, Converter={StaticResource BoolToVisConverter}}"
+              Panel.ZIndex="100">
+            <!-- Modal Backdrop -->
+            <Border Background="#A0000000" />
+
+            <!-- Form Dialog Card -->
+            <Border Background="{DynamicResource SurfaceCardBrush}"
+                    BorderBrush="{DynamicResource BorderDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CornerRadiusWindow}"
+                    Width="400"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="24"
+                    SnapsToDevicePixels="True">
+                <StackPanel>
+                    <TextBlock Text="{Binding EventForm.FormTitle}"
+                               Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                               Margin="0,0,0,16"
+                               AutomationProperties.Name="Event form dialog title" />
+
+                    <!-- Title Field -->
+                    <TextBlock Text="Title *"
+                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <TextBox Text="{Binding EventForm.Title, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="200"
+                             Padding="8,6"
+                             Background="{DynamicResource BackgroundRootBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderDividerBrush}"
+                             BorderThickness="1"
+                             Margin="0,0,0,12"
+                             AutomationProperties.Name="Event title input" />
+
+                    <!-- Description Field -->
+                    <TextBlock Text="Description"
+                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <TextBox Text="{Binding EventForm.Description, UpdateSourceTrigger=PropertyChanged}"
+                             MaxLength="2000"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             Height="64"
+                             Padding="8,6"
+                             Background="{DynamicResource BackgroundRootBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource BorderDividerBrush}"
+                             BorderThickness="1"
+                             Margin="0,0,0,12"
+                             AutomationProperties.Name="Event description input" />
+
+                    <!-- All-Day Toggle -->
+                    <CheckBox IsChecked="{Binding EventForm.IsAllDay}"
+                              Content="All day event"
+                              Foreground="{DynamicResource TextPrimaryBrush}"
+                              Margin="0,0,0,12"
+                              AutomationProperties.Name="All day event checkbox" />
+
+                    <!-- Time Fields (Collapsed when All-Day) -->
+                    <Grid Margin="0,0,0,12">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EventForm.IsAllDay}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="12" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Start Time"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,4" />
+                            <TextBox Text="{Binding EventForm.StartTime, StringFormat='yyyy-MM-dd HH:mm', UpdateSourceTrigger=LostFocus}"
+                                     Padding="8,6"
+                                     Background="{DynamicResource BackgroundRootBrush}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BorderDividerBrush}"
+                                     BorderThickness="1"
+                                     AutomationProperties.Name="Event start time input" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="End Time"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,4" />
+                            <TextBox Text="{Binding EventForm.EndTime, StringFormat='yyyy-MM-dd HH:mm', UpdateSourceTrigger=LostFocus}"
+                                     Padding="8,6"
+                                     Background="{DynamicResource BackgroundRootBrush}"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     BorderBrush="{DynamicResource BorderDividerBrush}"
+                                     BorderThickness="1"
+                                     AutomationProperties.Name="Event end time input" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Validation Error -->
+                    <TextBlock Text="{Binding EventForm.ValidationError}"
+                               Foreground="#E81123"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12"
+                               AutomationProperties.Name="Form validation error message">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource BodySubtleTextBlockStyle}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EventForm.ValidationError}" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelEventFormCommand}"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Margin="0,0,8,0"
+                                Padding="16,6"
+                                AutomationProperties.Name="Cancel event form" />
+                        <Button Content="Save"
+                                Command="{Binding SaveEventFormCommand}"
+                                Style="{DynamicResource AccentButtonStyle}"
+                                Padding="20,6"
+                                AutomationProperties.Name="Save event" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Delete Confirmation Modal Overlay -->
+        <Grid Grid.Row="0" Grid.RowSpan="2"
+              Visibility="{Binding IsDeleteConfirmVisible, Converter={StaticResource BoolToVisConverter}}"
+              Panel.ZIndex="101">
+            <!-- Modal Backdrop -->
+            <Border Background="#A0000000" />
+
+            <!-- Confirmation Card -->
+            <Border Background="{DynamicResource SurfaceCardBrush}"
+                    BorderBrush="{DynamicResource BorderDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CornerRadiusWindow}"
+                    Width="380"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="24"
+                    SnapsToDevicePixels="True">
+                <StackPanel>
+                    <TextBlock Text="Delete Event"
+                               Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                               Margin="0,0,0,12"
+                               AutomationProperties.Name="Delete event dialog title" />
+
+                    <TextBlock Text="Are you sure you want to delete this event?"
+                               Style="{DynamicResource BodyRegularTextBlockStyle}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="0,0,0,8" />
+
                     <Border Background="{DynamicResource BackgroundRootBrush}"
                             BorderBrush="{DynamicResource BorderDividerBrush}"
                             BorderThickness="1"
                             CornerRadius="{DynamicResource CornerRadiusCard}"
-                            Padding="16"
-                            Margin="0,0,0,12">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="No Events Scheduled"
-                                       Style="{DynamicResource BodyRegularTextBlockStyle}"
-                                       HorizontalAlignment="Center"
-                                       Margin="0,0,0,6" />
-                            <TextBlock Text="Event management and scheduling will be introduced in Phase 8."
-                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
-                                       TextWrapping="Wrap"
-                                       TextAlignment="Center" />
-                        </StackPanel>
+                            Padding="12,8"
+                            Margin="0,0,0,16">
+                        <TextBlock Text="{Binding PendingDeleteTitle}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   AutomationProperties.Name="Event title to delete" />
                     </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelDeleteEventCommand}"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Margin="0,0,8,0"
+                                Padding="16,6"
+                                AutomationProperties.Name="Cancel delete event" />
+                        <Button Content="Delete"
+                                Command="{Binding ConfirmDeleteEventCommand}"
+                                Background="#D83B01"
+                                BorderBrush="#D83B01"
+                                Foreground="#FFFFFF"
+                                FontWeight="SemiBold"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Padding="20,6"
+                                AutomationProperties.Name="Confirm delete event" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

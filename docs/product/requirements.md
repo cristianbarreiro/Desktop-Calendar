@@ -6,16 +6,16 @@
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| Current month display | P0 | Not started |
-| Previous/next month navigation | P0 | Not started |
-| Current date indication | P0 | Not started |
-| Selected date indication | P0 | Not started |
-| Event creation | P0 | Not started |
-| Event editing | P0 | Not started |
-| Event deletion | P0 | Not started |
-| Event indicators on calendar days | P0 | Not started |
-| Day detail panel | P0 | Not started |
-| Local persistence (SQLite) | P0 | Not started |
+| Current month display | P0 | Complete |
+| Previous/next month navigation | P0 | Complete |
+| Current date indication | P0 | Complete |
+| Selected date indication | P0 | Complete |
+| Event creation | P0 | Complete |
+| Event editing | P0 | Complete |
+| Event deletion | P0 | Complete |
+| Event indicators on calendar days | P0 | Complete |
+| Day detail panel | P0 | Complete |
+| Local persistence (SQLite) | P0 | Complete |
 
 ### Notes
 
@@ -45,23 +45,23 @@
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| Compact calendar display | P0 | Not started |
-| Current time display | P0 | Not started |
-| Open full application button | P0 | Not started |
-| Minimize control | P0 | Not started |
-| Day selection with detail expansion | P0 | Not started |
-| Event indicators | P0 | Not started |
+| Compact calendar display | P0 | Complete |
+| Current time display | P0 | Complete |
+| Open full application button | P0 | Complete |
+| Minimize control | P0 | Complete |
+| Day selection with detail expansion | P0 | Complete |
+| Event indicators | P0 | Complete |
 
 ### Full Application
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| Calendar view | P0 | Not started |
-| Notes view | P0 | Not started |
-| Settings view | P1 | Not started |
-| Navigation sidebar | P0 | Not started |
-| Switch to widget action | P0 | Not started |
-| Standard window controls | P0 | Not started |
+| Calendar view | P0 | Complete |
+| Notes view | P0 | Shell / Placeholder |
+| Settings view | P1 | Shell / Placeholder |
+| Navigation sidebar | P0 | Complete |
+| Switch to widget action | P0 | Complete |
+| Standard window controls | P0 | Complete |
 
 ## Future Features (Architecture-Ready, Not Implemented)
 

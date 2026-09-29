@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events Management).
+Transition from Phase 8 (Events Management) into Phase 9 (Notes Management).
 
 ---
 
@@ -13,7 +13,8 @@ Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events
 - **Phase 5 — Widget UI**: COMPLETE
 - **Phase 6 — Calendar Grid & Navigation**: COMPLETE
 - **Phase 7 — Persistence & SQLite Repositories**: COMPLETE
-- **Next Target — Phase 8 (Events Management)**: READY TO START
+- **Phase 8 — Events Management**: COMPLETE
+- **Next Target — Phase 9 (Notes Management)**: READY TO START
 
 ---
 
@@ -73,25 +74,30 @@ Transition from Phase 7 (Persistence & SQLite Repositories) into Phase 8 (Events
   - Isolated SQLite test helper (`SqliteTestContext`) with `SqliteConnection.ClearAllPools()` for safe temp-file cleanup.
   - 33 integration tests: 11 event repository tests, 17 note repository tests, 5 migration/schema tests.
   - Total automated tests: 147 (114 unit + 33 integration, 0 failures).
+- [x] **Events Management (Phase 8)**:
+  - Domain validation (`Validate()`) on `CalendarEvent`: required non-empty title (<= 200 chars), description <= 2000 chars, `EndTime >= StartTime` (for non-all-day events).
+  - Event CRUD UI: Add event button, event creation/editing modal form, delete confirmation modal.
+  - Event list item model (`EventListItemModel`) with localized time display (`HH:mm` or `All day`).
+  - Day detail panel: shows selected day header, empty states ("Select a day", "No events scheduled"), and chronological event cards with Edit/Delete buttons.
+  - Event indicators: single query across visible 42-cell grid range populates `HasEvents` indicator on day cells.
+  - Architecture integrity: presentation resolves `ICalendarEventRepository` via `IServiceScopeFactory`, zero direct EF Core / Infrastructure dependencies.
+  - Test suite expanded to 201 tests (166 unit + 35 integration, 0 failures).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 8 — Events Management
+### Phase 9 — Notes Management
 
-- Event CRUD UI in `CalendarView` (create, edit, delete dialogs or inline forms).
-- Event indicators on calendar day cells.
-- Day detail panel with event list.
-- Validation rules (`EndTime >= StartTime`, mandatory title).
-- Event persistence via `ICalendarEventRepository`.
+- Note CRUD UI in `NotesView` (create, edit, delete).
+- Note listing, filtering/search, and timestamps.
+- Note persistence via `INoteRepository`.
 
 ---
 
-## Explicitly Out of Scope for Phase 8
+## Explicitly Out of Scope for Phase 9
 
-Do NOT implement during Phase 8:
-- Notes editor UI (Planned Phase 9)
+Do NOT implement during Phase 9:
 - Settings persistence UI (Planned Phase 10)
 - System tray icon docking (Planned Phase 11)
 - Windows startup registration (Planned Phase 11)

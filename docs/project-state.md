@@ -3,9 +3,9 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 7 complete)
-- **Next Phase**: Phase 8 — Events Management
-- **Current Date**: 2026-09-25
+- **Product Implementation**: In Progress (Phase 8 complete)
+- **Next Phase**: Phase 9 — Notes Management
+- **Current Date**: 2026-09-29
 
 ---
 
@@ -21,8 +21,8 @@
 | **Phase 5** | Product Implementation | Widget UI (Completed & Remediated) | **COMPLETED** |
 | **Phase 6** | Product Implementation | Calendar Grid & Navigation | **COMPLETED** |
 | **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **COMPLETED** |
-| **Phase 8** | Product Implementation | Events Management | **NEXT** |
-| **Phase 9** | Product Implementation | Notes Management | **PLANNED** |
+| **Phase 8** | Product Implementation | Events Management | **COMPLETED** |
+| **Phase 9** | Product Implementation | Notes Management | **NEXT** |
 | **Phase 10** | Product Implementation | Settings & Appearance | **PLANNED** |
 | **Phase 11** | Product Implementation | Windows OS Integration | **PLANNED** |
 | **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **PLANNED** |
@@ -36,7 +36,7 @@
 - [x] Initial Entities (`CalendarEvent`, `Note`)
 - [x] Initial Interfaces (`ICalendarEventRepository`, `INoteRepository`)
 - [x] Initial Value Object (`DateRange`)
-- [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned Phase 8
+- [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned / Future
 - [x] Domain Exception (`DomainValidationException`)
 
 ### Specifications & AI Context
@@ -84,6 +84,14 @@
   - Home/End navigate to first/last day of the currently displayed month
   - Coherent focus model with visible keyboard focus indicators on buttons and day cells
   - Accessibility: `AutomationProperties.Name` and `ToolTip` on all buttons and calendar day cells
+- [x] Full application events management (Phase 8):
+  - Event CRUD UI integrated into `CalendarView`: Create, Edit, Delete with modal dialogs
+  - Day detail panel with chronological event listing, empty state, and event actions (Edit, Delete)
+  - Delete confirmation modal dialog with Cancel / Delete actions
+  - Event indicators on calendar day cells dynamically loaded for visible 42-cell date range
+  - Domain validation (`CalendarEvent.Validate()`): non-empty title <= 200 chars, description <= 2000 chars, `EndTime >= StartTime`
+  - UTC persistence via `ICalendarEventRepository` with localized time display
+  - Scoped repository resolution via `IServiceScopeFactory` adhering to layered architecture
 - [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
 
 ### Host Application
@@ -97,8 +105,8 @@
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, and converter logic
-- [x] 147 automated tests passing (114 unit tests, 33 integration tests, 0 failures)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, and repository persistence
+- [x] 201 automated tests passing (166 unit tests, 35 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -110,7 +118,7 @@
 ---
 
 ## Current Priorities
-1. **Phase 8 — Events Management**:
-   - Event CRUD UI in CalendarView.
-   - Event indicators on calendar day cells.
-   - Day detail panel with event list.
+1. **Phase 9 — Notes Management**:
+   - Note CRUD UI in NotesView.
+   - Note listing, search, and timestamps.
+   - Integration with `INoteRepository`.

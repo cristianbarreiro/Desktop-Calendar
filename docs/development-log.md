@@ -117,3 +117,24 @@
 - Total automated tests at Phase 7 completion: 132 (99 unit + 33 integration, 0 failures); subsequently expanded to 147 (114 unit + 33 integration) by Phase 6 keyboard navigation remediation.
 - Validated solution build (Debug & Release, 0 errors, 0 warnings), test execution (132/132 passed), and code formatting (`dotnet format --verify-no-changes`).
 - Committed as `feat: phase 7` (SHA `992faba`).
+
+## 2026-09-29 — Phase 8: Events Management
+
+### Activities
+- Enhanced domain entity `CalendarEvent` with `Validate()` enforcing non-empty title (<= 200 chars), description <= 2000 chars, and `EndTime >= StartTime` (for non-all-day events).
+- Added `Microsoft.Extensions.DependencyInjection.Abstractions` to `CalendarWidget.Presentation` to resolve `ICalendarEventRepository` via `IServiceScopeFactory`, respecting layered architecture without direct EF Core/Infrastructure references.
+- Added `InternalsVisibleTo` in `CalendarWidget.Presentation` for unit test assemblies.
+- Implemented `EventListItemModel` presentation record `(Guid Id, string Title, string TimeLabel, string? Description, bool IsAllDay)` with UTC-to-local conversion.
+- Implemented `EventFormViewModel` supporting create and edit workflows, reactive `FormTitle` and `IsEditing`, date/time picking, all-day toggle, inline validation errors, and `IsValid()` check.
+- Extended `CalendarViewModel` with event CRUD commands (`OpenAddEventCommand`, `OpenEditEventCommand`, `SaveEventCommand`, `CancelEventFormCommand`, `RequestDeleteEventCommand`, `ConfirmDeleteEventCommand`, `CancelDeleteEventCommand`).
+- Implemented 42-cell visible date range querying (`RefreshGridWithEventsAsync`) populating `HasEvents` day cell indicator in a single repository query.
+- Implemented day selection event loading (`LoadSelectedDayEventsAsync`) with chronological ordering and empty state signaling (`HasSelectedDayEvents`, `HasNoSelectedDayEvents`, `HasSelectedDay`).
+- Enhanced `CalendarView.xaml` with real Day Detail panel (add event button, empty states, scrollable event cards with Edit/Delete buttons) and modal overlay dialogs for Event Form and Delete Confirmation.
+- Added comprehensive unit tests:
+  - `CalendarEventValidationTests`: 11 tests verifying domain validation rules.
+  - `EventFormViewModelTests`: 16 tests covering form initialization, validation, all-day toggle, edit population, and property notifications.
+  - `CalendarViewModelEventTests`: 27 tests covering event loading, visible grid range indicators, midnight boundaries, multi-day overlap, CRUD actions, and dialog state transitions.
+- Added integration tests in `CalendarEventRepositoryTests` verifying `Validate()` behavior on persistence and preservation of `CreatedAt` with updated `UpdatedAt`.
+- Total automated tests expanded from 147 to 201 (166 unit + 35 integration, 0 failures).
+- Validated solution build (0 errors, 0 warnings), test execution (201/201 passed), and code formatting (`dotnet format --verify-no-changes`).
+

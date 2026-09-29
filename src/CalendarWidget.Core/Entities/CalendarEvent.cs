@@ -1,3 +1,5 @@
+using CalendarWidget.Core.Exceptions;
+
 namespace CalendarWidget.Core.Entities;
 
 /// <summary>
@@ -14,10 +16,10 @@ public sealed class CalendarEvent
     /// <summary>Gets or sets the optional event description.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Gets or sets the event start timestamp.</summary>
+    /// <summary>Gets or sets the event start timestamp (UTC).</summary>
     public DateTime StartTime { get; set; }
 
-    /// <summary>Gets or sets the event end timestamp.</summary>
+    /// <summary>Gets or sets the event end timestamp (UTC).</summary>
     public DateTime EndTime { get; set; }
 
     /// <summary>Gets or sets whether the event spans the entire day.</summary>
@@ -28,4 +30,23 @@ public sealed class CalendarEvent
 
     /// <summary>Gets or sets the UTC last-update timestamp.</summary>
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>
+    /// Validates the event's domain invariants.
+    /// Throws <see cref="DomainValidationException"/> if any rule is violated.
+    /// </summary>
+    public void Validate()
+    {
+        if (string.IsNullOrWhiteSpace(Title))
+            throw new DomainValidationException("Event title is required.");
+
+        if (Title.Length > 200)
+            throw new DomainValidationException("Event title cannot exceed 200 characters.");
+
+        if (Description is not null && Description.Length > 2000)
+            throw new DomainValidationException("Event description cannot exceed 2000 characters.");
+
+        if (EndTime < StartTime)
+            throw new DomainValidationException("Event end time cannot be earlier than start time.");
+    }
 }

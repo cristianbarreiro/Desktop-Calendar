@@ -10,6 +10,14 @@ public sealed class CalendarViewModelTests
 {
     private readonly CalendarGridService _gridService = new();
     private readonly TestClockService _clockService = new(new DateTime(2026, 9, 24, 10, 0, 0));
+    private readonly TestCalendarEventRepository _eventRepo = new();
+    private TestScopeFactory ScopeFactory => new(_eventRepo);
+
+    private CalendarViewModel MakeVm(TestClockService? clock = null)
+        => new(_gridService, clock ?? _clockService, new TestScopeFactory(new TestCalendarEventRepository()));
+
+    private CalendarViewModel MakeVmWithRepo(TestClockService? clock = null)
+        => new(_gridService, clock ?? _clockService, ScopeFactory);
 
     // === Initialization ===
 
@@ -17,7 +25,7 @@ public sealed class CalendarViewModelTests
     public void Constructor_InitializesWithCurrentMonthAnd42Cells()
     {
         // Act
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
 
         // Assert
         vm.CurrentYear.Should().Be(2026);
@@ -38,7 +46,7 @@ public sealed class CalendarViewModelTests
     public void FirstDayOfWeek_WhenChanged_RegeneratesHeadersAndGrid()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.DayHeaders[0].Should().Be("Mo");
         vm.Days[0].Date.DayOfWeek.Should().Be(DayOfWeek.Monday);
 
@@ -57,7 +65,7 @@ public sealed class CalendarViewModelTests
     public void PreviousMonth_September2026_NavigatesToAugust2026()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
 
         // Act
         vm.PreviousMonth();
@@ -74,7 +82,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange
         TestClockService clock = new(new DateTime(2026, 1, 15));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.PreviousMonth();
@@ -91,7 +99,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange
         TestClockService clock = new(new DateTime(2026, 12, 15));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NextMonth();
@@ -109,7 +117,7 @@ public sealed class CalendarViewModelTests
     public void Today_WhenNavigatedAway_NavigatesBackToCurrentDateAndSelectsToday()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.NextMonth();
         vm.NextMonth();
         vm.CurrentMonth.Should().Be(11);
@@ -130,7 +138,7 @@ public sealed class CalendarViewModelTests
     public void GoToToday_WhenNavigatedAway_NavigatesBackToCurrentDateAndSelectsToday()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.PreviousMonth();
         vm.PreviousMonth();
         vm.CurrentMonth.Should().Be(7);
@@ -152,7 +160,7 @@ public sealed class CalendarViewModelTests
     public void SelectDay_ValidDay_UpdatesSelectedDayAndFormattedTexts()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel targetDay = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
 
         // Act
@@ -169,7 +177,7 @@ public sealed class CalendarViewModelTests
     public void SelectDay_Null_ClearsSelectedDayAndFormattedTexts()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectedDay.Should().NotBeNull();
 
         // Act
@@ -188,7 +196,7 @@ public sealed class CalendarViewModelTests
         // Arrange: In August 2026, select August 31.
         // For September 2026, August 31 is the first cell (index 0) of the 42-cell grid.
         TestClockService clock = new(new DateTime(2026, 8, 10));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         CalendarDayModel aug31 = vm.Days.First(d => d.Date == new DateOnly(2026, 8, 31));
         vm.SelectDay(aug31);
 
@@ -206,7 +214,7 @@ public sealed class CalendarViewModelTests
     public void NextMonth_WhenSelectedDayNotInNewGrid_ClearsSelectedDayAndFormattedTexts()
     {
         // Arrange: In September 2026, select September 15.
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
         vm.SelectDay(sept15);
 
@@ -225,7 +233,7 @@ public sealed class CalendarViewModelTests
     public void PreviousMonth_WhenSelectedDayStillInNewGrid_PreservesSelectedDay()
     {
         // Arrange: In September 2026, select August 31 (visible in September's leading cells).
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel aug31 = vm.Days.First(d => d.Date == new DateOnly(2026, 8, 31));
         vm.SelectDay(aug31);
 
@@ -245,7 +253,7 @@ public sealed class CalendarViewModelTests
     public void NavigateRight_MovesOneDay()
     {
         // Arrange - default selected day is 24
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectedDay!.DayNumber.Should().Be(24);
 
         // Act
@@ -259,7 +267,7 @@ public sealed class CalendarViewModelTests
     public void NavigateLeft_MovesOneDay()
     {
         // Arrange - default selected day is 24
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectedDay!.DayNumber.Should().Be(24);
 
         // Act
@@ -273,7 +281,7 @@ public sealed class CalendarViewModelTests
     public void NavigateDown_MovesSevenDays()
     {
         // Arrange - default selected day is 24
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectedDay!.DayNumber.Should().Be(24);
 
         // Act
@@ -288,7 +296,7 @@ public sealed class CalendarViewModelTests
     public void NavigateUp_MovesSevenDays()
     {
         // Arrange - default selected day is 24
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectedDay!.DayNumber.Should().Be(24);
 
         // Act
@@ -302,7 +310,7 @@ public sealed class CalendarViewModelTests
     public void NavigateRight_CrossesMonthBoundary_UpdatesMonthAndYear()
     {
         // Arrange - select September 30
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel day30 = vm.Days.First(d => d.DayNumber == 30 && d.IsCurrentMonth);
         vm.SelectDay(day30);
 
@@ -319,7 +327,7 @@ public sealed class CalendarViewModelTests
     public void NavigateLeft_CrossesMonthBoundary_UpdatesMonthAndYear()
     {
         // Arrange - select September 1
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel day1 = vm.Days.First(d => d.DayNumber == 1 && d.IsCurrentMonth);
         vm.SelectDay(day1);
 
@@ -336,7 +344,7 @@ public sealed class CalendarViewModelTests
     public void NavigateDown_CrossesMonthBoundary_UpdatesMonthAndYear()
     {
         // Arrange - select September 28 (28 + 7 = Oct 5)
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel day28 = vm.Days.First(d => d.DayNumber == 28 && d.IsCurrentMonth);
         vm.SelectDay(day28);
 
@@ -353,7 +361,7 @@ public sealed class CalendarViewModelTests
     public void NavigateUp_CrossesMonthBoundary_UpdatesMonthAndYear()
     {
         // Arrange - select September 3 (3 - 7 = Aug 27)
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel day3 = vm.Days.First(d => d.DayNumber == 3 && d.IsCurrentMonth);
         vm.SelectDay(day3);
 
@@ -371,7 +379,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange - December 31, 2026
         TestClockService clock = new(new DateTime(2026, 12, 31));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 12, 31));
 
         // Act
@@ -389,7 +397,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange - January 1, 2026
         TestClockService clock = new(new DateTime(2026, 1, 1));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 1, 1));
 
         // Act
@@ -406,7 +414,7 @@ public sealed class CalendarViewModelTests
     public void NavigateByDays_WhenSelectedDayIsNull_UsesFirstOfMonthAsBase()
     {
         // Arrange
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.SelectDay(null);
         vm.SelectedDay.Should().BeNull();
 
@@ -424,7 +432,7 @@ public sealed class CalendarViewModelTests
     public void NavigatePreviousMonthKeepingSelection_OnMiddleOfMonth_SelectsSameDayPreviousMonth()
     {
         // Arrange: September 15, 2026
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
         vm.SelectDay(sept15);
 
@@ -444,7 +452,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: January 15, 2026
         TestClockService clock = new(new DateTime(2026, 1, 15));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 1, 15));
 
         // Act
@@ -462,7 +470,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: March 31, 2026 → February has 28 days (non-leap)
         TestClockService clock = new(new DateTime(2026, 3, 31));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 3, 31));
 
         // Act
@@ -479,7 +487,7 @@ public sealed class CalendarViewModelTests
     public void NavigateNextMonthKeepingSelection_OnMiddleOfMonth_SelectsSameDayNextMonth()
     {
         // Arrange: September 15, 2026
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
         vm.SelectDay(sept15);
 
@@ -499,7 +507,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: December 15, 2026
         TestClockService clock = new(new DateTime(2026, 12, 15));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 12, 15));
 
         // Act
@@ -517,7 +525,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: January 31, 2026 → February has 28 days (non-leap)
         TestClockService clock = new(new DateTime(2026, 1, 31));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
         vm.SelectedDay!.Date.Should().Be(new DateOnly(2026, 1, 31));
 
         // Act
@@ -536,7 +544,7 @@ public sealed class CalendarViewModelTests
     public void NavigateToMonthStart_OnSelectedDate_SelectsFirstDayOfCurrentMonth()
     {
         // Arrange: September 18, 2026
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept18 = vm.Days.First(d => d.DayNumber == 18 && d.IsCurrentMonth);
         vm.SelectDay(sept18);
 
@@ -556,7 +564,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: February 2026
         TestClockService clock = new(new DateTime(2026, 2, 14));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NavigateToMonthStart();
@@ -571,7 +579,7 @@ public sealed class CalendarViewModelTests
     public void NavigateToMonthEnd_OnSelectedDate_SelectsLastDayOfCurrentMonth()
     {
         // Arrange: September 18, 2026 (September has 30 days)
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept18 = vm.Days.First(d => d.DayNumber == 18 && d.IsCurrentMonth);
         vm.SelectDay(sept18);
 
@@ -591,7 +599,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: February 2024 (leap year)
         TestClockService clock = new(new DateTime(2024, 2, 10));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NavigateToMonthEnd();
@@ -606,7 +614,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: February 2026 (non-leap year)
         TestClockService clock = new(new DateTime(2026, 2, 10));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NavigateToMonthEnd();
@@ -621,7 +629,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: April 2026 (30 days)
         TestClockService clock = new(new DateTime(2026, 4, 10));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NavigateToMonthEnd();
@@ -636,7 +644,7 @@ public sealed class CalendarViewModelTests
     {
         // Arrange: October 2026 (31 days)
         TestClockService clock = new(new DateTime(2026, 10, 10));
-        CalendarViewModel vm = new(_gridService, clock);
+        CalendarViewModel vm = MakeVm(clock);
 
         // Act
         vm.NavigateToMonthEnd();
@@ -652,7 +660,7 @@ public sealed class CalendarViewModelTests
     public void NavigateNextMonthKeepingSelection_WithSundayFirstDayOfWeek_SelectsCorrectDay()
     {
         // Arrange: September 15, 2026, Sunday-first grid
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         vm.FirstDayOfWeek = DayOfWeek.Sunday;
         CalendarDayModel sept15 = vm.Days.First(d => d.DayNumber == 15 && d.IsCurrentMonth);
         vm.SelectDay(sept15);
@@ -671,7 +679,7 @@ public sealed class CalendarViewModelTests
     public void NavigatePreviousMonthKeepingSelection_WithMondayFirstDayOfWeek_SelectsCorrectDay()
     {
         // Arrange: September 10, 2026, Monday-first grid (default)
-        CalendarViewModel vm = new(_gridService, _clockService);
+        CalendarViewModel vm = MakeVm();
         CalendarDayModel sept10 = vm.Days.First(d => d.DayNumber == 10 && d.IsCurrentMonth);
         vm.SelectDay(sept10);
 
@@ -685,3 +693,4 @@ public sealed class CalendarViewModelTests
         vm.DayHeaders[0].Should().Be("Mo");
     }
 }
+
