@@ -3,8 +3,8 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 9 complete)
-- **Next Phase**: Phase 10 — Settings & Appearance
+- **Product Implementation**: In Progress (Phase 10 complete)
+- **Next Phase**: Phase 11 — Windows OS Integration
 - **Current Date**: 2026-09-29
 
 ---
@@ -23,8 +23,8 @@
 | **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **COMPLETED** |
 | **Phase 8** | Product Implementation | Events Management | **COMPLETED** |
 | **Phase 9** | Product Implementation | Notes Management | **COMPLETED** |
-| **Phase 10** | Product Implementation | Settings & Appearance | **NEXT** |
-| **Phase 11** | Product Implementation | Windows OS Integration | **PLANNED** |
+| **Phase 10** | Product Implementation | Settings & Appearance | **COMPLETED** |
+| **Phase 11** | Product Implementation | Windows OS Integration | **NEXT** |
 | **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **PLANNED** |
 | **Phase 13** | Product Implementation | Packaging & Distribution | **PLANNED** |
 
@@ -33,12 +33,14 @@
 ## Implementation Status
 
 ### Core Domain
-- [x] Initial Entities (`CalendarEvent`, `Note`)
-- [x] Initial Interfaces (`ICalendarEventRepository`, `INoteRepository`)
+- [x] Initial Entities (`CalendarEvent`, `Note`, `UserSettings`)
+- [x] Domain Enums (`AppThemeMode`, `TimeFormatOption`)
+- [x] Domain Interfaces (`ICalendarEventRepository`, `INoteRepository`, `ISettingsRepository`, `ISettingsService`, `IWindowsStartupService`, `IDataManagementService`)
+- [x] Domain Models / DTOs (`DataImportResult`, `AppBackupData`, `CalendarEventBackupDto`, `NoteBackupDto`)
 - [x] Initial Value Object (`DateRange`)
 - [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned / Future
 - [x] Domain Exception (`DomainValidationException`)
-- [x] Domain validation (`CalendarEvent.Validate()`, `Note.Validate()`)
+- [x] Domain validation (`CalendarEvent.Validate()`, `Note.Validate()`, `UserSettings.Validate()`)
 
 ### Specifications & AI Context
 - [x] Full Specification Suite (`specs/calendar/`, `specs/widget/`, `specs/notes/`, `specs/settings/`, `specs/windows/`)
@@ -53,7 +55,10 @@
 - [x] Infrastructure DI extension method (`AddInfrastructure`)
 - [x] SQLite repository implementations (`EfCalendarEventRepository`, `EfNoteRepository`) — Phase 7
 - [x] Database migration pipeline — Phase 7
-- [ ] Windows Shell / Tray / Startup services — Planned Phase 11
+- [x] Settings file persistence (`FileSettingsRepository`, `SettingsService`) — Phase 10
+- [x] Windows logon startup service (`WindowsStartupService` via HKCU Run registry key) — Phase 10
+- [x] Data maintenance service (`DataManagementService` for JSON export, safe atomic import, factory reset) — Phase 10
+- [ ] Windows Shell / Tray / Single-instance mutex — Planned Phase 11
 
 ### Presentation
 - [x] Presentation project configured with `CommunityToolkit.Mvvm`
@@ -103,21 +108,34 @@
   - Empty states for zero notes and zero search results, plus error handling with dismiss action
   - Accessible names and tooltips on all controls, keyboard shortcuts (`Ctrl+N`, `Escape`)
   - Scoped repository resolution via `IServiceScopeFactory` adhering to layered architecture
-- [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
+- [x] Full application settings & appearance (Phase 10):
+  - Settings view (`SettingsView.xaml`) and view model (`SettingsViewModel.cs`)
+  - Runtime theme switching (Dark, Light, System) via `IThemeService` and `WpfThemeService` without application restart
+  - Always-on-top window toggle updating `WidgetWindow` behavior at runtime and surviving restart
+  - Start with Windows configuration using HKCU Run registry key via `IWindowsStartupService` without administrator privileges
+  - Widget opacity slider (50% to 100%, 0.5–1.0) with real-time application and persistence
+  - First day of week preference (Monday / Sunday) updating calendar grid dynamically
+  - 12-hour / 24-hour time format and short date format preferences applied dynamically via `IDateTimeFormatService`
+  - Backup export to formatted JSON (`AppBackupData`)
+  - Safe transactional backup restore with domain validation, atomic rollback, and skipping of existing duplicates
+  - Factory reset with modal confirmation dialog and clean database state
+  - Accessible names, tooltips, success/error feedback banners, and keyboard navigation
+- [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`, `IThemeService`, `WpfThemeService`, `ISystemThemeDetector`, `SystemThemeDetector`, `IDateTimeFormatService`, `DateTimeFormatService`, `IFileDialogService`, `WpfFileDialogService`
 
 ### Host Application
 - [x] `CalendarWidget.App` setup with `Microsoft.Extensions.Hosting`
 - [x] `Program.cs` composition root with Generic Host and DI container
+- [x] Early settings load and theme application in `Program.cs` before UI display to eliminate wrong-theme flash
 - [x] `App.xaml` and `App.xaml.cs` configured with explicit lifecycle
-- [x] Windows: `MainWindow` and `WidgetWindow`
+- [x] Windows: `MainWindow` and `WidgetWindow` with `Topmost` and `Opacity` bindings
 - [x] Window orchestration: `WindowManager` implementing `IWindowManager`
 - [x] Application lifetime service (`ApplicationLifetimeService`)
 
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
-- [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, and repository persistence
-- [x] 235 automated tests passing (198 unit tests, 37 integration tests, 0 failures)
+- [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, and data management export/import/rollback
+- [x] 301 automated tests passing (254 unit tests, 47 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -129,10 +147,11 @@
 ---
 
 ## Current Priorities
-1. **Phase 10 — Settings & Appearance**:
-   - Dark / Light / System theme runtime switching.
-   - Always-on-top window toggle.
-   - Start with Windows configuration.
-   - Widget opacity adjustment.
-   - Calendar preferences (First day of week, Date/Time format).
-   - Data management (Export / Import / Reset).
+1. **Phase 11 — Windows Integration**:
+   - Single-instance application enforcement via named global OS Mutex.
+   - Secondary-instance activation and focus handoff.
+   - Dual-window lifecycle coordination.
+   - Window position and size persistence across restarts.
+   - Off-screen recovery for multi-monitor disconnects.
+   - Per-Monitor V2 DPI scaling awareness.
+   - System tray icon and minimize-to-tray integration.

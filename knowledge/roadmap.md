@@ -89,17 +89,17 @@ This document serves as the canonical source of truth for project phase definiti
   - Persistence integration
 
 ### Phase 10 — Settings
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
-  - Dark / Light theme runtime switching
+  - Dark / Light / System theme runtime switching without restart
   - Always-on-top window toggle
-  - Start with Windows configuration
-  - Widget opacity adjustment
+  - Start with Windows configuration (HKCU Run key)
+  - Widget opacity adjustment (50%–100%)
   - First day of week and time/date format preferences
-  - Data export, import, and database reset
+  - Data export to JSON backup, safe transactional import, and factory reset
 
 ### Phase 11 — Windows Integration
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Single-instance application enforcement via named global OS Mutex
   - Secondary-instance activation and focus handoff

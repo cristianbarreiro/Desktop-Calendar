@@ -153,3 +153,40 @@
 - Added 2 integration tests in `NoteRepositoryTests` validating `Note.Validate()` persistence and preservation of `CreatedAt` during `UpdateAsync`.
 - Total automated tests expanded from 201 to 235 (198 unit + 37 integration, 0 failures).
 - Validated solution build (0 errors, 0 warnings), test execution (235/235 passed), and code formatting (`dotnet format --verify-no-changes`).
+- Committed as `feat: phase 9` (SHA `a660270280cff819470277b342f16a37c6087327`).
+
+## 2026-09-30 — Phase 10: Settings & Appearance
+
+### Activities
+- Created strongly-typed domain model `UserSettings` with domain validation invariants, cloning support, and enums `AppThemeMode` (Dark, Light, System) and `TimeFormatOption` (24-hour, 12-hour).
+- Implemented `ISettingsRepository` and `FileSettingsRepository` persisting settings to `%LocalAppData%\DesktopCalendar\settings.json` with thread synchronization (`SemaphoreSlim`), atomic write semantics via temporary files, fallback defaults, and automatic corrupted-file backup recovery.
+- Implemented `ISettingsService` and `SettingsService` maintaining an in-memory snapshot and broadcasting runtime changes via `SettingsChanged`.
+- Implemented `IWindowsStartupService` and `WindowsStartupService` managing Windows user logon startup configuration via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, operating without administrator privileges and failing gracefully.
+- Implemented `IDataManagementService` and `DataManagementService` executing:
+  - Backup export to formatted JSON (`AppBackupData`) with versioning, timestamp, settings, events, and notes.
+  - Safe transactional backup restore with domain validation, atomic rollback, and skipping of duplicate IDs without overwriting existing data.
+  - Factory reset clearing all user calendar events and notes while preserving database schema and broadcasting `DataChanged`.
+- Implemented presentation services:
+  - `IThemeService` and `WpfThemeService` managing dynamic runtime theme resource dictionary replacement (`Themes/Dark.xaml`, `Themes/Light.xaml`) without application restart.
+  - `ISystemThemeDetector` and `SystemThemeDetector` reading Windows personalize registry settings (`AppsUseLightTheme`).
+  - `IDateTimeFormatService` and `DateTimeFormatService` providing unified clock, event range, and date formatting based on user preferences.
+  - `IFileDialogService` and `WpfFileDialogService` providing testable abstractions over Windows Open and Save file dialogs.
+- Created Fluent light and dark theme dictionaries (`Resources/Themes/Dark.xaml`, `Resources/Themes/Light.xaml`) ensuring high contrast, WCAG AA/AAA compliance, and consistent tokens.
+- Implemented `SettingsViewModel` managing:
+  - Theme selection (Dark / Light / System) with immediate visual application and persistence.
+  - Always-on-top widget toggle dynamically bound to `WidgetWindow.Topmost`.
+  - Desktop widget opacity slider (50%–100%) dynamically bound to `WidgetWindow.Opacity`.
+  - Windows startup toggle with graceful error handling and auto-reversion on failure.
+  - First day of week and 12/24-hour time format and short date format preferences.
+  - Export, Import, and Reset data maintenance commands with feedback banners and confirmation modal overlay.
+- Designed accessible `SettingsView.xaml` with categorized cards (Appearance, Calendar, Windows, Data), accessible names, and keyboard navigation.
+- Updated `CalendarViewModel`, `NotesViewModel`, and `WidgetViewModel` to integrate with `ISettingsService`, `IDataManagementService`, and `IDateTimeFormatService`.
+- Enhanced host composition root `Program.cs` to load user settings and apply visual theme before UI launch, eliminating startup theme flashes.
+- Added comprehensive unit and integration tests:
+  - `UserSettingsTests`: 10 unit tests for domain invariants, validation rules, boundaries, and cloning.
+  - `DateTimeFormatServiceTests`: 8 unit tests covering 12/24-hour, custom date patterns, event ranges, and change notification.
+  - `SettingsViewModelTests`: 22 unit tests covering all properties, runtime theme switching, opacity clamping, startup error handling, export/import/reset workflows, and banners.
+  - `FileSettingsRepositoryTests`: 4 integration tests covering defaults, roundtrip persistence, validation rejection, and corrupted backup recovery.
+  - `DataManagementServiceIntegrationTests`: 6 integration tests against isolated SQLite databases covering JSON export, transactional import, duplicate skipping, atomic rollback on validation failure, malformed JSON recovery, and factory reset.
+- Total automated tests expanded from 235 to 301 (254 unit + 47 integration, 0 failures).
+- Validated solution build (0 errors, 0 warnings in Debug and Release), test execution (301/301 passed in Debug and Release), and formatting (`dotnet format --verify-no-changes`).

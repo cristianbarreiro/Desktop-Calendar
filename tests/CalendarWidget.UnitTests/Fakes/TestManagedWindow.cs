@@ -8,6 +8,8 @@ public sealed class TestManagedWindow : IManagedWindow
     public bool IsVisible { get; set; }
 
     public WindowState WindowState { get; set; } = WindowState.Normal;
+    public bool Topmost { get; set; }
+    public double Opacity { get; set; } = 1.0;
 
     public int ShowCallCount { get; private set; }
 

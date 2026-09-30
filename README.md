@@ -131,7 +131,8 @@ In progress:
 - **Phase 7 — Persistence** (Completed)
 - **Phase 8 — Events Management** (Completed)
 - **Phase 9 — Notes Management** (Completed)
-- **Phase 10 — Settings** (Next target)
+- **Phase 10 — Settings** (Completed)
+- **Phase 11 — Windows Integration** (Next target)
 
 ## Roadmap
 
@@ -148,8 +149,8 @@ In progress:
 - [x] **Phase 7 — Persistence**: EF Core SQLite integration, migrations, repositories, database initialization.
 - [x] **Phase 8 — Events**: Event CRUD, validation, event indicators, day details, event persistence.
 - [x] **Phase 9 — Notes**: Notes CRUD, list, timestamps, search, persistence integration.
-- [ ] **Phase 10 — Settings** (NEXT): Theme switching, always-on-top, startup behavior, opacity, first day of week, date/time format, export/import.
-- [ ] **Phase 11 — Windows Integration** (PLANNED): Single-instance global mutex, secondary-instance activation, position persistence, DPI awareness, tray integration.
+- [x] **Phase 10 — Settings**: Theme switching (Dark/Light/System), always-on-top, Windows startup, opacity, first day of week, date/time format, export/import, factory reset.
+- [ ] **Phase 11 — Windows Integration** (NEXT): Single-instance global mutex, secondary-instance activation, position persistence, DPI awareness, tray integration.
 - [ ] **Phase 12 — Testing & Polish** (PLANNED): Test expansion, UI validation, accessibility, performance, edge cases, reliability.
 - [ ] **Phase 13 — Packaging & Release** (PLANNED): Production build, packaging, installer/distribution, versioning, GitHub release.
 

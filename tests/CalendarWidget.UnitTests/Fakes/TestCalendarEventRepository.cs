@@ -13,6 +13,9 @@ public sealed class TestCalendarEventRepository : ICalendarEventRepository
     public Task<CalendarEvent?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => Task.FromResult(_events.FirstOrDefault(e => e.Id == id));
 
+    public Task<IReadOnlyList<CalendarEvent>> GetAllAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<CalendarEvent>>(_events.OrderBy(e => e.StartTime).ToList());
+
     public Task<IReadOnlyList<CalendarEvent>> GetByDateRangeAsync(
         DateTime start,
         DateTime endDate,

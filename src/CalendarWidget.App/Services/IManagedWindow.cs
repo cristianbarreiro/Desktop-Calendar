@@ -18,6 +18,16 @@ public interface IManagedWindow
     WindowState WindowState { get; set; }
 
     /// <summary>
+    /// Gets or sets whether the window appears in topmost z-order.
+    /// </summary>
+    bool Topmost { get; set; }
+
+    /// <summary>
+    /// Gets or sets the window opacity (0.0 to 1.0).
+    /// </summary>
+    double Opacity { get; set; }
+
+    /// <summary>
     /// Displays the window.
     /// </summary>
     void Show();

@@ -9,6 +9,8 @@ public interface ICalendarEventRepository
 {
     /// <summary>Gets an event by its identifier.</summary>
     Task<CalendarEvent?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    /// <summary>Gets all calendar events.</summary>
+    Task<IReadOnlyList<CalendarEvent>> GetAllAsync(CancellationToken cancellationToken = default);
     /// <summary>Gets events intersecting the specified date range.</summary>
     Task<IReadOnlyList<CalendarEvent>> GetByDateRangeAsync(DateTime start, DateTime endDate, CancellationToken cancellationToken = default);
     /// <summary>Adds a calendar event.</summary>

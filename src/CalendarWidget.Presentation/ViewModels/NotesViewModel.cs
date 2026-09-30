@@ -14,10 +14,11 @@ namespace CalendarWidget.Presentation.ViewModels;
 /// ViewModel for the main application notes view.
 /// Handles listing, creating, editing, deleting, searching, and validating notes.
 /// </summary>
-public sealed partial class NotesViewModel : ViewModelBase
+public sealed partial class NotesViewModel : ViewModelBase, IDisposable
 {
     private readonly IServiceScopeFactory? _scopeFactory;
     private readonly IClockService? _clockService;
+    private readonly IDataManagementService? _dataManagementService;
 
     // ── Header & Basic Info ───────────────────────────────────────────────────
 
@@ -135,7 +136,7 @@ public sealed partial class NotesViewModel : ViewModelBase
     /// <summary>
     /// Initializes a new instance of the <see cref="NotesViewModel"/> class for design-time and fallback contexts.
     /// </summary>
-    public NotesViewModel() : this(null, null)
+    public NotesViewModel() : this(null, null, null)
     {
     }
 
@@ -145,9 +146,26 @@ public sealed partial class NotesViewModel : ViewModelBase
     /// <param name="scopeFactory">Factory for creating service scopes to resolve repositories.</param>
     /// <param name="clockService">Clock service for timestamp generation.</param>
     public NotesViewModel(IServiceScopeFactory? scopeFactory, IClockService? clockService = null)
+        : this(scopeFactory, clockService, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NotesViewModel"/> class with data management support.
+    /// </summary>
+    public NotesViewModel(
+        IServiceScopeFactory? scopeFactory,
+        IClockService? clockService,
+        IDataManagementService? dataManagementService)
     {
         _scopeFactory = scopeFactory;
         _clockService = clockService;
+        _dataManagementService = dataManagementService;
+
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged += OnDataChanged;
+        }
 
         if (_scopeFactory is not null)
         {
@@ -479,5 +497,19 @@ public sealed partial class NotesViewModel : ViewModelBase
     public async Task RefreshForTestAsync()
     {
         await LoadNotesAsync();
+    }
+
+    private void OnDataChanged(object? sender, EventArgs e)
+    {
+        _ = LoadNotesAsync();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged -= OnDataChanged;
+        }
     }
 }

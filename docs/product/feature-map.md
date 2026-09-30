@@ -27,11 +27,11 @@ Desktop Calendar Widget
     │   ├── Note Deletion 🟢
     │   └── Note Search 🟢
     │
-    ├── Settings 🟡 [Shell Placeholder]
-    │   ├── Appearance 🔴
-    │   ├── Widget Behavior 🔴
-    │   ├── Calendar Preferences 🔴
-    │   └── Data Management 🔴
+    ├── Settings 🟢
+    │   ├── Appearance (Themes, Opacity, Always on Top) 🟢
+    │   ├── Calendar Preferences (First Day, Date/Time Formats) 🟢
+    │   ├── Windows Integration (Start with Windows) 🟢
+    │   └── Data Management (Export, Import, Reset) 🟢
     │
     └── Switch to Widget 🟢
 ```
@@ -44,4 +44,4 @@ Desktop Calendar Widget
 
 ## Current Status
 
-Engineering Foundation (Phases 0–3) and Phases 4–9 (Application Shell, Widget UI, Calendar Grid & Navigation, Persistence, Events Management, Notes Management) are complete. The application has a Generic Host composition root, DI container, explicit application lifecycle, bidirectional window switching, month navigation, 42-cell deterministic grid rendering, real-time clock, navigation placeholders, an EF Core SQLite persistence layer, full Event Management (CRUD UI, modal dialogs, day detail panel, domain validation, and 42-cell event indicator loading), and full Notes Management (master-detail UI, CRUD operations, delete confirmation modal, domain validation, and case-insensitive substring search). The next phase is Phase 10 (Settings & Appearance).
+Engineering Foundation (Phases 0–3) and Phases 4–10 (Application Shell, Widget UI, Calendar Grid & Navigation, Persistence, Events Management, Notes Management, Settings & Appearance) are complete. The application has a Generic Host composition root, DI container, explicit application lifecycle, bidirectional window switching, month navigation, 42-cell deterministic grid rendering, real-time clock, an EF Core SQLite persistence layer, full Event Management (CRUD UI, modal dialogs, day detail panel, domain validation, and 42-cell event indicator loading), full Notes Management (master-detail UI, CRUD operations, delete confirmation modal, domain validation, and case-insensitive substring search), and full Settings & Appearance (runtime theme switching across Dark/Light/System without restart, opacity slider, always-on-top toggle, start with Windows configuration, calendar preferences, JSON backup export, safe transactional import, and factory reset). The next phase is Phase 11 (Windows Integration).

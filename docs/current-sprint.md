@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 9 (Notes Management) into Phase 10 (Settings & Appearance).
+Transition from Phase 10 (Settings & Appearance) into Phase 11 (Windows Integration).
 
 ---
 
@@ -14,8 +14,9 @@ Transition from Phase 9 (Notes Management) into Phase 10 (Settings & Appearance)
 - **Phase 6 — Calendar Grid & Navigation**: COMPLETE
 - **Phase 7 — Persistence & SQLite Repositories**: COMPLETE
 - **Phase 8 — Events Management**: COMPLETE
-- **Phase 9 — Notes Management**: COMPLETED
-- **Next Target — Phase 10 (Settings & Appearance)**: NEXT / READY
+- **Phase 9 — Notes Management**: COMPLETE
+- **Phase 10 — Settings & Appearance**: COMPLETE
+- **Next Target — Phase 11 (Windows Integration)**: NEXT / READY
 
 ---
 
@@ -92,26 +93,40 @@ Transition from Phase 9 (Notes Management) into Phase 10 (Settings & Appearance)
   - Timestamp integrity: UTC persistence, local display, `CreatedAt` strictly preserved on note update.
   - Architecture integrity: presentation resolves `INoteRepository` via `IServiceScopeFactory`, zero direct EF Core / Infrastructure dependencies.
   - Test suite expanded to 235 tests (198 unit + 37 integration, 0 failures).
+- [x] **Settings & Appearance (Phase 10)**:
+  - Strongly-typed `UserSettings` domain entity with domain validation, cloning, and `AppThemeMode` / `TimeFormatOption` enums.
+  - JSON file settings persistence in `%LocalAppData%\DesktopCalendar\settings.json` via `FileSettingsRepository` with atomic writing, corrupt backup recovery, and concurrency locking.
+  - `ISettingsService` snapshot provider and event broadcaster for immediate runtime updates.
+  - Dynamic runtime theme switching (Dark, Light, System) via `WpfThemeService` and `SystemThemeDetector` applying instantly across all windows and controls without application restart.
+  - Early settings loading in host `Program.cs` before UI initialization, eliminating startup theme flashes.
+  - Desktop widget opacity slider (50%–100%) dynamically bound to `WidgetWindow.Opacity` with persisted state.
+  - Always-on-top window toggle dynamically bound to `WidgetWindow.Topmost` with persisted state.
+  - Start with Windows configuration using `IWindowsStartupService` via current user registry run key (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), requiring no administrator privileges and handling errors gracefully.
+  - Calendar first day of week preference (Monday / Sunday) synchronizing calendar headers and grid dynamically.
+  - Time format (12-hour AM/PM vs. 24-hour) and short date format preferences applied dynamically via `IDateTimeFormatService`.
+  - Application backup export generating deterministic JSON payload (`AppBackupData`) with version, timestamp, settings, events, and notes.
+  - Safe transactional backup restore with domain validation, atomic rollback, and skipping of existing duplicates to prevent accidental overwrites.
+  - Factory reset workflow with destructive confirmation modal dialog, resetting all calendar events and notes while keeping database schema intact.
+  - Settings UI (`SettingsView.xaml`, `SettingsViewModel.cs`) organized into Appearance, Calendar, Windows, and Data sections with accessible names, error/success banners, and keyboard navigation.
+  - Test suite expanded to 301 tests (254 unit + 47 integration, 0 failures).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 10 — Settings & Appearance
+### Phase 11 — Windows Integration
 
-- Dark / Light / System theme runtime switching.
-- Always-on-top window toggle.
-- Start with Windows configuration.
-- Widget opacity adjustment.
-- Calendar preferences (First day of week, Date/Time format).
-- Data management (Export / Import / Reset).
+- Single-instance application enforcement via named global OS Mutex (`Global\DesktopCalendarWidget_SingleInstance_Mutex`).
+- Secondary-instance activation and focus handoff using Windows messages.
+- Dual-window lifecycle coordination (`MainWindow` ↔ `WidgetWindow`).
+- Window position and size persistence across restarts with off-screen recovery for disconnected monitors.
+- Per-Monitor V2 DPI scaling awareness.
+- System tray icon with context menu and minimize-to-tray integration.
 
 ---
 
-## Explicitly Out of Scope for Phase 10
+## Explicitly Out of Scope for Phase 11
 
-Do NOT implement during Phase 10:
-- System tray icon docking (Planned Phase 11)
-- Windows startup registration (Planned Phase 11)
-- Single instance OS Mutex (Planned Phase 11)
+Do NOT implement during Phase 11:
 - Packaging, installers, and release automation (Planned Phase 13)
+- Cloud synchronization, networking, telemetry (Prohibited by Architecture)

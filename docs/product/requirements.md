@@ -34,14 +34,14 @@
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| Appearance (Dark/Light/System) | P1 | Not started |
-| Always on top (widget) | P1 | Not started |
-| Start with Windows | P2 | Not started |
-| Widget opacity | P2 | Not started |
-| First day of week | P1 | Not started |
-| Date format | P1 | Not started |
-| Time format | P1 | Not started |
-| Data export/import | P2 | Not started |
+| Appearance (Dark/Light/System) | P1 | Complete |
+| Always on top (widget) | P1 | Complete |
+| Start with Windows | P2 | Complete |
+| Widget opacity | P2 | Complete |
+| First day of week | P1 | Complete |
+| Date format | P1 | Complete |
+| Time format | P1 | Complete |
+| Data export/import | P2 | Complete |
 
 ### Widget
 

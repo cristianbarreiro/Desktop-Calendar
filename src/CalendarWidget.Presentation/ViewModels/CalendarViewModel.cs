@@ -13,11 +13,14 @@ namespace CalendarWidget.Presentation.ViewModels;
 /// <summary>
 /// ViewModel for the main application calendar view.
 /// </summary>
-public sealed partial class CalendarViewModel : ViewModelBase
+public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
 {
     private readonly ICalendarGridService _gridService;
     private readonly IClockService _clockService;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ISettingsService? _settingsService;
+    private readonly IDateTimeFormatService? _formatService;
+    private readonly IDataManagementService? _dataManagementService;
 
     [ObservableProperty]
     private int _currentYear;
@@ -104,10 +107,43 @@ public sealed partial class CalendarViewModel : ViewModelBase
         ICalendarGridService gridService,
         IClockService clockService,
         IServiceScopeFactory scopeFactory)
+        : this(gridService, clockService, scopeFactory, null, null, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CalendarViewModel"/> class with full settings support.
+    /// </summary>
+    public CalendarViewModel(
+        ICalendarGridService gridService,
+        IClockService clockService,
+        IServiceScopeFactory scopeFactory,
+        ISettingsService? settingsService,
+        IDateTimeFormatService? formatService,
+        IDataManagementService? dataManagementService)
     {
         _gridService = gridService;
         _clockService = clockService;
         _scopeFactory = scopeFactory;
+        _settingsService = settingsService;
+        _formatService = formatService;
+        _dataManagementService = dataManagementService;
+
+        if (_settingsService is not null)
+        {
+            _firstDayOfWeek = _settingsService.CurrentSettings.FirstDayOfWeek;
+            _settingsService.SettingsChanged += OnSettingsChanged;
+        }
+
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged += OnDataChanged;
+        }
+
+        if (_formatService is not null)
+        {
+            _formatService.FormatChanged += OnFormatChanged;
+        }
 
         DateOnly today = _clockService.Today;
         _currentYear = today.Year;
@@ -592,12 +628,16 @@ public sealed partial class CalendarViewModel : ViewModelBase
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private static EventListItemModel MapToListItem(CalendarEvent ev)
+    private EventListItemModel MapToListItem(CalendarEvent ev)
     {
         string timeLabel;
         if (ev.IsAllDay)
         {
             timeLabel = "All day";
+        }
+        else if (_formatService is not null)
+        {
+            timeLabel = _formatService.FormatEventRange(ev.StartTime, ev.EndTime, ev.IsAllDay);
         }
         else
         {
@@ -625,9 +665,50 @@ public sealed partial class CalendarViewModel : ViewModelBase
         }
 
         DateTime dt = day.Date.ToDateTime(TimeOnly.MinValue);
-        SelectedDateFormatted = dt.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture);
+        SelectedDateFormatted = _formatService is not null
+            ? $"{dt.ToString("dddd", CultureInfo.CurrentCulture)}, {_formatService.FormatDate(dt)}"
+            : dt.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture);
+
         SelectedDateHeader = dt.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture).ToUpperInvariant();
         SelectedDayHeader = day.IsToday ? "TODAY" : SelectedDateHeader;
+    }
+
+    private void OnSettingsChanged(object? sender, UserSettings settings)
+    {
+        FirstDayOfWeek = settings.FirstDayOfWeek;
+        RefreshGrid();
+        UpdateSelectedDateText(SelectedDay);
+    }
+
+    private void OnDataChanged(object? sender, EventArgs e)
+    {
+        _ = RefreshGridWithEventsAsync();
+        _ = LoadSelectedDayEventsAsync();
+    }
+
+    private void OnFormatChanged(object? sender, EventArgs e)
+    {
+        UpdateSelectedDateText(SelectedDay);
+        _ = LoadSelectedDayEventsAsync();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_settingsService is not null)
+        {
+            _settingsService.SettingsChanged -= OnSettingsChanged;
+        }
+
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged -= OnDataChanged;
+        }
+
+        if (_formatService is not null)
+        {
+            _formatService.FormatChanged -= OnFormatChanged;
+        }
     }
 
     private void RefreshGrid()

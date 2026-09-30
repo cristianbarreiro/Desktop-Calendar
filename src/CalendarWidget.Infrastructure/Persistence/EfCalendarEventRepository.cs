@@ -16,6 +16,13 @@ public sealed class EfCalendarEventRepository(AppDbContext context) : ICalendarE
             .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<CalendarEvent>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await context.CalendarEvents
+            .AsNoTracking()
+            .OrderBy(e => e.StartTime)
+            .ToListAsync(cancellationToken);
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<CalendarEvent>> GetByDateRangeAsync(
         DateTime start,
         DateTime endDate,

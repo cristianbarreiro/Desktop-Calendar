@@ -1,6 +1,7 @@
 using System.IO;
 using CalendarWidget.App.Services;
 using CalendarWidget.App.Windows;
+using CalendarWidget.Core.Interfaces;
 using CalendarWidget.Infrastructure;
 using CalendarWidget.Infrastructure.Persistence;
 using CalendarWidget.Presentation.Services;
@@ -22,20 +23,21 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        string dbPath = Path.Combine(
+        string appDataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "DesktopCalendar",
-            "calendar.db");
+            "DesktopCalendar");
 
-        Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+        Directory.CreateDirectory(appDataDir);
 
+        string dbPath = Path.Combine(appDataDir, "calendar.db");
+        string settingsPath = Path.Combine(appDataDir, "settings.json");
         string connectionString = $"Data Source={dbPath}";
 
         IHost host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((_, services) =>
             {
-                // Infrastructure (persistence, repositories)
-                services.AddInfrastructure(connectionString);
+                // Infrastructure (persistence, repositories, settings, OS integrations)
+                services.AddInfrastructure(connectionString, settingsPath);
 
                 // Application Lifecycle and Window Management
                 services.AddSingleton<App>();
@@ -45,6 +47,10 @@ public static class Program
                 // Presentation Services
                 services.AddSingleton<IClockService, SystemClockService>();
                 services.AddSingleton<ICalendarGridService, CalendarGridService>();
+                services.AddSingleton<ISystemThemeDetector, SystemThemeDetector>();
+                services.AddSingleton<IThemeService, WpfThemeService>();
+                services.AddSingleton<IDateTimeFormatService, DateTimeFormatService>();
+                services.AddSingleton<IFileDialogService, WpfFileDialogService>();
 
                 // Presentation ViewModels
                 services.AddSingleton<MainWindowViewModel>();
@@ -61,11 +67,17 @@ public static class Program
 
         host.Start();
 
-        // Initialize database (apply migrations, enable WAL)
+        // Initialize database (apply migrations, enable WAL) and application settings
         using (IServiceScope scope = host.Services.CreateScope())
         {
             DatabaseInitializer initializer = scope.ServiceProvider.GetRequiredService<DatabaseInitializer>();
             initializer.InitializeAsync().GetAwaiter().GetResult();
+
+            ISettingsService settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+            settingsService.InitializeAsync().GetAwaiter().GetResult();
+
+            IThemeService themeService = scope.ServiceProvider.GetRequiredService<IThemeService>();
+            themeService.ApplyTheme(settingsService.CurrentSettings.Theme);
         }
 
         App app = host.Services.GetRequiredService<App>();

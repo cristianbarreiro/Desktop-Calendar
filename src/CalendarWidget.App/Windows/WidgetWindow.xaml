@@ -15,7 +15,9 @@
         Background="Transparent"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        ShowInTaskbar="True">
+        ShowInTaskbar="True"
+        Topmost="{Binding AlwaysOnTop}"
+        Opacity="{Binding WidgetOpacity}">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />

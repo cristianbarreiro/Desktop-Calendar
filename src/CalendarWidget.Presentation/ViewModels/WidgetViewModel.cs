@@ -1,4 +1,6 @@
 using System.Globalization;
+using CalendarWidget.Core.Entities;
+using CalendarWidget.Core.Interfaces;
 using CalendarWidget.Presentation.Models;
 using CalendarWidget.Presentation.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -14,6 +16,9 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
     private readonly IWindowManager _windowManager;
     private readonly ICalendarGridService _gridService;
     private readonly IClockService _clockService;
+    private readonly ISettingsService? _settingsService;
+    private readonly IDateTimeFormatService? _formatService;
+    private readonly IDataManagementService? _dataManagementService;
 
     [ObservableProperty]
     private int _currentYear;
@@ -45,6 +50,12 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private DayOfWeek _firstDayOfWeek = DayOfWeek.Monday;
 
+    [ObservableProperty]
+    private bool _alwaysOnTop;
+
+    [ObservableProperty]
+    private double _widgetOpacity = 1.0;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WidgetViewModel"/> class.
     /// </summary>
@@ -55,10 +66,46 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
         IWindowManager windowManager,
         ICalendarGridService gridService,
         IClockService clockService)
+        : this(windowManager, gridService, clockService, null, null, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WidgetViewModel"/> class with full settings support.
+    /// </summary>
+    public WidgetViewModel(
+        IWindowManager windowManager,
+        ICalendarGridService gridService,
+        IClockService clockService,
+        ISettingsService? settingsService,
+        IDateTimeFormatService? formatService,
+        IDataManagementService? dataManagementService)
     {
         _windowManager = windowManager;
         _gridService = gridService;
         _clockService = clockService;
+        _settingsService = settingsService;
+        _formatService = formatService;
+        _dataManagementService = dataManagementService;
+
+        if (_settingsService is not null)
+        {
+            UserSettings current = _settingsService.CurrentSettings;
+            _alwaysOnTop = current.AlwaysOnTop;
+            _widgetOpacity = current.WidgetOpacity;
+            _firstDayOfWeek = current.FirstDayOfWeek;
+            _settingsService.SettingsChanged += OnSettingsChanged;
+        }
+
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged += OnDataChanged;
+        }
+
+        if (_formatService is not null)
+        {
+            _formatService.FormatChanged += OnFormatChanged;
+        }
 
         DateOnly today = _clockService.Today;
         _currentYear = today.Year;
@@ -245,9 +292,35 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
         UpdateTimeText(time);
     }
 
+    private void OnSettingsChanged(object? sender, UserSettings settings)
+    {
+        AlwaysOnTop = settings.AlwaysOnTop;
+        WidgetOpacity = settings.WidgetOpacity;
+        FirstDayOfWeek = settings.FirstDayOfWeek;
+        RefreshGrid();
+        UpdateTimeText(_clockService.Now);
+    }
+
+    private void OnDataChanged(object? sender, EventArgs e)
+    {
+        RefreshGrid();
+    }
+
+    private void OnFormatChanged(object? sender, EventArgs e)
+    {
+        UpdateTimeText(_clockService.Now);
+    }
+
     private void UpdateTimeText(DateTime time)
     {
-        CurrentTimeText = time.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        if (_formatService is not null)
+        {
+            CurrentTimeText = _formatService.FormatClockTime(time);
+        }
+        else
+        {
+            CurrentTimeText = time.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+        }
     }
 
     private void UpdateSelectedDayHeader(CalendarDayModel day)
@@ -292,5 +365,20 @@ public sealed partial class WidgetViewModel : ViewModelBase, IDisposable
     public void Dispose()
     {
         _clockService.TimeChanged -= OnClockTimeChanged;
+
+        if (_settingsService is not null)
+        {
+            _settingsService.SettingsChanged -= OnSettingsChanged;
+        }
+
+        if (_dataManagementService is not null)
+        {
+            _dataManagementService.DataChanged -= OnDataChanged;
+        }
+
+        if (_formatService is not null)
+        {
+            _formatService.FormatChanged -= OnFormatChanged;
+        }
     }
 }

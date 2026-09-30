@@ -1,6 +1,7 @@
 using CalendarWidget.Infrastructure.Persistence;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CalendarWidget.IntegrationTests.Helpers;
 
@@ -13,6 +14,22 @@ public sealed class SqliteTestContext : IAsyncDisposable
 
     /// <summary>Gets the configured <see cref="AppDbContext"/>.</summary>
     public AppDbContext Context { get; }
+
+    /// <summary>Gets the database file path.</summary>
+    public string DbPath => _dbPath;
+
+    /// <summary>
+    /// Creates an <see cref="IServiceScopeFactory"/> configured for this test database.
+    /// </summary>
+    public IServiceScopeFactory CreateScopeFactory()
+    {
+        Microsoft.Extensions.DependencyInjection.ServiceCollection services = new();
+        services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={_dbPath}"));
+        services.AddScoped<CalendarWidget.Core.Interfaces.ICalendarEventRepository, EfCalendarEventRepository>();
+        services.AddScoped<CalendarWidget.Core.Interfaces.INoteRepository, EfNoteRepository>();
+        Microsoft.Extensions.DependencyInjection.ServiceProvider provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<IServiceScopeFactory>();
+    }
 
     private SqliteTestContext(string dbPath, AppDbContext context)
     {
