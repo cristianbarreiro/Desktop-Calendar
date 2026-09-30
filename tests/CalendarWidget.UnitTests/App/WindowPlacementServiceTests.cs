@@ -93,28 +93,82 @@ public sealed class WindowPlacementServiceTests
     [Fact]
     public async Task OnMainWindowBoundsChanged_RapidConsecutiveCalls_DebouncesAndSavesOnce()
     {
-        // Arrange: 50ms debounce for rapid test execution
+        // Arrange: 50ms debounce with deterministic test time provider
+        TestTimeProvider timeProvider = new();
         using WindowPlacementService sut = new(
             _settingsService,
             _displayProvider,
-            debounceDelay: TimeSpan.FromMilliseconds(50));
+            debounceDelay: TimeSpan.FromMilliseconds(50),
+            timeProvider: timeProvider);
 
-        // Act: simulate 20 rapid movements during drag-resize
+        // Act: simulate 20 rapid movements during drag-resize (every 5ms of virtual time)
         for (int i = 0; i < 20; i++)
         {
             sut.OnMainWindowBoundsChanged(100 + i, 100 + i, 900 + i, 600 + i);
-            await Task.Delay(5);
+            timeProvider.Advance(TimeSpan.FromMilliseconds(5));
         }
 
-        // Wait for debounce delay to expire
-        await Task.Delay(120);
+        // Assert: During continuous rapid movements, debounce timer has not expired yet
+        _settingsService.SaveCount.Should().Be(0);
 
-        // Assert: only one save was persisted
+        // Advance virtual time past the 50ms debounce threshold
+        timeProvider.Advance(TimeSpan.FromMilliseconds(50));
+
+        if (sut.CurrentSaveTaskForTesting is not null)
+        {
+            await sut.CurrentSaveTaskForTesting;
+        }
+
+        // Assert: exactly one save was persisted with the latest coordinates
         _settingsService.SaveCount.Should().Be(1);
         _settingsService.CurrentSettings.MainWindowLeft.Should().Be(119);
         _settingsService.CurrentSettings.MainWindowTop.Should().Be(119);
         _settingsService.CurrentSettings.MainWindowWidth.Should().Be(919);
         _settingsService.CurrentSettings.MainWindowHeight.Should().Be(619);
+    }
+
+    [Fact]
+    public async Task OnMainWindowBoundsChanged_MultipleDistinctBursts_PersistsEachBurstSeparately()
+    {
+        // Arrange
+        TestTimeProvider timeProvider = new();
+        using WindowPlacementService sut = new(
+            _settingsService,
+            _displayProvider,
+            debounceDelay: TimeSpan.FromMilliseconds(50),
+            timeProvider: timeProvider);
+
+        // Burst 1: Rapid drag gesture
+        for (int i = 0; i < 5; i++)
+        {
+            sut.OnMainWindowBoundsChanged(100 + i, 100 + i, 900, 600);
+            timeProvider.Advance(TimeSpan.FromMilliseconds(5));
+        }
+        timeProvider.Advance(TimeSpan.FromMilliseconds(50));
+        if (sut.CurrentSaveTaskForTesting is not null)
+        {
+            await sut.CurrentSaveTaskForTesting;
+        }
+
+        _settingsService.SaveCount.Should().Be(1);
+        _settingsService.CurrentSettings.MainWindowLeft.Should().Be(104);
+
+        // Burst 2: Second drag gesture after pause
+        timeProvider.Advance(TimeSpan.FromMilliseconds(200));
+        for (int i = 0; i < 5; i++)
+        {
+            sut.OnMainWindowBoundsChanged(200 + i, 200 + i, 950, 650);
+            timeProvider.Advance(TimeSpan.FromMilliseconds(5));
+        }
+        timeProvider.Advance(TimeSpan.FromMilliseconds(50));
+        if (sut.CurrentSaveTaskForTesting is not null)
+        {
+            await sut.CurrentSaveTaskForTesting;
+        }
+
+        _settingsService.SaveCount.Should().Be(2);
+        _settingsService.CurrentSettings.MainWindowLeft.Should().Be(204);
+        _settingsService.CurrentSettings.MainWindowWidth.Should().Be(950);
     }
 
     [Fact]

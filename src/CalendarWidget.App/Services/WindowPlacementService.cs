@@ -15,6 +15,8 @@ public sealed class WindowPlacementService : IWindowPlacementService
     private readonly ISettingsService _settingsService;
     private readonly IDisplayMonitorProvider _displayProvider;
     private readonly TimeSpan _debounceDelay;
+    private readonly TimeProvider _timeProvider;
+    private readonly ITimer _debounceTimer;
     private readonly Lock _lock = new();
 
     private double? _pendingMainLeft;
@@ -25,8 +27,7 @@ public sealed class WindowPlacementService : IWindowPlacementService
     private double? _pendingWidgetLeft;
     private double? _pendingWidgetTop;
 
-    private CancellationTokenSource? _debounceCts;
-    private Task? _debounceTask;
+    private Task? _currentSaveTask;
     private bool _disposed;
 
     /// <summary>
@@ -35,14 +36,22 @@ public sealed class WindowPlacementService : IWindowPlacementService
     /// <param name="settingsService">Settings persistence service.</param>
     /// <param name="displayProvider">Display monitor provider.</param>
     /// <param name="debounceDelay">Optional debounce delay override for testing.</param>
+    /// <param name="timeProvider">Optional time provider for deterministic testing.</param>
     public WindowPlacementService(
         ISettingsService settingsService,
         IDisplayMonitorProvider displayProvider,
-        TimeSpan? debounceDelay = null)
+        TimeSpan? debounceDelay = null,
+        TimeProvider? timeProvider = null)
     {
         _settingsService = settingsService;
         _displayProvider = displayProvider;
         _debounceDelay = debounceDelay ?? DefaultDebounceDelay;
+        _timeProvider = timeProvider ?? TimeProvider.System;
+        _debounceTimer = _timeProvider.CreateTimer(
+            OnDebounceTimerElapsed,
+            null,
+            Timeout.InfiniteTimeSpan,
+            Timeout.InfiniteTimeSpan);
     }
 
     /// <inheritdoc />
@@ -140,7 +149,7 @@ public sealed class WindowPlacementService : IWindowPlacementService
             _pendingMainWidth = width;
             _pendingMainHeight = height;
 
-            ScheduleDebouncedSaveLocked();
+            _debounceTimer.Change(_debounceDelay, Timeout.InfiniteTimeSpan);
         }
     }
 
@@ -162,20 +171,45 @@ public sealed class WindowPlacementService : IWindowPlacementService
             _pendingWidgetLeft = left;
             _pendingWidgetTop = top;
 
-            ScheduleDebouncedSaveLocked();
+            _debounceTimer.Change(_debounceDelay, Timeout.InfiniteTimeSpan);
         }
     }
 
     /// <inheritdoc />
     public async Task FlushPendingSaveAsync()
     {
-        CancellationTokenSource? oldCts;
-        UserSettings? toSave = null;
+        Task? activeSave;
 
         lock (_lock)
         {
-            oldCts = _debounceCts;
-            _debounceCts = null;
+            if (_disposed)
+            {
+                return;
+            }
+
+            _debounceTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            activeSave = _currentSaveTask;
+        }
+
+        if (activeSave is not null)
+        {
+            try
+            {
+                await activeSave.ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // Background save failure logged/handled within active task
+            }
+        }
+
+        UserSettings? toSave = null;
+        lock (_lock)
+        {
+            if (_disposed)
+            {
+                return;
+            }
 
             if (HasPendingChangesLocked())
             {
@@ -184,24 +218,15 @@ public sealed class WindowPlacementService : IWindowPlacementService
             }
         }
 
-        if (oldCts is not null)
-        {
-            try
-            {
-                await oldCts.CancelAsync().ConfigureAwait(false);
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            finally
-            {
-                oldCts.Dispose();
-            }
-        }
-
         if (toSave is not null)
         {
-            await _settingsService.SaveSettingsAsync(toSave).ConfigureAwait(false);
+            Task flushTask = ExecuteSaveAsync(toSave);
+            lock (_lock)
+            {
+                _currentSaveTask = flushTask;
+            }
+
+            await flushTask.ConfigureAwait(false);
         }
     }
 
@@ -216,76 +241,59 @@ public sealed class WindowPlacementService : IWindowPlacementService
             }
 
             _disposed = true;
-            try
+            _debounceTimer.Dispose();
+            ClearPendingChangesLocked();
+        }
+    }
+
+    /// <summary>
+    /// Gets the current active save task for test synchronization.
+    /// </summary>
+    internal Task? CurrentSaveTaskForTesting
+    {
+        get
+        {
+            lock (_lock)
             {
-                _debounceCts?.Cancel();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            finally
-            {
-                _debounceCts?.Dispose();
-                _debounceCts = null;
+                return _currentSaveTask;
             }
         }
     }
 
-    private void ScheduleDebouncedSaveLocked()
+    private void OnDebounceTimerElapsed(object? state)
+    {
+        UserSettings? toSave = null;
+        lock (_lock)
+        {
+            if (_disposed || !HasPendingChangesLocked())
+            {
+                return;
+            }
+
+            toSave = BuildUpdatedSettingsLocked();
+            ClearPendingChangesLocked();
+        }
+
+        if (toSave is not null)
+        {
+            Task saveTask = ExecuteSaveAsync(toSave);
+            lock (_lock)
+            {
+                _currentSaveTask = saveTask;
+            }
+        }
+    }
+
+    private async Task ExecuteSaveAsync(UserSettings toSave)
     {
         try
         {
-            _debounceCts?.Cancel();
+            await _settingsService.SaveSettingsAsync(toSave).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException)
+        catch (Exception)
         {
+            // Best-effort debounced persistence
         }
-        finally
-        {
-            _debounceCts?.Dispose();
-        }
-
-        _debounceCts = new CancellationTokenSource();
-        CancellationToken token = _debounceCts.Token;
-
-        _debounceTask = Task.Run(async () =>
-        {
-            try
-            {
-                await Task.Delay(_debounceDelay, token).ConfigureAwait(false);
-
-                UserSettings? toSave = null;
-                lock (_lock)
-                {
-                    try
-                    {
-                        if (token.IsCancellationRequested || _disposed)
-                        {
-                            return;
-                        }
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        return;
-                    }
-
-                    if (HasPendingChangesLocked())
-                    {
-                        toSave = BuildUpdatedSettingsLocked();
-                        ClearPendingChangesLocked();
-                    }
-                }
-
-                if (toSave is not null)
-                {
-                    await _settingsService.SaveSettingsAsync(toSave, token).ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
-            {
-                // Expected when new changes coalesce or during disposal
-            }
-        }, token);
     }
 
     private bool HasPendingChangesLocked()

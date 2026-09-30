@@ -342,3 +342,27 @@
   - Formatting: `dotnet format --verify-no-changes` passed.
   - Phase 12 complete; Phase 13 is NEXT.
 
+## 2026-09-30 — Phase 12: Remediation — Window Placement Debounce CI Failure
+
+### Root Cause
+- `WindowPlacementService` previously spawned uncoordinated `Task.Run(async () => await Task.Delay(_debounceDelay, token))` tasks on every bounds change, repeatedly cancelling and disposing `CancellationTokenSource` instances while tasks were in flight.
+- In unit tests, `OnMainWindowBoundsChanged_RapidConsecutiveCalls_DebouncesAndSavesOnce` simulated rapid window movement using a loop with `await Task.Delay(5)` against a 50ms debounce delay. Under Windows default timer interrupt granularity (~15.625ms) and GitHub Actions CI runner CPU load, thread scheduling delays stretched individual 5ms delays past the 50ms debounce threshold. This allowed the debounce timer to legitimately expire mid-loop and save multiple times during the burst (`SaveCount == 3` instead of `1`).
+
+### Activities
+- **Deterministic Debounce Scheduling (`WindowPlacementService`)**:
+  - Refactored `WindowPlacementService` to use standard `TimeProvider` and `ITimer` (`_debounceTimer.Change(_debounceDelay, Timeout.InfiniteTimeSpan)`).
+  - Eliminated CTS disposal and task thrashing on high-frequency UI movement events; timer reset is atomic with zero allocations.
+  - Synchronized background execution via `_currentSaveTask` and exposed `CurrentSaveTaskForTesting` for test synchronization.
+  - Hardened `FlushPendingSaveAsync()`: disables debounce timer, awaits any active background save to complete so settings state is refreshed, and flushes any pending bounds without duplicate saves.
+- **Deterministic Time Control (`TestTimeProvider`)**:
+  - Implemented `TestTimeProvider` fake in unit tests implementing .NET `TimeProvider` and `ITimer`, enabling virtual time control via `Advance(TimeSpan)`.
+  - Updated `OnMainWindowBoundsChanged_RapidConsecutiveCalls_DebouncesAndSavesOnce` to advance virtual time by 5ms per event with 0 real-world delay, verifying zero intermediate saves during the burst, followed by an advance past the 50ms debounce delay to verify exactly one save with the latest coordinates `(119, 119, 919, 619)`.
+  - Added regression test `OnMainWindowBoundsChanged_MultipleDistinctBursts_PersistsEachBurstSeparately` verifying distinct bursts each persist once.
+- **Automated Test Suite Expansion**:
+  - Total automated tests expanded from 399 to 400 (326 unit + 74 integration, 0 failures).
+- **Validation**:
+  - Build: 0 errors, 0 warnings (Debug & Release).
+  - Test suite: 400/400 passed (Debug & Release).
+  - Formatting: `dotnet format --verify-no-changes` passed.
+
+
