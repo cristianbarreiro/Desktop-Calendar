@@ -118,13 +118,27 @@ dotnet format
 | [docs/adr/](./docs/adr/) | Architecture Decision Records |
 | [knowledge/](./knowledge/) | Project knowledge base |
 
+## Packaging & Distribution
+
+```powershell
+# Run the automated packaging pipeline (Build, Test, Format, Publish, Installer, Checksums)
+powershell -ExecutionPolicy Bypass -File scripts/package.ps1
+
+# Framework-dependent package (requires .NET 10 on target machine)
+dotnet publish src/CalendarWidget.App/CalendarWidget.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/publish/framework-dependent
+
+# Self-contained package (includes .NET 10 runtime)
+dotnet publish src/CalendarWidget.App/CalendarWidget.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish/self-contained
+```
+
 ## Project Status
 
 ### Engineering Foundation
 Complete (Phases 0–3: Repository setup, clean architecture, audit, and remediation).
 
 ### Product Development
-In progress:
+Complete (Phases 4–13: Feature implementation, Windows integration, accessibility, test expansion, and release packaging).
+
 - **Phase 4 — Application Shell** (Completed)
 - **Phase 5 — Widget UI** (Completed)
 - **Phase 6 — Calendar Grid & Navigation** (Completed)
@@ -132,7 +146,9 @@ In progress:
 - **Phase 8 — Events Management** (Completed)
 - **Phase 9 — Notes Management** (Completed)
 - **Phase 10 — Settings** (Completed)
-- **Phase 11 — Windows Integration** (Next target)
+- **Phase 11 — Windows Integration** (Completed)
+- **Phase 12 — Testing, Accessibility, Performance & Hardening** (Completed)
+- **Phase 13 — Packaging & Release** (Completed)
 
 ## Roadmap
 
@@ -151,8 +167,8 @@ In progress:
 - [x] **Phase 9 — Notes**: Notes CRUD, list, timestamps, search, persistence integration.
 - [x] **Phase 10 — Settings**: Theme switching (Dark/Light/System), always-on-top, Windows startup, opacity, first day of week, date/time format, export/import, factory reset.
 - [x] **Phase 11 — Windows Integration**: Single-instance global mutex, secondary-instance activation, position persistence, multi-monitor off-screen recovery, Per-Monitor V2 DPI awareness, system tray integration.
-- [ ] **Phase 12 — Testing & Polish** (NEXT): Test expansion, UI validation, accessibility, performance, edge cases, reliability.
-- [ ] **Phase 13 — Packaging & Release** (PLANNED): Production build, packaging, installer/distribution, versioning, GitHub release.
+- [x] **Phase 12 — Testing, Accessibility, Performance & Hardening**: Comprehensive test suite (400 tests, 0 failures), UI automation accessibility, visible focus indicators, reduced motion, debounced placement persistence.
+- [x] **Phase 13 — Packaging & Release**: Production release configuration, single source of truth versioning (`1.0.0`), framework-dependent & self-contained packages, Inno Setup Windows installer, upgrade/uninstall data safety, SHA-256 checksums, and GitHub Actions release workflow.
 
 ## Contributing
 

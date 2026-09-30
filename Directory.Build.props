@@ -7,6 +7,17 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!-- Versioning & Product Metadata (Single Source of Truth) -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Product>Desktop Calendar</Product>
+    <Company>Desktop Calendar Contributors</Company>
+    <Authors>Desktop Calendar Contributors</Authors>
+    <Copyright>Copyright © 2026</Copyright>
+    <Description>A modern, lightweight Windows desktop calendar widget and event management application.</Description>
   </PropertyGroup>
 
 </Project>

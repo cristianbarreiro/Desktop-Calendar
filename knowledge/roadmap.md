@@ -120,10 +120,15 @@ This document serves as the canonical source of truth for project phase definiti
   - Elimination of event handler and ViewModel memory leaks
 
 ### Phase 13 — Packaging & Release
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
-  - Production Release configuration build
-  - Self-contained / framework-dependent packaging
-  - Distribution installer preparation
-  - Version numbering and release documentation
-  - GitHub release workflow configuration
+  - Production Release configuration and single source of truth versioning (`1.0.0`) in `Directory.Build.props`
+  - Explicit `win-x64` runtime identifier and consistent product assembly metadata
+  - High-resolution multi-frame application icon (`app.ico`) and manifest identity
+  - Framework-dependent publish package (`DesktopCalendar-1.0.0-win-x64-framework-dependent.zip`)
+  - Self-contained publish package (`DesktopCalendar-1.0.0-win-x64-self-contained.zip`)
+  - Inno Setup Windows installer (`installer/setup.iss` producing `DesktopCalendar-1.0.0-win-x64-setup.exe`)
+  - Upgrade-safe and uninstall-safe user data preservation (`%LOCALAPPDATA%\DesktopCalendar`)
+  - Deterministic SHA-256 checksums generation (`SHA256SUMS.txt`)
+  - Automated packaging script (`scripts/package.ps1`)
+  - Dedicated GitHub Actions release workflow (`.github/workflows/release.yml`) triggered on tags and dispatch

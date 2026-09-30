@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 12 (Testing, Accessibility, Performance & Hardening) into Phase 13 (Packaging & Release).
+Complete Phase 13 (Packaging & Release) to establish reproducible, installable, versioned desktop release packages (`v1.0.0`).
 
 ---
 
@@ -18,7 +18,7 @@ Transition from Phase 12 (Testing, Accessibility, Performance & Hardening) into 
 - **Phase 10 — Settings & Appearance**: COMPLETE
 - **Phase 11 — Windows Integration**: COMPLETE
 - **Phase 12 — Testing, Accessibility, Performance & Hardening**: COMPLETE
-- **Next Target — Phase 13 (Packaging & Release)**: NEXT / READY
+- **Phase 13 — Packaging & Release**: COMPLETE
 
 ---
 
@@ -132,23 +132,32 @@ Transition from Phase 12 (Testing, Accessibility, Performance & Hardening) into 
   - Reduced-motion path implemented in `WidgetWindow` DetailTray using `SystemParameters.ClientAreaAnimation`, bypassing animations when OS animations are turned off.
   - Concurrency & lifecycle integration test suite: 74 integration tests + 326 unit tests (400 total, 0 failures), covering multi-monitor geometries, disconnected monitor fallback, restart persistence, IPC errors, and concurrent settings/placement updates.
   - Build verified with 0 warnings, 0 errors, and formatting verification passes.
+- [x] **Packaging & Release (Phase 13)**:
+  - Single source of truth versioning (`1.0.0`) in `Directory.Build.props` propagating to all build targets and assembly metadata.
+  - Application identity harmonized: `DesktopCalendar.exe`, `Desktop Calendar`, `Desktop Calendar Contributors`, icon, copyright.
+  - Runtime targeting explicitly declared for Windows `win-x64`.
+  - Multi-resolution Windows application icon (`src/CalendarWidget.App/app.ico`) and manifest identity.
+  - Deterministic build artifact directories (`artifacts/publish/`, `artifacts/installer/`, `artifacts/release/`).
+  - Framework-dependent publish distribution (`DesktopCalendar-1.0.0-win-x64-framework-dependent.zip`).
+  - Self-contained publish distribution (`DesktopCalendar-1.0.0-win-x64-self-contained.zip`).
+  - Inno Setup installer (`installer/setup.iss` producing `DesktopCalendar-1.0.0-win-x64-setup.exe`).
+  - User data preservation on upgrade and normal uninstall (`%LOCALAPPDATA%\DesktopCalendar\calendar.db` and `settings.json` preserved).
+  - SHA-256 checksums generation (`artifacts/release/SHA256SUMS.txt`).
+  - Automated packaging pipeline script (`scripts/package.ps1`).
+  - Dedicated GitHub Actions release workflow (`.github/workflows/release.yml`) with automated tag and workflow_dispatch triggers.
+  - Clean separation between CI and Release workflows.
 
 ---
 
 ## Next Implementation Target
 
-### Phase 13 — Packaging & Release
-
-- Production Release configuration build.
-- Self-contained / framework-dependent packaging.
-- Distribution installer preparation.
-- Version numbering and release documentation.
-- GitHub Actions release workflow.
+- Deployment / Release Tag `v1.0.0`.
+- All Phases 0–13 are COMPLETE.
 
 ---
 
 ## Explicitly Out of Scope for Phase 13
 
-Do NOT implement during Phase 13:
+Do NOT implement:
 - Cloud synchronization, networking, telemetry (Prohibited by Architecture)
 - Unrelated feature changes or architecture rewrites

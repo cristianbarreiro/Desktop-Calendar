@@ -3,8 +3,9 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 12 complete)
-- **Next Phase**: Phase 13 — Packaging & Release
+- **Product Implementation**: Complete (Phases 4–13 complete)
+- **Version**: 1.0.0
+- **Status**: Production Release Ready
 - **Current Date**: 2026-09-30
 
 ---
@@ -26,7 +27,7 @@
 | **Phase 10** | Product Implementation | Settings & Appearance | **COMPLETED** |
 | **Phase 11** | Product Implementation | Windows OS Integration | **COMPLETED** |
 | **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **COMPLETED** |
-| **Phase 13** | Product Implementation | Packaging & Distribution | **NEXT** |
+| **Phase 13** | Product Implementation | Packaging & Release | **COMPLETED** |
 
 ---
 
@@ -147,6 +148,21 @@
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
+### Packaging & Release (Phase 13)
+- [x] Single source of truth versioning (`1.0.0`) in `Directory.Build.props` propagating to all build targets
+- [x] Application identity metadata harmonized: `DesktopCalendar`, `Desktop Calendar Contributors`, icon, copyright
+- [x] Target runtime explicitly declared as `win-x64`
+- [x] Embedded high-resolution multi-frame application icon (`app.ico`) and manifest identity
+- [x] Deterministic build artifact directories (`artifacts/publish/`, `artifacts/installer/`, `artifacts/release/`)
+- [x] Framework-dependent publish distribution (`DesktopCalendar-1.0.0-win-x64-framework-dependent.zip`)
+- [x] Self-contained publish distribution (`DesktopCalendar-1.0.0-win-x64-self-contained.zip`)
+- [x] Inno Setup installer script (`installer/setup.iss`) producing `DesktopCalendar-1.0.0-win-x64-setup.exe`
+- [x] Installer upgrade-safe and uninstall-safe user data preservation (`%LOCALAPPDATA%\DesktopCalendar\calendar.db` and `settings.json` preserved)
+- [x] SHA-256 checksums generation (`artifacts/release/SHA256SUMS.txt`)
+- [x] Complete automated packaging pipeline script (`scripts/package.ps1`)
+- [x] Dedicated GitHub Actions release workflow (`.github/workflows/release.yml`) with automated tag and workflow_dispatch triggers
+- [x] Clean separation between CI and Release workflows
+
 ---
 
 ## Known Technical Debt
@@ -155,8 +171,4 @@
 ---
 
 ## Current Priorities
-1. **Phase 13 — Packaging & Release**:
-   - Production Release configuration build.
-   - Self-contained / framework-dependent packaging.
-   - Distribution installer preparation.
-   - Version numbering and release documentation.
+- Phase 13 Packaging & Release is complete and verified. Application is production-ready at `v1.0.0`.

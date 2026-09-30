@@ -365,4 +365,47 @@
   - Test suite: 400/400 passed (Debug & Release).
   - Formatting: `dotnet format --verify-no-changes` passed.
 
+## 2026-09-30 — Phase 13: Packaging & Release
+
+### Activities
+- **Single Source of Truth Versioning & Metadata**:
+  - Centralized version numbering in `Directory.Build.props` as `1.0.0` (`<Version>`, `<AssemblyVersion>`, `<FileVersion>`, `<InformationalVersion>`).
+  - Standardized product metadata across all build outputs: Product (`Desktop Calendar`), Company/Authors (`Desktop Calendar Contributors`), Copyright (`Copyright © 2026`).
+  - Configured `CalendarWidget.App.csproj` with explicit `<AssemblyName>DesktopCalendar</AssemblyName>`, producing `DesktopCalendar.exe` matching startup registry keys, mutex identity, and local app data folder naming.
+- **Embedded Application Assets & Manifest Identity**:
+  - Generated multi-resolution Windows icon `src/CalendarWidget.App/app.ico` containing 16x16, 32x32, 48x48, 64x64, 128x128, and 256x256 RGBA frames.
+  - Linked icon via `<ApplicationIcon>app.ico</ApplicationIcon>` and included as copied content.
+  - Synchronized `src/CalendarWidget.App/app.manifest` assembly identity version (`1.0.0.0`) and name (`DesktopCalendar`).
+- **Target Runtime Configuration**:
+  - Explicitly configured `<RuntimeIdentifiers>win-x64</RuntimeIdentifiers>` in `CalendarWidget.App.csproj`.
+- **Framework-Dependent Distribution**:
+  - Deterministic publishing command: `dotnet publish -c Release -r win-x64 --self-contained false -o artifacts/publish/framework-dependent`.
+  - Packaged to `artifacts/release/DesktopCalendar-1.0.0-win-x64-framework-dependent.zip`.
+  - Verified no dev/test assemblies or source files are bundled.
+- **Self-Contained Distribution**:
+  - Deterministic publishing command: `dotnet publish -c Release -r win-x64 --self-contained true -o artifacts/publish/self-contained`.
+  - Includes full .NET 10 Windows Desktop runtime (312 files including `coreclr.dll`).
+  - Packaged to `artifacts/release/DesktopCalendar-1.0.0-win-x64-self-contained.zip`.
+- **Inno Setup Windows Installer (`installer/setup.iss`)**:
+  - Produced `artifacts/release/DesktopCalendar-1.0.0-win-x64-setup.exe`.
+  - Standard installation destination: `{autopf}\Desktop Calendar`.
+  - Configured Start Menu shortcut (`{autoprograms}\Desktop Calendar\Desktop Calendar.lnk`) and optional desktop shortcut.
+  - Modern installer style, `x64compatible` architecture restriction, embedded icons, and metadata.
+  - Preserves user data: `%LOCALAPPDATA%\DesktopCalendar\calendar.db` and `settings.json` remain untouched on uninstall and upgrade.
+  - Cleans up `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` entry `DesktopCalendar` upon uninstall.
+- **Automated Checksums Generation**:
+  - Generates SHA-256 checksums for all release artifacts into `artifacts/release/SHA256SUMS.txt` and `artifacts/SHA256SUMS.txt`.
+- **Packaging Automation Script (`scripts/package.ps1`)**:
+  - Created end-to-end PowerShell script performing restore, build, test, format check, framework-dependent publish, self-contained publish, zip packaging, Inno Setup compiler detection/execution, and checksum calculation.
+- **GitHub Actions Release Workflow (`.github/workflows/release.yml`)**:
+  - Triggered on tags matching `v*` and manual `workflow_dispatch`.
+  - Executes full quality gate (build, test, format verify) prior to packaging.
+  - Installs Inno Setup via Chocolatey, builds installer, calculates SHA-256 sums, uploads artifacts, and creates GitHub Release via `softprops/action-gh-release@v2`.
+  - Preserves existing CI workflow `.github/workflows/ci.yml` completely.
+- **Validation**:
+  - Build: 0 errors, 0 warnings (Debug & Release).
+  - Test suite: 400/400 passed (326 unit + 74 integration, 0 failures).
+  - Formatting: `dotnet format --verify-no-changes` passed.
+  - Packaging pipeline executed end-to-end; both zip archives and installer exe produced with verified SHA-256 hashes.
+
 
