@@ -3,8 +3,8 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 8 complete)
-- **Next Phase**: Phase 9 — Notes Management
+- **Product Implementation**: In Progress (Phase 9 complete)
+- **Next Phase**: Phase 10 — Settings & Appearance
 - **Current Date**: 2026-09-29
 
 ---
@@ -22,8 +22,8 @@
 | **Phase 6** | Product Implementation | Calendar Grid & Navigation | **COMPLETED** |
 | **Phase 7** | Product Implementation | Persistence & SQLite Repositories | **COMPLETED** |
 | **Phase 8** | Product Implementation | Events Management | **COMPLETED** |
-| **Phase 9** | Product Implementation | Notes Management | **NEXT** |
-| **Phase 10** | Product Implementation | Settings & Appearance | **PLANNED** |
+| **Phase 9** | Product Implementation | Notes Management | **COMPLETED** |
+| **Phase 10** | Product Implementation | Settings & Appearance | **NEXT** |
 | **Phase 11** | Product Implementation | Windows OS Integration | **PLANNED** |
 | **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **PLANNED** |
 | **Phase 13** | Product Implementation | Packaging & Distribution | **PLANNED** |
@@ -38,6 +38,7 @@
 - [x] Initial Value Object (`DateRange`)
 - [ ] Value Objects (`TimeRange`, `ColorHex`) — Planned / Future
 - [x] Domain Exception (`DomainValidationException`)
+- [x] Domain validation (`CalendarEvent.Validate()`, `Note.Validate()`)
 
 ### Specifications & AI Context
 - [x] Full Specification Suite (`specs/calendar/`, `specs/widget/`, `specs/notes/`, `specs/settings/`, `specs/windows/`)
@@ -92,6 +93,16 @@
   - Domain validation (`CalendarEvent.Validate()`): non-empty title <= 200 chars, description <= 2000 chars, `EndTime >= StartTime`
   - UTC persistence via `ICalendarEventRepository` with localized time display
   - Scoped repository resolution via `IServiceScopeFactory` adhering to layered architecture
+- [x] Full application notes management (Phase 9):
+  - Master-detail notes view (`NotesView.xaml`) with search box, clear action, and master note cards
+  - Create note workflow: editor form, character counter, cancel, and save with persistence
+  - Edit note workflow: populates editor, modifies fields, preserves `CreatedAt`, and updates `UpdatedAt`
+  - Delete note workflow with modal confirmation overlay (`Delete Note`) and adjacent selection preservation
+  - Domain validation (`Note.Validate()`): non-empty title <= 200 chars, content <= 50,000 chars
+  - Substring search filtering across Title and Content via `INoteRepository.SearchAsync`
+  - Empty states for zero notes and zero search results, plus error handling with dismiss action
+  - Accessible names and tooltips on all controls, keyboard shortcuts (`Ctrl+N`, `Escape`)
+  - Scoped repository resolution via `IServiceScopeFactory` adhering to layered architecture
 - [x] Presentation services: `ICalendarGridService`, `CalendarGridService`, `IClockService`, `SystemClockService`, `IWindowManager`
 
 ### Host Application
@@ -105,8 +116,8 @@
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core InMemory/Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, and repository persistence
-- [x] 201 automated tests passing (166 unit tests, 35 integration tests, 0 failures)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, and repository persistence
+- [x] 235 automated tests passing (198 unit tests, 37 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -118,7 +129,10 @@
 ---
 
 ## Current Priorities
-1. **Phase 9 — Notes Management**:
-   - Note CRUD UI in NotesView.
-   - Note listing, search, and timestamps.
-   - Integration with `INoteRepository`.
+1. **Phase 10 — Settings & Appearance**:
+   - Dark / Light / System theme runtime switching.
+   - Always-on-top window toggle.
+   - Start with Windows configuration.
+   - Widget opacity adjustment.
+   - Calendar preferences (First day of week, Date/Time format).
+   - Data management (Export / Import / Reset).

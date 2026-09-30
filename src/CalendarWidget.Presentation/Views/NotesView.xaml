@@ -7,45 +7,579 @@
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=vm:NotesViewModel}"
              d:DesignHeight="600" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+    </UserControl.Resources>
+
+    <UserControl.InputBindings>
+        <KeyBinding Key="N" Modifiers="Ctrl" Command="{Binding NewNoteCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding CancelEditCommand}" />
+    </UserControl.InputBindings>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
+            <!-- Header Row -->
             <RowDefinition Height="Auto" />
+            <!-- Error Banner Row -->
+            <RowDefinition Height="Auto" />
+            <!-- Main Master-Detail Area -->
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Title -->
-        <TextBlock Grid.Row="0"
-                   Text="{Binding Title}"
-                   Style="{DynamicResource HeaderLargeTextBlockStyle}"
-                   Margin="0,0,0,24" />
+        <!-- ── Header (Title + Search + New Note Button) ───────────────────── -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-        <!-- Empty State Container -->
+            <!-- Page Title -->
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Title}"
+                       Style="{DynamicResource HeaderLargeTextBlockStyle}"
+                       VerticalAlignment="Center" />
+
+            <!-- Actions: Search + New Note -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- Search Box -->
+                <Border Background="{DynamicResource BackgroundRootBrush}"
+                        BorderBrush="{DynamicResource BorderDividerBrush}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource CornerRadiusCard}"
+                        Width="220"
+                        Margin="0,0,12,0"
+                        Padding="6,2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Search Icon -->
+                        <TextBlock Grid.Column="0"
+                                   Text="🔍"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,6,0" />
+
+                        <!-- Search Input -->
+                        <TextBox Grid.Column="1"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 VerticalAlignment="Center"
+                                 Padding="0"
+                                 MaxLength="100"
+                                 AutomationProperties.Name="Search notes input" />
+
+                        <!-- Watermark / Placeholder -->
+                        <TextBlock Grid.Column="1"
+                                   Text="Search notes..."
+                                   Foreground="{DynamicResource TextDisabledBrush}"
+                                   IsHitTestVisible="False"
+                                   VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource BodySubtleTextBlockStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SearchText}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Clear Search Button -->
+                        <Button Grid.Column="2"
+                                Content="✕"
+                                Command="{Binding ClearSearchCommand}"
+                                Style="{DynamicResource HeaderActionButtonStyle}"
+                                Padding="4,2"
+                                Margin="2,0,0,0"
+                                ToolTip="Clear search"
+                                AutomationProperties.Name="Clear search"
+                                Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisConverter}}" />
+                    </Grid>
+                </Border>
+
+                <!-- New Note Action -->
+                <Button Content="+ New Note"
+                        Command="{Binding NewNoteCommand}"
+                        Style="{DynamicResource AccentButtonStyle}"
+                        Padding="16,6"
+                        ToolTip="Create a new note (Ctrl+N)"
+                        AutomationProperties.Name="Create new note" />
+            </StackPanel>
+        </Grid>
+
+        <!-- ── Error Banner ────────────────────────────────────────────────── -->
         <Border Grid.Row="1"
-                Background="{DynamicResource SurfaceCardBrush}"
-                BorderBrush="{DynamicResource BorderDividerBrush}"
+                Background="#3A1D1D"
+                BorderBrush="#E81123"
                 BorderThickness="1"
                 CornerRadius="{DynamicResource CornerRadiusCard}"
-                Padding="40">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="440">
-                <TextBlock Text="📝"
-                           FontSize="40"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,16" />
-                <TextBlock Text="{Binding EmptyStateTitle}"
-                           Style="{DynamicResource HeaderMediumTextBlockStyle}"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,8" />
-                <TextBlock Text="{Binding EmptyStateDescription}"
+                Padding="12,8"
+                Margin="0,0,0,16"
+                Visibility="{Binding HasError, Converter={StaticResource BoolToVisConverter}}">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Right"
+                        Content="Dismiss"
+                        Command="{Binding DismissErrorCommand}"
+                        Style="{DynamicResource HeaderActionButtonStyle}"
+                        Padding="8,2"
+                        AutomationProperties.Name="Dismiss error banner" />
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Foreground="#FFA4A4"
                            Style="{DynamicResource BodySubtleTextBlockStyle}"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           Margin="0,0,0,24" />
-                <Button Content="+ New Note"
-                        Style="{DynamicResource StandardButtonStyle}"
-                        HorizontalAlignment="Center"
-                        IsEnabled="False"
-                        ToolTip="Notes functionality will be implemented in Phase 9" />
-            </StackPanel>
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap" />
+            </DockPanel>
         </Border>
+
+        <!-- ── Main Master-Detail Area ─────────────────────────────────────── -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <!-- Notes List Column -->
+                <ColumnDefinition Width="300" MinWidth="220" MaxWidth="380" />
+                <!-- Detail / Editor Column -->
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- ── Left: Master Notes List ─────────────────────────────────── -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceCardBrush}"
+                    BorderBrush="{DynamicResource BorderDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CornerRadiusCard}"
+                    Padding="8">
+                <Grid>
+                    <!-- Loading Indicator -->
+                    <TextBlock Text="Loading notes..."
+                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}" />
+
+                    <!-- Empty State (No notes exist) -->
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                MaxWidth="240"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisConverter}}">
+                        <TextBlock Text="📝"
+                                   FontSize="32"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="{Binding EmptyStateTitle}"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   FontSize="15"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="{Binding EmptyStateDescription}"
+                                   Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,16" />
+                        <Button Content="+ New Note"
+                                Command="{Binding NewNoteCommand}"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                HorizontalAlignment="Center"
+                                AutomationProperties.Name="Create first note" />
+                    </StackPanel>
+
+                    <!-- No Search Results State -->
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                MaxWidth="240"
+                                Visibility="{Binding HasNoSearchResults, Converter={StaticResource BoolToVisConverter}}">
+                        <TextBlock Text="🔍"
+                                   FontSize="28"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="No matching notes"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   FontSize="15"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,4" />
+                        <TextBlock Text="No notes match your current search query."
+                                   Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,16" />
+                        <Button Content="Clear Search"
+                                Command="{Binding ClearSearchCommand}"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                HorizontalAlignment="Center"
+                                AutomationProperties.Name="Clear search query" />
+                    </StackPanel>
+
+                    <!-- Notes ListBox -->
+                    <ListBox ItemsSource="{Binding Notes}"
+                             SelectedItem="{Binding SelectedNote, Mode=TwoWay}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             AutomationProperties.Name="Notes list">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="Padding" Value="10,8" />
+                                <Setter Property="Margin" Value="0,0,0,4" />
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="ItemBorder"
+                                                    Background="{TemplateBinding Background}"
+                                                    BorderBrush="Transparent"
+                                                    BorderThickness="1"
+                                                    CornerRadius="{DynamicResource CornerRadiusCard}"
+                                                    Padding="{TemplateBinding Padding}"
+                                                    SnapsToDevicePixels="True">
+                                                <ContentPresenter />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                    <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                    <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"
+                                               Style="{DynamicResource BodyRegularTextBlockStyle}" />
+                                    <TextBlock Text="{Binding Preview}"
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,3,0,4" />
+                                    <TextBlock Text="{Binding FormattedDate}"
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               Foreground="{DynamicResource TextDisabledBrush}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- ── Right: Note Detail / Editor Panel ───────────────────────── -->
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SurfaceCardBrush}"
+                    BorderBrush="{DynamicResource BorderDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CornerRadiusCard}"
+                    Margin="16,0,0,0"
+                    Padding="24">
+                <Grid>
+                    <!-- ── State A: Editor Mode (Create / Edit) ─────────────── -->
+                    <Grid Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisConverter}}">
+                        <Grid.RowDefinitions>
+                            <!-- Header / Title label -->
+                            <RowDefinition Height="Auto" />
+                            <!-- Title Input -->
+                            <RowDefinition Height="Auto" />
+                            <!-- Validation Error -->
+                            <RowDefinition Height="Auto" />
+                            <!-- Content Input -->
+                            <RowDefinition Height="*" />
+                            <!-- Bottom Action Bar -->
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Form Header -->
+                        <TextBlock Grid.Row="0"
+                                   Text="{Binding EditorHeader}"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   Margin="0,0,0,12" />
+
+                        <!-- Title Input -->
+                        <TextBox Grid.Row="1"
+                                 Text="{Binding EditorTitle, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="200"
+                                 Padding="10,8"
+                                 Background="{DynamicResource BackgroundRootBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderDividerBrush}"
+                                 BorderThickness="1"
+                                 Margin="0,0,0,8"
+                                 AutomationProperties.Name="Note title editor input" />
+
+                        <!-- Validation Error Display -->
+                        <TextBlock Grid.Row="2"
+                                   Text="{Binding ValidationError}"
+                                   Foreground="#E81123"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8"
+                                   AutomationProperties.Name="Note validation error message">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource BodySubtleTextBlockStyle}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ValidationError}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <!-- Content Editor -->
+                        <TextBox Grid.Row="3"
+                                 Text="{Binding EditorContent, UpdateSourceTrigger=PropertyChanged}"
+                                 MaxLength="50000"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 Padding="10,8"
+                                 Background="{DynamicResource BackgroundRootBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 BorderBrush="{DynamicResource BorderDividerBrush}"
+                                 BorderThickness="1"
+                                 Margin="0,0,0,12"
+                                 AutomationProperties.Name="Note content editor input" />
+
+                        <!-- Bottom Action Bar -->
+                        <DockPanel Grid.Row="4" LastChildFill="False">
+                            <TextBlock DockPanel.Dock="Left"
+                                       Text="{Binding CharacterCountText}"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       Foreground="{DynamicResource TextDisabledBrush}"
+                                       VerticalAlignment="Center" />
+
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button Content="Cancel"
+                                        Command="{Binding CancelEditCommand}"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,0"
+                                        Padding="16,6"
+                                        AutomationProperties.Name="Cancel editing note" />
+                                <Button Content="Save"
+                                        Command="{Binding SaveNoteCommand}"
+                                        Style="{DynamicResource AccentButtonStyle}"
+                                        Padding="20,6"
+                                        IsEnabled="{Binding IsSaving, Converter={StaticResource BoolToVisConverter}, ConverterParameter=invert}"
+                                        AutomationProperties.Name="Save note" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Grid>
+
+                    <!-- ── State B: View Mode (Selected Note Display) ───────── -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsEditing}" Value="False" />
+                                            <Condition Binding="{Binding HasSelectedNote}" Value="True" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+
+                        <Grid.RowDefinitions>
+                            <!-- Note Header & Actions -->
+                            <RowDefinition Height="Auto" />
+                            <!-- Divider -->
+                            <RowDefinition Height="Auto" />
+                            <!-- Note Content Body -->
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Title and Actions -->
+                        <Grid Grid.Row="0" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding ViewingTitle}"
+                                           Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,6" />
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Created: "
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               Foreground="{DynamicResource TextDisabledBrush}" />
+                                    <TextBlock Text="{Binding ViewingCreatedAtFormatted}"
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               Foreground="{DynamicResource TextDisabledBrush}"
+                                               Margin="0,0,12,0" />
+                                    <TextBlock Text="Updated: "
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               Foreground="{DynamicResource TextDisabledBrush}" />
+                                    <TextBlock Text="{Binding ViewingUpdatedAtFormatted}"
+                                               Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                               Foreground="{DynamicResource TextDisabledBrush}" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Actions: Edit & Delete -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button Content="Edit"
+                                        Command="{Binding BeginEditCommand}"
+                                        Style="{DynamicResource AccentButtonStyle}"
+                                        Padding="14,4"
+                                        Margin="0,0,8,0"
+                                        AutomationProperties.Name="Edit selected note" />
+                                <Button Content="Delete"
+                                        Command="{Binding RequestDeleteCommand}"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Padding="14,4"
+                                        AutomationProperties.Name="Delete selected note" />
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Subtle Divider -->
+                        <Border Grid.Row="1"
+                                Height="1"
+                                Background="{DynamicResource BorderDividerBrush}"
+                                Margin="0,0,0,16" />
+
+                        <!-- Read-only Content Viewer -->
+                        <ScrollViewer Grid.Row="2"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBox Text="{Binding ViewingContent, Mode=OneWay}"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="{DynamicResource TextPrimaryBrush}"
+                                     Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                     Padding="0"
+                                     AutomationProperties.Name="Note content viewer" />
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ── State C: Empty State (No Note Selected) ─────────── -->
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                MaxWidth="360">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsEditing}" Value="False" />
+                                            <Condition Binding="{Binding HasSelectedNote}" Value="False" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <TextBlock Text="📝"
+                                   FontSize="40"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,16" />
+                        <TextBlock Text="No Note Selected"
+                                   Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Select a note from the list on the left to view or edit, or create a new note."
+                                   Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,20" />
+                        <Button Content="+ New Note"
+                                Command="{Binding NewNoteCommand}"
+                                Style="{DynamicResource AccentButtonStyle}"
+                                HorizontalAlignment="Center"
+                                Padding="16,6"
+                                AutomationProperties.Name="Create note from placeholder" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ── Delete Confirmation Modal Overlay ───────────────────────────── -->
+        <Grid Grid.Row="0" Grid.RowSpan="3"
+              Visibility="{Binding IsDeleteConfirmVisible, Converter={StaticResource BoolToVisConverter}}"
+              Panel.ZIndex="101">
+            <!-- Modal Backdrop -->
+            <Border Background="#A0000000" />
+
+            <!-- Confirmation Card -->
+            <Border Background="{DynamicResource SurfaceCardBrush}"
+                    BorderBrush="{DynamicResource BorderDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{DynamicResource CornerRadiusWindow}"
+                    Width="380"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Padding="24"
+                    SnapsToDevicePixels="True">
+                <StackPanel>
+                    <TextBlock Text="Delete Note"
+                               Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                               Margin="0,0,0,12"
+                               AutomationProperties.Name="Delete note dialog title" />
+
+                    <TextBlock Text="Are you sure you want to delete this note? This action cannot be undone."
+                               Style="{DynamicResource BodyRegularTextBlockStyle}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,12" />
+
+                    <Border Background="{DynamicResource BackgroundRootBrush}"
+                            BorderBrush="{DynamicResource BorderDividerBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource CornerRadiusCard}"
+                            Padding="12,8"
+                            Margin="0,0,0,16">
+                        <TextBlock Text="{Binding PendingDeleteTitle}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   AutomationProperties.Name="Note title to delete" />
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Cancel"
+                                Command="{Binding CancelDeleteCommand}"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Margin="0,0,8,0"
+                                Padding="16,6"
+                                AutomationProperties.Name="Cancel delete note" />
+                        <Button Content="Delete"
+                                Command="{Binding ConfirmDeleteCommand}"
+                                Background="#D83B01"
+                                BorderBrush="#D83B01"
+                                Foreground="#FFFFFF"
+                                FontWeight="SemiBold"
+                                Style="{DynamicResource StandardButtonStyle}"
+                                Padding="20,6"
+                                AutomationProperties.Name="Confirm delete note" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

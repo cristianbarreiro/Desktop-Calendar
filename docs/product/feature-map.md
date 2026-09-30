@@ -20,12 +20,12 @@ Desktop Calendar Widget
     │   ├── Event Management (CRUD) 🟢
     │   └── Day Detail Panel 🟢
     │
-    ├── Notes 🟡 [Shell Placeholder]
-    │   ├── Note List 🔴
-    │   ├── Note Creation 🔴
-    │   ├── Note Editing 🔴
-    │   ├── Note Deletion 🔴
-    │   └── Note Search 🔴
+    ├── Notes 🟢
+    │   ├── Note List 🟢
+    │   ├── Note Creation 🟢
+    │   ├── Note Editing 🟢
+    │   ├── Note Deletion 🟢
+    │   └── Note Search 🟢
     │
     ├── Settings 🟡 [Shell Placeholder]
     │   ├── Appearance 🔴
@@ -44,4 +44,4 @@ Desktop Calendar Widget
 
 ## Current Status
 
-Engineering Foundation (Phases 0–3) and Phases 4–8 (Application Shell, Widget UI, Calendar Grid & Navigation, Persistence, Events Management) are complete. The application has a Generic Host composition root, DI container, explicit application lifecycle, bidirectional window switching, month navigation, 42-cell deterministic grid rendering, real-time clock, navigation placeholders, an EF Core SQLite persistence layer, and full Event Management (CRUD UI, modal dialogs, day detail panel, domain validation, and 42-cell event indicator loading). The next phase is Phase 9 (Notes Management).
+Engineering Foundation (Phases 0–3) and Phases 4–9 (Application Shell, Widget UI, Calendar Grid & Navigation, Persistence, Events Management, Notes Management) are complete. The application has a Generic Host composition root, DI container, explicit application lifecycle, bidirectional window switching, month navigation, 42-cell deterministic grid rendering, real-time clock, navigation placeholders, an EF Core SQLite persistence layer, full Event Management (CRUD UI, modal dialogs, day detail panel, domain validation, and 42-cell event indicator loading), and full Notes Management (master-detail UI, CRUD operations, delete confirmation modal, domain validation, and case-insensitive substring search). The next phase is Phase 10 (Settings & Appearance).

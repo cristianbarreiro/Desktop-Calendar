@@ -245,4 +245,62 @@ public sealed class NoteRepositoryTests
         Func<Task> act = () => repo.DeleteAsync(Guid.NewGuid());
         await act.Should().NotThrowAsync();
     }
+
+    // ── Validation & Timestamps ───────────────────────────────────────────────
+
+    [Fact]
+    public async Task AddAsync_WithValidation_PersistsNote()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfNoteRepository repo = new(db.Context);
+
+        Note note = new()
+        {
+            Id = Guid.NewGuid(),
+            Title = "Validated Strategy Note",
+            Content = "Important quarterly reflections and action items.",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        note.Validate();
+        await repo.AddAsync(note);
+
+        Note? retrieved = await repo.GetByIdAsync(note.Id);
+        retrieved.Should().NotBeNull();
+        retrieved!.Title.Should().Be("Validated Strategy Note");
+        retrieved.Content.Should().Be("Important quarterly reflections and action items.");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_PreservesCreatedAtAndUpdatesUpdatedAt()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfNoteRepository repo = new(db.Context);
+
+        DateTime created = DateTime.UtcNow.AddHours(-5);
+        DateTime updated = DateTime.UtcNow.AddHours(-3);
+        Note note = new()
+        {
+            Id = Guid.NewGuid(),
+            Title = "Initial Note Title",
+            Content = "Initial content",
+            CreatedAt = created,
+            UpdatedAt = updated,
+        };
+        await repo.AddAsync(note);
+
+        DateTime newUpdated = DateTime.UtcNow;
+        note.Title = "Updated Note Title";
+        note.Content = "Updated content text";
+        note.UpdatedAt = newUpdated;
+        note.Validate();
+        await repo.UpdateAsync(note);
+
+        Note? retrieved = await repo.GetByIdAsync(note.Id);
+        retrieved.Should().NotBeNull();
+        retrieved!.Title.Should().Be("Updated Note Title");
+        retrieved.Content.Should().Be("Updated content text");
+        retrieved.CreatedAt.Should().Be(created);
+        retrieved.UpdatedAt.Should().Be(newUpdated);
+    }
 }

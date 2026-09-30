@@ -139,3 +139,17 @@
 - Validated solution build (0 errors, 0 warnings), test execution (201/201 passed), and code formatting (`dotnet format --verify-no-changes`).
 - Committed as `feat: phase 8` (SHA `5ca3eed27fe225980dda747a2b6d96f4b3553fa0`).
 
+## 2026-09-29 — Phase 9: Notes Management
+
+### Activities
+- Enhanced domain entity `Note` with `Validate()` enforcing non-empty title (<= 200 chars) and content length <= 50,000 chars.
+- Implemented `NoteListItemModel` presentation record with culture-aware date formatting and single-line content preview snippet.
+- Implemented `NotesViewModel` managing note listing, CRUD workflows, inline/domain validation error display, character counting, delete confirmation modal, substring search filtering, and selection transitions.
+- Designed and implemented modern master-detail `NotesView.xaml` with search box, responsive master list, view/editor panels, delete confirmation modal overlay, accessible names, and keyboard shortcuts (`Ctrl+N`, `Escape`).
+- Updated `TestScopeFactory` and added `TestNoteRepository` in unit test fakes.
+- Added 32 unit tests:
+  - `NoteValidationTests`: 8 tests covering domain validation rules.
+  - `NotesViewModelTests`: 24 tests covering empty state, listing, create, edit, cancel, validation, persistence, delete modal, adjacent selection maintenance, search filtering, search+edit/delete dynamics, and error handling.
+- Added 2 integration tests in `NoteRepositoryTests` validating `Note.Validate()` persistence and preservation of `CreatedAt` during `UpdateAsync`.
+- Total automated tests expanded from 201 to 235 (198 unit + 37 integration, 0 failures).
+- Validated solution build (0 errors, 0 warnings), test execution (235/235 passed), and code formatting (`dotnet format --verify-no-changes`).

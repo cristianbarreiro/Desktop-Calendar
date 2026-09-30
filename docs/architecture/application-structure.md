@@ -26,6 +26,7 @@ Desktop Calendar/
 │   │   ├── Services/                         # [Planned Phase 11] WindowsStartupService; notifications are Future scope
 │   │   └── DependencyInjection.cs            # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
+│       ├── Models/                           # CalendarDayModel, EventListItemModel, NoteListItemModel
 │       ├── ViewModels/                       # ViewModelBase, MainWindowViewModel, WidgetViewModel, CalendarViewModel, NotesViewModel, SettingsViewModel, NavigationTab
 │       ├── Views/                            # CalendarView, NotesView, SettingsView
 │       ├── Services/                         # IWindowManager, IClockService, SystemClockService, ICalendarGridService, CalendarGridService

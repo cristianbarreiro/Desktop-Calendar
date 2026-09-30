@@ -22,12 +22,13 @@
 
 | Requirement | Priority | Status |
 |-------------|----------|--------|
-| Create note | P0 | Not started |
-| Edit note | P0 | Not started |
-| Delete note | P0 | Not started |
-| List notes | P0 | Not started |
-| Search notes | P1 | Not started |
-| Timestamps | P0 | Not started |
+| Create note | P0 | Complete |
+| Edit note | P0 | Complete |
+| Delete note | P0 | Complete |
+| List notes | P0 | Complete |
+| Search notes | P1 | Complete |
+| Timestamps | P0 | Complete |
+| Note validation | P0 | Complete |
 
 ### Settings
 
@@ -58,7 +59,7 @@
 | Requirement | Priority | Status |
 |-------------|----------|--------|
 | Calendar view | P0 | Complete |
-| Notes view | P0 | Shell / Placeholder |
+| Notes view | P0 | Complete |
 | Settings view | P1 | Shell / Placeholder |
 | Navigation sidebar | P0 | Complete |
 | Switch to widget action | P0 | Complete |

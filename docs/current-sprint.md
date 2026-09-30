@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 8 (Events Management) into Phase 9 (Notes Management).
+Transition from Phase 9 (Notes Management) into Phase 10 (Settings & Appearance).
 
 ---
 
@@ -13,8 +13,9 @@ Transition from Phase 8 (Events Management) into Phase 9 (Notes Management).
 - **Phase 5 — Widget UI**: COMPLETE
 - **Phase 6 — Calendar Grid & Navigation**: COMPLETE
 - **Phase 7 — Persistence & SQLite Repositories**: COMPLETE
-- **Phase 8 — Events Management**: COMPLETED
-- **Next Target — Phase 9 (Notes Management)**: NEXT / READY
+- **Phase 8 — Events Management**: COMPLETE
+- **Phase 9 — Notes Management**: COMPLETED
+- **Next Target — Phase 10 (Settings & Appearance)**: NEXT / READY
 
 ---
 
@@ -82,23 +83,35 @@ Transition from Phase 8 (Events Management) into Phase 9 (Notes Management).
   - Event indicators: single query across visible 42-cell grid range populates `HasEvents` indicator on day cells.
   - Architecture integrity: presentation resolves `ICalendarEventRepository` via `IServiceScopeFactory`, zero direct EF Core / Infrastructure dependencies.
   - Test suite expanded to 201 tests (166 unit + 35 integration, 0 failures).
+- [x] **Notes Management (Phase 9)**:
+  - Domain validation (`Validate()`) on `Note`: required non-empty title (<= 200 chars), content <= 50,000 chars.
+  - Note presentation model (`NoteListItemModel`) with culture-aware date formatting and content preview snippet.
+  - Master-detail UI (`NotesView.xaml`): search box, clear action, master list of note cards, view mode, editor mode with char count, and delete confirmation modal.
+  - Note CRUD and Search ViewModel (`NotesViewModel`): Create, Edit, Cancel, Save, RequestDelete, ConfirmDelete, Search, and ClearSearch commands.
+  - Case-insensitive substring search matching across Title and Content via `INoteRepository.SearchAsync`.
+  - Timestamp integrity: UTC persistence, local display, `CreatedAt` strictly preserved on note update.
+  - Architecture integrity: presentation resolves `INoteRepository` via `IServiceScopeFactory`, zero direct EF Core / Infrastructure dependencies.
+  - Test suite expanded to 235 tests (198 unit + 37 integration, 0 failures).
 
 ---
 
 ## Next Implementation Target
 
-### Phase 9 — Notes Management
+### Phase 10 — Settings & Appearance
 
-- Note CRUD UI in `NotesView` (create, edit, delete).
-- Note listing, filtering/search, and timestamps.
-- Note persistence via `INoteRepository`.
+- Dark / Light / System theme runtime switching.
+- Always-on-top window toggle.
+- Start with Windows configuration.
+- Widget opacity adjustment.
+- Calendar preferences (First day of week, Date/Time format).
+- Data management (Export / Import / Reset).
 
 ---
 
-## Explicitly Out of Scope for Phase 9
+## Explicitly Out of Scope for Phase 10
 
-Do NOT implement during Phase 9:
-- Settings persistence UI (Planned Phase 10)
+Do NOT implement during Phase 10:
 - System tray icon docking (Planned Phase 11)
 - Windows startup registration (Planned Phase 11)
+- Single instance OS Mutex (Planned Phase 11)
 - Packaging, installers, and release automation (Planned Phase 13)

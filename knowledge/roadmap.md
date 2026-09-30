@@ -80,7 +80,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Event persistence integration
 
 ### Phase 9 — Notes
-- **Status**: NEXT
+- **Status**: COMPLETED
 - **Scope**:
   - Notes CRUD operations
   - Note list view and editor view
@@ -89,7 +89,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Persistence integration
 
 ### Phase 10 — Settings
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Dark / Light theme runtime switching
   - Always-on-top window toggle
