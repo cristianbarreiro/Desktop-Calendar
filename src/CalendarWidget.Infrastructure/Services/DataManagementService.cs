@@ -33,9 +33,6 @@ public sealed class DataManagementService : IDataManagementService
     private static readonly Action<ILogger, Exception?> LogResetCompleted =
         LoggerMessage.Define(LogLevel.Information, new EventId(3, "ResetCompleted"), "All user events and notes have been cleared.");
 
-    private static readonly Action<ILogger, Exception?> LogInvalidImportedSettings =
-        LoggerMessage.Define(LogLevel.Warning, new EventId(4, "InvalidImportedSettings"), "Imported settings were invalid; skipping settings update.");
-
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISettingsService _settingsService;
     private readonly ILogger<DataManagementService> _logger;
@@ -137,7 +134,24 @@ public sealed class DataManagementService : IDataManagementService
             };
         }
 
-        // Validate all events before database mutation
+        // 1. Validate complete settings object before any mutation
+        if (backup.Settings is not null)
+        {
+            try
+            {
+                backup.Settings.Validate();
+            }
+            catch (DomainValidationException ex)
+            {
+                return new DataImportResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Settings failed validation: {ex.Message}",
+                };
+            }
+        }
+
+        // 2. Validate all events before database mutation
         List<CalendarEvent> eventsToImport = new(backup.Events.Count);
         foreach (CalendarEventBackupDto dto in backup.Events)
         {
@@ -169,7 +183,7 @@ public sealed class DataManagementService : IDataManagementService
             eventsToImport.Add(ev);
         }
 
-        // Validate all notes before database mutation
+        // 3. Validate all notes before database mutation
         List<Note> notesToImport = new(backup.Notes.Count);
         foreach (NoteBackupDto dto in backup.Notes)
         {
@@ -198,77 +212,107 @@ public sealed class DataManagementService : IDataManagementService
             notesToImport.Add(note);
         }
 
-        // Atomically persist records
+        // 4. Atomically persist records with rollback on failure
         using IServiceScope scope = _scopeFactory.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        HashSet<Guid> existingEventIds = (await context.CalendarEvents
-            .Select(e => e.Id)
-            .ToListAsync(cancellationToken))
-            .ToHashSet();
+        UserSettings? originalSettings = backup.Settings is not null ? _settingsService.CurrentSettings.Clone() : null;
 
-        HashSet<Guid> existingNoteIds = (await context.Notes
-            .Select(n => n.Id)
-            .ToListAsync(cancellationToken))
-            .ToHashSet();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await context.Database.BeginTransactionAsync(cancellationToken);
 
-        int eventsImported = 0;
-        int eventsSkipped = 0;
-        foreach (CalendarEvent ev in eventsToImport)
+        try
         {
-            if (existingEventIds.Contains(ev.Id))
+            HashSet<Guid> existingEventIds = (await context.CalendarEvents
+                .Select(e => e.Id)
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            HashSet<Guid> existingNoteIds = (await context.Notes
+                .Select(n => n.Id)
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            int eventsImported = 0;
+            int eventsSkipped = 0;
+            foreach (CalendarEvent ev in eventsToImport)
             {
-                eventsSkipped++;
+                if (existingEventIds.Contains(ev.Id))
+                {
+                    eventsSkipped++;
+                }
+                else
+                {
+                    context.CalendarEvents.Add(ev);
+                    eventsImported++;
+                }
             }
-            else
+
+            int notesImported = 0;
+            int notesSkipped = 0;
+            foreach (Note n in notesToImport)
             {
-                context.CalendarEvents.Add(ev);
-                eventsImported++;
+                if (existingNoteIds.Contains(n.Id))
+                {
+                    notesSkipped++;
+                }
+                else
+                {
+                    context.Notes.Add(n);
+                    notesImported++;
+                }
             }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            if (backup.Settings is not null)
+            {
+                await _settingsService.SaveSettingsAsync(backup.Settings, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            LogImportCompleted(_logger, eventsImported, notesImported, null);
+            DataChanged?.Invoke(this, EventArgs.Empty);
+
+            return new DataImportResult
+            {
+                Success = true,
+                EventsImported = eventsImported,
+                EventsSkipped = eventsSkipped,
+                NotesImported = notesImported,
+                NotesSkipped = notesSkipped,
+            };
         }
-
-        int notesImported = 0;
-        int notesSkipped = 0;
-        foreach (Note n in notesToImport)
-        {
-            if (existingNoteIds.Contains(n.Id))
-            {
-                notesSkipped++;
-            }
-            else
-            {
-                context.Notes.Add(n);
-                notesImported++;
-            }
-        }
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        // Optionally apply imported settings if present
-        if (backup.Settings is not null)
+        catch (Exception ex)
         {
             try
             {
-                backup.Settings.Validate();
-                await _settingsService.SaveSettingsAsync(backup.Settings, cancellationToken);
+                await transaction.RollbackAsync(cancellationToken);
             }
-            catch (DomainValidationException ex)
+            catch
             {
-                LogInvalidImportedSettings(_logger, ex);
+                // Suppress secondary rollback exception
             }
+
+            if (originalSettings is not null)
+            {
+                try
+                {
+                    await _settingsService.SaveSettingsAsync(originalSettings, cancellationToken);
+                }
+                catch
+                {
+                    // Suppress secondary settings restore exception
+                }
+            }
+
+            return new DataImportResult
+            {
+                Success = false,
+                ErrorMessage = $"Import failed: {ex.Message}",
+            };
         }
-
-        LogImportCompleted(_logger, eventsImported, notesImported, null);
-        DataChanged?.Invoke(this, EventArgs.Empty);
-
-        return new DataImportResult
-        {
-            Success = true,
-            EventsImported = eventsImported,
-            EventsSkipped = eventsSkipped,
-            NotesImported = notesImported,
-            NotesSkipped = notesSkipped,
-        };
     }
 
     /// <inheritdoc />

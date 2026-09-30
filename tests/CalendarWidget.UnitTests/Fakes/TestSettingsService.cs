@@ -21,20 +21,27 @@ public sealed class TestSettingsService : ISettingsService
 
     public int SaveCount { get; private set; }
     public bool ThrowOnSave { get; set; }
+    public List<UserSettings> SavedHistory { get; } = [];
+    public Func<UserSettings, Task>? OnSaveHook { get; set; }
 
     public Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    public Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default)
+    public async Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default)
     {
         SaveCount++;
         if (ThrowOnSave)
             throw new InvalidOperationException("Simulated save failure.");
 
+        if (OnSaveHook is not null)
+        {
+            await OnSaveHook(settings);
+        }
+
         _settings = settings.Clone();
+        SavedHistory.Add(settings.Clone());
         SettingsChanged?.Invoke(this, _settings);
-        return Task.CompletedTask;
     }
 }

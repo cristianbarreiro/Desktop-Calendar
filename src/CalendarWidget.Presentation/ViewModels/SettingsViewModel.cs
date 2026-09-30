@@ -134,6 +134,10 @@ public sealed partial class SettingsViewModel : ViewModelBase
         }
 
         UserSettings current = _settingsService.CurrentSettings;
+        lock (_saveLock)
+        {
+            _currentSettingsState = current.Clone();
+        }
 
         SelectedTheme = current.Theme switch
         {
@@ -274,6 +278,47 @@ public sealed partial class SettingsViewModel : ViewModelBase
         PersistSettingsChange(s => s.StartWithWindows = value);
     }
 
+    private readonly Lock _saveLock = new();
+    private UserSettings _currentSettingsState = new();
+    private UserSettings? _pendingSaveSnapshot;
+    private Task? _saveWorkerTask;
+
+    /// <summary>
+    /// Gets the current in-flight save task, if any (for testing and synchronization).
+    /// </summary>
+    internal Task? ActiveSaveTask
+    {
+        get
+        {
+            lock (_saveLock)
+            {
+                return _saveWorkerTask;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Waits for all pending asynchronous saves to complete.
+    /// </summary>
+    internal async Task WaitForPendingSavesAsync()
+    {
+        while (true)
+        {
+            Task? task;
+            lock (_saveLock)
+            {
+                task = _saveWorkerTask;
+            }
+
+            if (task is null || task.IsCompleted)
+            {
+                break;
+            }
+
+            await task.ConfigureAwait(false);
+        }
+    }
+
     private void PersistSettingsChange(Action<UserSettings> updateAction)
     {
         if (_settingsService is null)
@@ -281,31 +326,57 @@ public sealed partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        UserSettings current = _settingsService.CurrentSettings;
-        updateAction(current);
+        lock (_saveLock)
+        {
+            updateAction(_currentSettingsState);
+            _pendingSaveSnapshot = _currentSettingsState.Clone();
 
-        _ = SaveAsync(current);
+            if (_saveWorkerTask is null || _saveWorkerTask.IsCompleted)
+            {
+                _saveWorkerTask = ProcessPendingSavesAsync();
+            }
+        }
     }
 
-    private async Task SaveAsync(UserSettings settings)
+    private async Task ProcessPendingSavesAsync()
     {
         if (_settingsService is null)
         {
             return;
         }
 
-        IsSaving = true;
-        try
+        while (true)
         {
-            await _settingsService.SaveSettingsAsync(settings);
-        }
-        catch (Exception ex)
-        {
-            ErrorMessage = $"Failed to save settings: {ex.Message}";
-        }
-        finally
-        {
-            IsSaving = false;
+            UserSettings snapshot;
+            lock (_saveLock)
+            {
+                if (_pendingSaveSnapshot is null)
+                {
+                    _saveWorkerTask = null;
+                    return;
+                }
+
+                snapshot = _pendingSaveSnapshot;
+                _pendingSaveSnapshot = null;
+            }
+
+            IsSaving = true;
+            try
+            {
+                await _settingsService.SaveSettingsAsync(snapshot);
+                if (ErrorMessage?.StartsWith("Failed to save settings", StringComparison.Ordinal) == true)
+                {
+                    ErrorMessage = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Failed to save settings: {ex.Message}";
+            }
+            finally
+            {
+                IsSaving = false;
+            }
         }
     }
 

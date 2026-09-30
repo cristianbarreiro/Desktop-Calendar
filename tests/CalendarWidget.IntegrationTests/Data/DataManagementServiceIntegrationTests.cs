@@ -24,10 +24,17 @@ public sealed class DataManagementServiceIntegrationTests
 
         public event EventHandler<UserSettings>? SettingsChanged;
 
+        public bool ThrowOnSave { get; set; }
+
         public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default)
         {
+            if (ThrowOnSave)
+            {
+                throw new IOException("Simulated settings disk failure.");
+            }
+
             CurrentSettings = settings.Clone();
             SettingsChanged?.Invoke(this, CurrentSettings);
             return Task.CompletedTask;
@@ -322,5 +329,437 @@ public sealed class DataManagementServiceIntegrationTests
 
         eventCount.Should().Be(0);
         noteCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_InvalidSettings_LeavesEventsNotesAndSettingsUnchanged()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        CalendarEvent existingEvent = new()
+        {
+            Id = existingEventId,
+            Title = "Existing Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await eventRepo.AddAsync(existingEvent);
+
+        Guid existingNoteId = Guid.NewGuid();
+        Note existingNote = new()
+        {
+            Id = existingNoteId,
+            Title = "Existing Note B",
+            Content = "Existing content B",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await noteRepo.AddAsync(existingNote);
+
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.Theme = AppThemeMode.Dark;
+        settingsService.CurrentSettings.WidgetOpacity = 0.85;
+        settingsService.CurrentSettings.FirstDayOfWeek = DayOfWeek.Wednesday;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        Guid newEventId = Guid.NewGuid();
+        Guid newNoteId = Guid.NewGuid();
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = newEventId,
+                    Title = "Candidate Event X",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = newNoteId,
+                    Title = "Candidate Note Y",
+                    Content = "Candidate content Y",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings
+            {
+                WidgetOpacity = 0.1 // Invalid: opacity < 0.3 violates domain rule
+            }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Widget opacity");
+
+        // Existing data must remain unchanged
+        CalendarEvent? storedEvent = await db.Context.CalendarEvents.FindAsync(existingEventId);
+        storedEvent.Should().NotBeNull();
+        storedEvent!.Title.Should().Be("Existing Event A");
+
+        Note? storedNote = await db.Context.Notes.FindAsync(existingNoteId);
+        storedNote.Should().NotBeNull();
+        storedNote!.Title.Should().Be("Existing Note B");
+
+        // Candidate data must not be persisted
+        (await db.Context.CalendarEvents.FindAsync(newEventId)).Should().BeNull();
+        (await db.Context.Notes.FindAsync(newNoteId)).Should().BeNull();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.CountAsync()).Should().Be(1);
+
+        // Existing settings must remain unchanged
+        settingsService.CurrentSettings.Theme.Should().Be(AppThemeMode.Dark);
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.85);
+        settingsService.CurrentSettings.FirstDayOfWeek.Should().Be(DayOfWeek.Wednesday);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_InvalidEvent_PersistsNothing()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        Guid existingNoteId = Guid.NewGuid();
+        await noteRepo.AddAsync(new Note
+        {
+            Id = existingNoteId,
+            Title = "Note B",
+            Content = "Content B",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.9;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        Guid validNoteId = Guid.NewGuid();
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "", // Invalid: empty title
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = validNoteId,
+                    Title = "Valid Candidate Note",
+                    Content = "Valid content",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.6 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.FindAsync(validNoteId)).Should().BeNull();
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.9);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_InvalidNote_PersistsNothing()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        Guid existingNoteId = Guid.NewGuid();
+        await noteRepo.AddAsync(new Note
+        {
+            Id = existingNoteId,
+            Title = "Note B",
+            Content = "Content B",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.9;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        Guid validEventId = Guid.NewGuid();
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = validEventId,
+                    Title = "Valid Candidate Event",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "", // Invalid: empty title
+                    Content = "Valid content",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.6 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.CountAsync()).Should().Be(1);
+        (await db.Context.CalendarEvents.FindAsync(validEventId)).Should().BeNull();
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.9);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_ValidBackup_RestoresAllDataSuccessfully()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.5;
+        settingsService.CurrentSettings.Theme = AppThemeMode.Dark;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        Guid event1Id = Guid.NewGuid();
+        Guid event2Id = Guid.NewGuid();
+        Guid note1Id = Guid.NewGuid();
+        Guid note2Id = Guid.NewGuid();
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = event1Id,
+                    Title = "Restored Event 1",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                },
+                new CalendarEventBackupDto
+                {
+                    Id = event2Id,
+                    Title = "Restored Event 2",
+                    StartTime = new DateTime(2026, 10, 2, 14, 0, 0),
+                    EndTime = new DateTime(2026, 10, 2, 15, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = note1Id,
+                    Title = "Restored Note 1",
+                    Content = "Note content 1",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                },
+                new NoteBackupDto
+                {
+                    Id = note2Id,
+                    Title = "Restored Note 2",
+                    Content = "Note content 2",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings
+            {
+                Theme = AppThemeMode.Light,
+                WidgetOpacity = 0.8,
+                AlwaysOnTop = true,
+                FirstDayOfWeek = DayOfWeek.Monday
+            }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeTrue();
+        result.EventsImported.Should().Be(2);
+        result.NotesImported.Should().Be(2);
+
+        (await db.Context.CalendarEvents.FindAsync(event1Id)).Should().NotBeNull();
+        (await db.Context.CalendarEvents.FindAsync(event2Id)).Should().NotBeNull();
+        (await db.Context.Notes.FindAsync(note1Id)).Should().NotBeNull();
+        (await db.Context.Notes.FindAsync(note2Id)).Should().NotBeNull();
+
+        settingsService.CurrentSettings.Theme.Should().Be(AppThemeMode.Light);
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.8);
+        settingsService.CurrentSettings.AlwaysOnTop.Should().BeTrue();
+        settingsService.CurrentSettings.FirstDayOfWeek.Should().Be(DayOfWeek.Monday);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_PersistenceFailure_DoesNotLeavePartialImportedState()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Existing Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        Guid existingNoteId = Guid.NewGuid();
+        await noteRepo.AddAsync(new Note
+        {
+            Id = existingNoteId,
+            Title = "Existing Note B",
+            Content = "Existing content B",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.75;
+        settingsService.ThrowOnSave = true; // Simulates failure during settings persistence
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        Guid candidateEventId = Guid.NewGuid();
+        Guid candidateNoteId = Guid.NewGuid();
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = candidateEventId,
+                    Title = "Candidate Event X",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = candidateNoteId,
+                    Title = "Candidate Note Y",
+                    Content = "Candidate content Y",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.95 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Simulated settings disk failure");
+
+        // Database transaction was rolled back: only existing records remain
+        (await db.Context.CalendarEvents.FindAsync(candidateEventId)).Should().BeNull();
+        (await db.Context.Notes.FindAsync(candidateNoteId)).Should().BeNull();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.CountAsync()).Should().Be(1);
+
+        // Settings remain at original state
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.75);
     }
 }

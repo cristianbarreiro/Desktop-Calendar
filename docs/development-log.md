@@ -190,3 +190,37 @@
   - `DataManagementServiceIntegrationTests`: 6 integration tests against isolated SQLite databases covering JSON export, transactional import, duplicate skipping, atomic rollback on validation failure, malformed JSON recovery, and factory reset.
 - Total automated tests expanded from 235 to 301 (254 unit + 47 integration, 0 failures).
 - Validated solution build (0 errors, 0 warnings in Debug and Release), test execution (301/301 passed in Debug and Release), and formatting (`dotnet format --verify-no-changes`).
+
+## 2026-09-30 — Phase 10.1: Remediation
+
+### Activities
+- **Import Atomicity Correction (`DataManagementService`)**:
+  - Implemented upfront pre-mutation validation of the entire backup payload: all settings, calendar events, and notes are validated before modifying persistent storage or opening database transactions.
+  - Wrapped database mutations and settings synchronization in an explicit SQLite transaction (`BeginTransactionAsync`).
+  - Added full rollback handling: if database save, settings persistence, or transaction commit fails, rolls back SQLite transaction, restores original settings snapshot, and reports failure without leaving partially imported records.
+- **Settings Save Ordering Correction (`SettingsViewModel` & `SettingsService`)**:
+  - In `SettingsViewModel`, coalesced rapid consecutive user input using cumulative state and a sequential asynchronous worker loop (`ProcessPendingSavesAsync`) under lock, ensuring intermediate changes are aggregated and the latest requested state always wins without blocking the UI thread.
+  - In `SettingsService`, implemented monotonic version tracking (`Interlocked.Increment`) and lock synchronization (`SemaphoreSlim`), discarding stale out-of-order snapshots so an earlier save cannot overwrite newer state.
+  - Handled save failures gracefully with observable error messaging (`ErrorMessage`) without crashing the WPF UI thread, automatically clearing the error when subsequent valid saves succeed.
+  - Added `WaitForPendingSavesAsync` to `SettingsViewModel` and test synchronization hooks to eliminate test race conditions.
+- **Automated Test Suite Expansion**:
+  - Added 5 integration tests in `DataManagementServiceIntegrationTests`:
+    - `ImportDataJsonAsync_InvalidSettings_LeavesEventsNotesAndSettingsUnchanged`
+    - `ImportDataJsonAsync_InvalidEvent_PersistsNothing`
+    - `ImportDataJsonAsync_InvalidNote_PersistsNothing`
+    - `ImportDataJsonAsync_ValidBackup_RestoresAllDataSuccessfully`
+    - `ImportDataJsonAsync_PersistenceFailure_DoesNotLeavePartialImportedState`
+  - Added 3 integration/concurrency tests in `SettingsServiceOrderingTests`:
+    - `SaveSettingsAsync_RapidSequentialSaves_PersistsLatestSettings`
+    - `SaveSettingsAsync_OutOfOrderCompletion_DropsStaleSnapshot`
+    - `SaveSettingsAsync_WhenRepositoryThrows_PreservesStateAndSubsequentSaveSucceeds`
+  - Added 3 unit tests in `SettingsViewModelTests`:
+    - `RapidSequentialChanges_CoalescesAndPersistsLatestState`
+    - `OutOfOrderCompletion_ControlledByFake_AlwaysPersistsLatestState`
+    - `SaveFailure_DoesNotCrashUI_AndAllowsNewerValidStateToBePersisted`
+  - Total automated tests expanded from 301 to 312 (257 unit + 55 integration, 0 failures).
+- **Validation**:
+  - Build: 0 errors, 0 warnings.
+  - Test suite: 312/312 passed.
+  - Formatting: `dotnet format --verify-no-changes` passed.
+  - CI workflow verification queued. Phase 11 remains NEXT.

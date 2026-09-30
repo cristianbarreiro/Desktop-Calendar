@@ -64,12 +64,13 @@ public sealed class SettingsViewModelTests
     [InlineData("Light", AppThemeMode.Light)]
     [InlineData("Dark", AppThemeMode.Dark)]
     [InlineData("System", AppThemeMode.System)]
-    public void SelectedTheme_Changed_AppliesThemeAndPersists(string themeName, AppThemeMode expectedMode)
+    public async Task SelectedTheme_Changed_AppliesThemeAndPersists(string themeName, AppThemeMode expectedMode)
     {
         _settingsService.CurrentSettings.Theme = expectedMode == AppThemeMode.Dark ? AppThemeMode.Light : AppThemeMode.Dark;
         SettingsViewModel vm = CreateViewModel();
 
         vm.SelectedTheme = themeName;
+        await vm.WaitForPendingSavesAsync();
 
         _themeService.ActiveTheme.Should().Be(expectedMode);
         _themeService.ApplyCount.Should().BeGreaterThan(0);
@@ -78,11 +79,12 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
-    public void AlwaysOnTop_Changed_PersistsSetting()
+    public async Task AlwaysOnTop_Changed_PersistsSetting()
     {
         SettingsViewModel vm = CreateViewModel();
 
         vm.AlwaysOnTop = true;
+        await vm.WaitForPendingSavesAsync();
 
         _settingsService.CurrentSettings.AlwaysOnTop.Should().BeTrue();
         _settingsService.SaveCount.Should().BeGreaterThan(0);
@@ -92,11 +94,12 @@ public sealed class SettingsViewModelTests
     [InlineData(85, 0.85)]
     [InlineData(50, 0.5)]
     [InlineData(70, 0.7)]
-    public void WidgetOpacityPercent_Changed_PersistsClampedSetting(int inputPercent, double expectedOpacity)
+    public async Task WidgetOpacityPercent_Changed_PersistsClampedSetting(int inputPercent, double expectedOpacity)
     {
         SettingsViewModel vm = CreateViewModel();
 
         vm.WidgetOpacityPercent = inputPercent;
+        await vm.WaitForPendingSavesAsync();
 
         _settingsService.CurrentSettings.WidgetOpacity.Should().Be(expectedOpacity);
         _settingsService.SaveCount.Should().BeGreaterThan(0);
@@ -105,12 +108,13 @@ public sealed class SettingsViewModelTests
     [Theory]
     [InlineData("Monday", DayOfWeek.Monday)]
     [InlineData("Sunday", DayOfWeek.Sunday)]
-    public void SelectedFirstDayOfWeek_Changed_PersistsSetting(string inputDay, DayOfWeek expectedDay)
+    public async Task SelectedFirstDayOfWeek_Changed_PersistsSetting(string inputDay, DayOfWeek expectedDay)
     {
         _settingsService.CurrentSettings.FirstDayOfWeek = expectedDay == DayOfWeek.Monday ? DayOfWeek.Sunday : DayOfWeek.Monday;
         SettingsViewModel vm = CreateViewModel();
 
         vm.SelectedFirstDayOfWeek = inputDay;
+        await vm.WaitForPendingSavesAsync();
 
         _settingsService.CurrentSettings.FirstDayOfWeek.Should().Be(expectedDay);
         _settingsService.SaveCount.Should().BeGreaterThan(0);
@@ -119,12 +123,13 @@ public sealed class SettingsViewModelTests
     [Theory]
     [InlineData("12-hour", TimeFormatOption.TwelveHour)]
     [InlineData("24-hour", TimeFormatOption.TwentyFourHour)]
-    public void SelectedTimeFormat_Changed_PersistsSetting(string inputFormat, TimeFormatOption expectedOption)
+    public async Task SelectedTimeFormat_Changed_PersistsSetting(string inputFormat, TimeFormatOption expectedOption)
     {
         _settingsService.CurrentSettings.TimeFormat = expectedOption == TimeFormatOption.TwentyFourHour ? TimeFormatOption.TwelveHour : TimeFormatOption.TwentyFourHour;
         SettingsViewModel vm = CreateViewModel();
 
         vm.SelectedTimeFormat = inputFormat;
+        await vm.WaitForPendingSavesAsync();
 
         _settingsService.CurrentSettings.TimeFormat.Should().Be(expectedOption);
         _settingsService.SaveCount.Should().BeGreaterThan(0);
@@ -135,24 +140,26 @@ public sealed class SettingsViewModelTests
     [InlineData("MM/DD/YYYY", "MM/dd/yyyy")]
     [InlineData("DD/MM/YYYY", "dd/MM/yyyy")]
     [InlineData("System Default", "Default")]
-    public void SelectedDateFormat_Changed_PersistsSetting(string inputFormat, string expectedFormat)
+    public async Task SelectedDateFormat_Changed_PersistsSetting(string inputFormat, string expectedFormat)
     {
         _settingsService.CurrentSettings.DateFormat = expectedFormat == "Default" ? "yyyy-MM-dd" : "Default";
         SettingsViewModel vm = CreateViewModel();
 
         vm.SelectedDateFormat = inputFormat;
+        await vm.WaitForPendingSavesAsync();
 
         _settingsService.CurrentSettings.DateFormat.Should().Be(expectedFormat);
         _settingsService.SaveCount.Should().BeGreaterThan(0);
     }
 
     [Fact]
-    public void StartWithWindows_WhenSuccessful_ConfiguresServiceAndPersists()
+    public async Task StartWithWindows_WhenSuccessful_ConfiguresServiceAndPersists()
     {
         SettingsViewModel vm = CreateViewModel();
         _startupService.ReturnSuccessOnSet = true;
 
         vm.StartWithWindows = true;
+        await vm.WaitForPendingSavesAsync();
 
         _startupService.SetCallCount.Should().Be(1);
         _startupService.IsStartupEnabledValue.Should().BeTrue();
@@ -173,15 +180,107 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
-    public void PersistSettings_WhenSaveFails_SetsErrorMessage()
+    public async Task PersistSettings_WhenSaveFails_SetsErrorMessage()
     {
         SettingsViewModel vm = CreateViewModel();
         _settingsService.ThrowOnSave = true;
 
         vm.AlwaysOnTop = true;
+        await vm.WaitForPendingSavesAsync();
 
         vm.HasErrorMessage.Should().BeTrue();
         vm.ErrorMessage.Should().Contain("Failed to save settings");
+    }
+
+    [Fact]
+    public async Task RapidSequentialChanges_CoalescesAndPersistsLatestState()
+    {
+        SettingsViewModel vm = CreateViewModel();
+
+        // Perform multiple rapid sequential modifications
+        vm.AlwaysOnTop = true;
+        vm.WidgetOpacityPercent = 50;
+        vm.SelectedTheme = "Light";
+        vm.SelectedFirstDayOfWeek = "Sunday";
+        vm.WidgetOpacityPercent = 90;
+        vm.SelectedTheme = "Dark";
+
+        await vm.WaitForPendingSavesAsync();
+
+        _settingsService.CurrentSettings.AlwaysOnTop.Should().BeTrue();
+        _settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.9);
+        _settingsService.CurrentSettings.Theme.Should().Be(AppThemeMode.Dark);
+        _settingsService.CurrentSettings.FirstDayOfWeek.Should().Be(DayOfWeek.Sunday);
+
+        UserSettings finalSaved = _settingsService.SavedHistory.Last();
+        finalSaved.AlwaysOnTop.Should().BeTrue();
+        finalSaved.WidgetOpacity.Should().Be(0.9);
+        finalSaved.Theme.Should().Be(AppThemeMode.Dark);
+        finalSaved.FirstDayOfWeek.Should().Be(DayOfWeek.Sunday);
+    }
+
+    [Fact]
+    public async Task OutOfOrderCompletion_ControlledByFake_AlwaysPersistsLatestState()
+    {
+        SettingsViewModel vm = CreateViewModel();
+
+        TaskCompletionSource<bool> tcsFirstSaveStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> tcsCanFirstSaveComplete = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        bool firstSaveHookExecuted = false;
+        _settingsService.OnSaveHook = async _ =>
+        {
+            if (!firstSaveHookExecuted)
+            {
+                firstSaveHookExecuted = true;
+                tcsFirstSaveStarted.TrySetResult(true);
+                await tcsCanFirstSaveComplete.Task;
+            }
+        };
+
+        // Trigger change A (Theme = Light)
+        vm.SelectedTheme = "Light";
+
+        // Wait until save A has entered the save pipeline and paused
+        await tcsFirstSaveStarted.Task;
+
+        // While save A is paused, user rapidly triggers change B (Theme = Dark, Opacity = 80%)
+        vm.SelectedTheme = "Dark";
+        vm.WidgetOpacityPercent = 80;
+
+        // Release save A to complete
+        tcsCanFirstSaveComplete.TrySetResult(true);
+
+        // Await worker completion
+        await vm.WaitForPendingSavesAsync();
+
+        // The latest state must be persisted without being overwritten by earlier snapshots
+        _settingsService.CurrentSettings.Theme.Should().Be(AppThemeMode.Dark);
+        _settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.8);
+        _settingsService.SavedHistory.Last().Theme.Should().Be(AppThemeMode.Dark);
+        _settingsService.SavedHistory.Last().WidgetOpacity.Should().Be(0.8);
+    }
+
+    [Fact]
+    public async Task SaveFailure_DoesNotCrashUI_AndAllowsNewerValidStateToBePersisted()
+    {
+        SettingsViewModel vm = CreateViewModel();
+        _settingsService.ThrowOnSave = true;
+
+        vm.AlwaysOnTop = true;
+        await vm.WaitForPendingSavesAsync();
+
+        vm.HasErrorMessage.Should().BeTrue();
+        vm.ErrorMessage.Should().Contain("Failed to save settings");
+
+        // Recover: subsequent valid save succeeds
+        _settingsService.ThrowOnSave = false;
+        vm.SelectedTheme = "Light";
+        await vm.WaitForPendingSavesAsync();
+
+        vm.HasErrorMessage.Should().BeFalse();
+        _settingsService.CurrentSettings.Theme.Should().Be(AppThemeMode.Light);
+        _settingsService.CurrentSettings.AlwaysOnTop.Should().BeTrue();
     }
 
     [Fact]
