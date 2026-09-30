@@ -30,4 +30,9 @@ public interface IWindowManager
     /// Gets a value indicating whether the widget window is currently visible.
     /// </summary>
     bool IsWidgetVisible { get; }
+
+    /// <summary>
+    /// Activates and brings the currently active application or widget window to the foreground.
+    /// </summary>
+    void ActivateCurrentWindow();
 }

@@ -9,19 +9,37 @@ namespace CalendarWidget.App.Windows;
 /// </summary>
 public partial class MainWindow : Window, IManagedWindow
 {
+    private readonly IWindowPlacementService? _placementService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindow"/> class.
     /// </summary>
     /// <param name="viewModel">The view model for the main window.</param>
-    public MainWindow(MainWindowViewModel viewModel)
+    /// <param name="placementService">Optional window placement service.</param>
+    public MainWindow(MainWindowViewModel viewModel, IWindowPlacementService? placementService = null)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _placementService = placementService;
+
+        LocationChanged += OnLocationOrSizeChanged;
+        SizeChanged += OnLocationOrSizeChanged;
+    }
+
+    private void OnLocationOrSizeChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Normal && IsLoaded)
+        {
+            double width = ActualWidth > 0 ? ActualWidth : Width;
+            double height = ActualHeight > 0 ? ActualHeight : Height;
+            _placementService?.OnMainWindowBoundsChanged(Left, Top, width, height);
+        }
     }
 
     private void OnMinimizeClick(object sender, RoutedEventArgs e)
     {
         WindowState = WindowState.Minimized;
+        Hide();
     }
 
     private void OnMaximizeRestoreClick(object sender, RoutedEventArgs e)

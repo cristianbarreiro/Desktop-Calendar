@@ -99,7 +99,7 @@ This document serves as the canonical source of truth for project phase definiti
   - Data export to JSON backup, safe transactional import, and factory reset
 
 ### Phase 11 — Windows Integration
-- **Status**: NEXT
+- **Status**: COMPLETE
 - **Scope**:
   - Single-instance application enforcement via named global OS Mutex
   - Secondary-instance activation and focus handoff
@@ -110,7 +110,7 @@ This document serves as the canonical source of truth for project phase definiti
   - System tray icon and minimize-to-tray integration
 
 ### Phase 12 — Testing & Polish
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Comprehensive unit test expansion
   - Persistence and lifecycle integration tests

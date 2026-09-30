@@ -204,4 +204,86 @@ public sealed class WindowManagerTests
         // Assert
         _mainWindowFactoryCalls.Should().Be(2);
     }
+
+    [Fact]
+    public void ActivateCurrentWindow_WhenFullAppVisible_ActivatesMainWindow()
+    {
+        // Arrange
+        _sut.ShowFullApplication();
+        int initialActivateCount = _mainWindow.ActivateCallCount;
+
+        // Act
+        _sut.ActivateCurrentWindow();
+
+        // Assert
+        _mainWindow.ActivateCallCount.Should().Be(initialActivateCount + 1);
+        _sut.IsFullApplicationVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ActivateCurrentWindow_WhenFullAppMinimized_RestoresToNormalStateAndActivates()
+    {
+        // Arrange
+        _sut.ShowFullApplication();
+        _mainWindow.WindowState = WindowState.Minimized;
+
+        // Act
+        _sut.ActivateCurrentWindow();
+
+        // Assert
+        _mainWindow.WindowState.Should().Be(WindowState.Normal);
+        _mainWindow.ActivateCallCount.Should().BeGreaterThan(1);
+    }
+
+    [Fact]
+    public void ActivateCurrentWindow_WhenNeitherVisible_ShowsAndActivatesWidget()
+    {
+        // Arrange: app initially has no window shown
+        _sut.IsFullApplicationVisible.Should().BeFalse();
+        _sut.IsWidgetVisible.Should().BeFalse();
+
+        // Act
+        _sut.ActivateCurrentWindow();
+
+        // Assert
+        _sut.IsWidgetVisible.Should().BeTrue();
+        _widgetWindow.ShowCallCount.Should().Be(1);
+        _widgetWindow.ActivateCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void ShowFullApplication_AppliesBoundsViaPlacementService()
+    {
+        // Arrange
+        TestWindowPlacementService placementService = new();
+        WindowManager sut = new(
+            () => _mainWindow,
+            () => _widgetWindow,
+            _lifetimeService,
+            placementService);
+
+        // Act
+        sut.ShowFullApplication();
+
+        // Assert
+        placementService.ApplyMainWindowBoundsCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void ShowWidget_AppliesBoundsViaPlacementService()
+    {
+        // Arrange
+        TestWindowPlacementService placementService = new();
+        WindowManager sut = new(
+            () => _mainWindow,
+            () => _widgetWindow,
+            _lifetimeService,
+            placementService);
+
+        // Act
+        sut.ShowWidget();
+
+        // Assert
+        placementService.ApplyWidgetWindowBoundsCallCount.Should().Be(1);
+    }
 }

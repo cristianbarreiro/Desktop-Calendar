@@ -11,19 +11,25 @@ Desktop Calendar/
 │   │   ├── Windows/
 │   │   │   ├── MainWindow.xaml / cs          # Full application shell / navigation container
 │   │   │   └── WidgetWindow.xaml / cs        # Compact desktop widget window
+│   │   ├── app.manifest                      # Per-Monitor V2 DPI awareness and OS compatibility
 │   │   └── Services/
 │   │       ├── WindowManager.cs              # Window orchestration and lifecycle management
 │   │       ├── ApplicationLifetimeService.cs # Application shutdown and Host lifetime coordination
-│   │       └── IManagedWindow.cs             # Window abstraction for testable orchestration
+│   │       ├── IManagedWindow.cs             # Window abstraction for testable orchestration
+│   │       ├── SingleInstanceCoordinator.cs  # Mutex single-instance and Named Pipe IPC signaling
+│   │       ├── SystemTrayService.cs          # System tray icon, context menu, minimize-to-tray
+│   │       ├── WindowPlacementService.cs     # Debounced window bounds persistence and restoration
+│   │       ├── WindowBoundsHelper.cs         # Deterministic multi-monitor off-screen bounds recovery
+│   │       └── WpfDisplayMonitorProvider.cs  # Multi-monitor display bounds provider
 │   ├── CalendarWidget.Core/
-│   │   ├── Entities/                         # CalendarEvent, Note, CalendarSettings (planned Phase 10)
-│   │   ├── ValueObjects/                     # DateRange, TimeRange (planned Phase 6), ColorHex (planned Phase 8)
-│   │   ├── Interfaces/                       # ICalendarEventRepository, INoteRepository
+│   │   ├── Entities/                         # CalendarEvent, Note, UserSettings
+│   │   ├── ValueObjects/                     # DateRange
+│   │   ├── Interfaces/                       # ICalendarEventRepository, INoteRepository, ISettingsRepository, ISettingsService, etc.
 │   │   └── Exceptions/                       # DomainValidationException
 │   ├── CalendarWidget.Infrastructure/
 │   │   ├── Persistence/                      # AppDbContext, Configurations, Migrations, DatabaseInitializer, AppDbContextFactory
 │   │   ├── Repositories/                     # EfCalendarEventRepository, EfNoteRepository (Phase 7)
-│   │   ├── Services/                         # [Planned Phase 11] WindowsStartupService; notifications are Future scope
+│   │   ├── Services/                         # WindowsStartupService, FileSettingsRepository, SettingsService, DataManagementService
 │   │   └── DependencyInjection.cs            # IServiceCollection extensions
 │   └── CalendarWidget.Presentation/
 │       ├── Models/                           # CalendarDayModel, EventListItemModel, NoteListItemModel

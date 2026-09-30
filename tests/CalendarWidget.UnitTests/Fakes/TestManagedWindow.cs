@@ -10,6 +10,11 @@ public sealed class TestManagedWindow : IManagedWindow
     public WindowState WindowState { get; set; } = WindowState.Normal;
     public bool Topmost { get; set; }
     public double Opacity { get; set; } = 1.0;
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public WindowStartupLocation WindowStartupLocation { get; set; } = WindowStartupLocation.Manual;
 
     public int ShowCallCount { get; private set; }
 

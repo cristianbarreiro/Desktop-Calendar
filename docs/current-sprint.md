@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 10 (Settings & Appearance) into Phase 11 (Windows Integration).
+Transition from Phase 11 (Windows Integration) into Phase 12 (Testing, Accessibility & Polish).
 
 ---
 
@@ -16,7 +16,8 @@ Transition from Phase 10 (Settings & Appearance) into Phase 11 (Windows Integrat
 - **Phase 8 — Events Management**: COMPLETE
 - **Phase 9 — Notes Management**: COMPLETE
 - **Phase 10 — Settings & Appearance**: COMPLETE
-- **Next Target — Phase 11 (Windows Integration)**: NEXT / READY
+- **Phase 11 — Windows Integration**: COMPLETE
+- **Next Target — Phase 12 (Testing, Accessibility & Polish)**: NEXT / READY
 
 ---
 
@@ -109,24 +110,34 @@ Transition from Phase 10 (Settings & Appearance) into Phase 11 (Windows Integrat
   - Factory reset workflow with destructive confirmation modal dialog, resetting all calendar events and notes while keeping database schema intact.
   - Settings UI (`SettingsView.xaml`, `SettingsViewModel.cs`) organized into Appearance, Calendar, Windows, and Data sections with accessible names, error/success banners, and keyboard navigation.
   - Test suite expanded to 318 tests (257 unit + 61 integration, 0 failures) including Phase 10.1 & Phase 10.2 import atomicity, failure recovery, and settings save serialization tests.
+- [x] **Windows Integration (Phase 11)**:
+  - Single-instance application enforcement via named global OS Mutex (`DesktopCalendarWidget_SingleInstance`) preventing duplicate processes from initializing.
+  - Secondary-instance activation and focus handoff using local Named Pipe IPC (`SingleInstanceCoordinator`), gracefully restoring minimized windows and bringing the primary instance to foreground.
+  - Dual-window lifecycle coordination (`MainWindow` ↔ `WidgetWindow`) with explicit shutdown semantics and protection against termination during window switching.
+  - Window position and size persistence across restarts with asynchronous coalesced debounced writing to `%LocalAppData%\DesktopCalendar\settings.json`.
+  - Multi-monitor off-screen bounds recovery (`WindowBoundsHelper`, `IDisplayMonitorProvider`, `WpfDisplayMonitorProvider`) handling negative monitor coordinates, monitor disconnections, and out-of-bounds coordinates (e.g. -5000, -5000) by restoring windows to active monitor visible areas.
+  - Per-Monitor V2 DPI awareness configured cleanly via `app.manifest` and project configuration for crisp rendering on mixed-DPI displays.
+  - Notification area system tray icon (`SystemTrayService`, `ITrayService`) with context menu ("Open Application", "Open Widget", "Exit"), left-click / double-click activation, clean minimize-to-tray handling, and deterministic disposal without ghost tray icons.
+  - Test suite expanded to 363 tests (302 unit + 61 integration, 0 failures) with comprehensive coverage for geometry calculations, single-instance coordination, IPC signaling, window bounds debouncing, and tray service lifecycle.
 
 ---
 
 ## Next Implementation Target
 
-### Phase 11 — Windows Integration
+### Phase 12 — Testing, Accessibility & Polish
 
-- Single-instance application enforcement via named global OS Mutex (`Global\DesktopCalendarWidget_SingleInstance_Mutex`).
-- Secondary-instance activation and focus handoff using Windows messages.
-- Dual-window lifecycle coordination (`MainWindow` ↔ `WidgetWindow`).
-- Window position and size persistence across restarts with off-screen recovery for disconnected monitors.
-- Per-Monitor V2 DPI scaling awareness.
-- System tray icon with context menu and minimize-to-tray integration.
+- Comprehensive unit test expansion across edge cases.
+- Persistence and lifecycle integration tests.
+- UI/application-level validation.
+- Accessibility compliance (WCAG 2.1 AA, high-visibility focus indicators, screen reader AutomationProperties).
+- Keyboard navigation refinement across all application views.
+- Visual consistency and reduced-motion compliance.
+- Performance profiling and edge-case hardening.
 
 ---
 
-## Explicitly Out of Scope for Phase 11
+## Explicitly Out of Scope for Phase 12
 
-Do NOT implement during Phase 11:
+Do NOT implement during Phase 12:
 - Packaging, installers, and release automation (Planned Phase 13)
 - Cloud synchronization, networking, telemetry (Prohibited by Architecture)

@@ -10,14 +10,28 @@ namespace CalendarWidget.App.Windows;
 /// </summary>
 public partial class WidgetWindow : Window, IManagedWindow
 {
+    private readonly IWindowPlacementService? _placementService;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WidgetWindow"/> class.
     /// </summary>
     /// <param name="viewModel">The view model for the widget window.</param>
-    public WidgetWindow(WidgetViewModel viewModel)
+    /// <param name="placementService">Optional window placement service.</param>
+    public WidgetWindow(WidgetViewModel viewModel, IWindowPlacementService? placementService = null)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _placementService = placementService;
+
+        LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Normal && IsLoaded)
+        {
+            _placementService?.OnWidgetWindowBoundsChanged(Left, Top);
+        }
     }
 
     private void OnHeaderMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

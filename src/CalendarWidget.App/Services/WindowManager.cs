@@ -13,6 +13,7 @@ public sealed class WindowManager : IWindowManager
     private readonly Func<IManagedWindow> _mainWindowFactory;
     private readonly Func<IManagedWindow> _widgetWindowFactory;
     private readonly ApplicationLifetimeService _lifetimeService;
+    private readonly IWindowPlacementService? _placementService;
     private IManagedWindow? _mainWindow;
     private IManagedWindow? _widgetWindow;
     private bool _isSwitching;
@@ -22,13 +23,16 @@ public sealed class WindowManager : IWindowManager
     /// </summary>
     /// <param name="serviceProvider">The dependency injection service provider.</param>
     /// <param name="lifetimeService">Application lifetime coordination service.</param>
+    /// <param name="placementService">Optional window placement service.</param>
     public WindowManager(
         IServiceProvider serviceProvider,
-        ApplicationLifetimeService lifetimeService)
+        ApplicationLifetimeService lifetimeService,
+        IWindowPlacementService? placementService = null)
         : this(
             () => serviceProvider.GetRequiredService<MainWindow>(),
             () => serviceProvider.GetRequiredService<WidgetWindow>(),
-            lifetimeService)
+            lifetimeService,
+            placementService ?? serviceProvider.GetService<IWindowPlacementService>())
     {
     }
 
@@ -38,14 +42,17 @@ public sealed class WindowManager : IWindowManager
     /// <param name="mainWindowFactory">Factory creating the main application window.</param>
     /// <param name="widgetWindowFactory">Factory creating the widget window.</param>
     /// <param name="lifetimeService">Application lifetime coordination service.</param>
+    /// <param name="placementService">Optional window placement service.</param>
     public WindowManager(
         Func<IManagedWindow> mainWindowFactory,
         Func<IManagedWindow> widgetWindowFactory,
-        ApplicationLifetimeService lifetimeService)
+        ApplicationLifetimeService lifetimeService,
+        IWindowPlacementService? placementService = null)
     {
         _mainWindowFactory = mainWindowFactory;
         _widgetWindowFactory = widgetWindowFactory;
         _lifetimeService = lifetimeService;
+        _placementService = placementService;
     }
 
     /// <inheritdoc />
@@ -53,6 +60,27 @@ public sealed class WindowManager : IWindowManager
 
     /// <inheritdoc />
     public bool IsWidgetVisible => _widgetWindow is not null && _widgetWindow.IsVisible;
+
+    /// <inheritdoc />
+    public void ActivateCurrentWindow()
+    {
+        ExecuteOnDispatcher(() =>
+        {
+            if (IsFullApplicationVisible && _mainWindow is not null)
+            {
+                if (_mainWindow.WindowState == WindowState.Minimized)
+                {
+                    _mainWindow.WindowState = WindowState.Normal;
+                }
+                _mainWindow.Show();
+                _mainWindow.Activate();
+            }
+            else
+            {
+                ShowWidget();
+            }
+        });
+    }
 
     /// <inheritdoc />
     public void ShowFullApplication()
@@ -70,6 +98,7 @@ public sealed class WindowManager : IWindowManager
                 if (_mainWindow is null)
                 {
                     _mainWindow = _mainWindowFactory();
+                    _placementService?.ApplyMainWindowBounds(_mainWindow);
                     _mainWindow.Closed += OnMainWindowClosed;
                 }
 
@@ -103,6 +132,7 @@ public sealed class WindowManager : IWindowManager
                 if (_widgetWindow is null)
                 {
                     _widgetWindow = _widgetWindowFactory();
+                    _placementService?.ApplyWidgetWindowBounds(_widgetWindow);
                     _widgetWindow.Closed += OnWidgetWindowClosed;
                 }
 
@@ -128,6 +158,7 @@ public sealed class WindowManager : IWindowManager
             if (_widgetWindow is not null)
             {
                 _widgetWindow.WindowState = WindowState.Minimized;
+                _widgetWindow.Hide();
             }
         });
     }

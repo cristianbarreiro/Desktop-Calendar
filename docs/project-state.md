@@ -3,9 +3,9 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 10 complete)
-- **Next Phase**: Phase 11 — Windows OS Integration
-- **Current Date**: 2026-09-29
+- **Product Implementation**: In Progress (Phase 11 complete)
+- **Next Phase**: Phase 12 — Testing, Accessibility & Polish
+- **Current Date**: 2026-09-30
 
 ---
 
@@ -24,8 +24,8 @@
 | **Phase 8** | Product Implementation | Events Management | **COMPLETED** |
 | **Phase 9** | Product Implementation | Notes Management | **COMPLETED** |
 | **Phase 10** | Product Implementation | Settings & Appearance | **COMPLETED** |
-| **Phase 11** | Product Implementation | Windows OS Integration | **NEXT** |
-| **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **PLANNED** |
+| **Phase 11** | Product Implementation | Windows OS Integration | **COMPLETED** |
+| **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **NEXT** |
 | **Phase 13** | Product Implementation | Packaging & Distribution | **PLANNED** |
 
 ---
@@ -58,7 +58,13 @@
 - [x] Settings file persistence (`FileSettingsRepository`, `SettingsService`) — Phase 10
 - [x] Windows logon startup service (`WindowsStartupService` via HKCU Run registry key) — Phase 10
 - [x] Data maintenance service (`DataManagementService` for JSON export, safe atomic import, factory reset) — Phase 10
-- [ ] Windows Shell / Tray / Single-instance mutex — Planned Phase 11
+- [x] Windows Shell / Tray / Single-instance mutex — Phase 11
+  - Single-instance global named OS Mutex (`DesktopCalendarWidget_SingleInstance`)
+  - Secondary-instance activation and focus handoff via local Named Pipe (`SingleInstanceCoordinator`)
+  - Notification area system tray icon with context menu, click-to-activate, and minimize-to-tray (`SystemTrayService`, `ITrayService`)
+  - Multi-monitor off-screen bounds recovery (`WindowBoundsHelper`, `IDisplayMonitorProvider`, `WpfDisplayMonitorProvider`)
+  - Asynchronous coalesced debounced window bounds persistence (`WindowPlacementService`, `IWindowPlacementService`)
+  - Per-Monitor V2 DPI awareness configured via `app.manifest` and project configuration
 
 ### Presentation
 - [x] Presentation project configured with `CommunityToolkit.Mvvm`
@@ -125,17 +131,19 @@
 ### Host Application
 - [x] `CalendarWidget.App` setup with `Microsoft.Extensions.Hosting`
 - [x] `Program.cs` composition root with Generic Host and DI container
+- [x] Single-instance mutex check prior to Host builder, preventing secondary process initialization
 - [x] Early settings load and theme application in `Program.cs` before UI display to eliminate wrong-theme flash
-- [x] `App.xaml` and `App.xaml.cs` configured with explicit lifecycle
-- [x] Windows: `MainWindow` and `WidgetWindow` with `Topmost` and `Opacity` bindings
-- [x] Window orchestration: `WindowManager` implementing `IWindowManager`
+- [x] `App.xaml` and `App.xaml.cs` configured with explicit lifecycle and tray initialization/disposal
+- [x] Windows: `MainWindow` and `WidgetWindow` with `Topmost`, `Opacity`, bounds restoration, and minimize-to-tray handling
+- [x] Window orchestration: `WindowManager` implementing `IWindowManager` with `ActivateCurrentWindow()`
 - [x] Application lifetime service (`ApplicationLifetimeService`)
+- [x] Windows Shell integration: `SingleInstanceCoordinator`, `SystemTrayService`, `WindowPlacementService`, `WpfDisplayMonitorProvider`
 
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, and data management export/import/rollback
-- [x] 318 automated tests passing (257 unit tests, 61 integration tests, 0 failures)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, and system tray lifecycle
+- [x] 363 automated tests passing (302 unit tests, 61 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -147,11 +155,9 @@
 ---
 
 ## Current Priorities
-1. **Phase 11 — Windows Integration**:
-   - Single-instance application enforcement via named global OS Mutex.
-   - Secondary-instance activation and focus handoff.
-   - Dual-window lifecycle coordination.
-   - Window position and size persistence across restarts.
-   - Off-screen recovery for multi-monitor disconnects.
-   - Per-Monitor V2 DPI scaling awareness.
-   - System tray icon and minimize-to-tray integration.
+1. **Phase 12 — Testing, Accessibility & Polish**:
+   - Comprehensive unit test expansion across edge cases.
+   - Persistence and lifecycle integration tests.
+   - Accessibility compliance (WCAG 2.1 AA, high-visibility focus, screen reader names).
+   - Visual consistency and reduced-motion compliance.
+   - Performance profiling and edge-case hardening.

@@ -33,13 +33,24 @@ public static class Program
         string settingsPath = Path.Combine(appDataDir, "settings.json");
         string connectionString = $"Data Source={dbPath}";
 
+        using SingleInstanceCoordinator singleInstance = new();
+        if (!singleInstance.IsPrimary)
+        {
+            singleInstance.SignalPrimary();
+            return;
+        }
+
         IHost host = Host.CreateDefaultBuilder(args)
             .ConfigureServices((_, services) =>
             {
                 // Infrastructure (persistence, repositories, settings, OS integrations)
                 services.AddInfrastructure(connectionString, settingsPath);
 
-                // Application Lifecycle and Window Management
+                // Application Lifecycle, Shell Integration, and Window Management
+                services.AddSingleton<ISingleInstanceCoordinator>(singleInstance);
+                services.AddSingleton<IDisplayMonitorProvider, WpfDisplayMonitorProvider>();
+                services.AddSingleton<IWindowPlacementService, WindowPlacementService>();
+                services.AddSingleton<ITrayService, SystemTrayService>();
                 services.AddSingleton<App>();
                 services.AddSingleton<IWindowManager, WindowManager>();
                 services.AddSingleton<ApplicationLifetimeService>();
@@ -66,6 +77,10 @@ public static class Program
             .Build();
 
         host.Start();
+
+        IWindowManager windowManager = host.Services.GetRequiredService<IWindowManager>();
+        singleInstance.SetActivationHandler(() => windowManager.ActivateCurrentWindow());
+        singleInstance.StartListening();
 
         // Initialize database (apply migrations, enable WAL) and application settings
         using (IServiceScope scope = host.Services.CreateScope())

@@ -43,6 +43,31 @@ public interface IManagedWindow
     bool Activate();
 
     /// <summary>
+    /// Gets or sets the position of the window's left edge in relation to the desktop.
+    /// </summary>
+    double Left { get; set; }
+
+    /// <summary>
+    /// Gets or sets the position of the window's top edge in relation to the desktop.
+    /// </summary>
+    double Top { get; set; }
+
+    /// <summary>
+    /// Gets or sets the width of the window.
+    /// </summary>
+    double Width { get; set; }
+
+    /// <summary>
+    /// Gets or sets the height of the window.
+    /// </summary>
+    double Height { get; set; }
+
+    /// <summary>
+    /// Gets or sets the window startup location behavior.
+    /// </summary>
+    WindowStartupLocation WindowStartupLocation { get; set; }
+
+    /// <summary>
     /// Occurs when the window is closed.
     /// </summary>
     event EventHandler Closed;

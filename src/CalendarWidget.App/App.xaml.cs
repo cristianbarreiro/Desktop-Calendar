@@ -11,16 +11,22 @@ public partial class App : Application
 {
     private readonly IWindowManager _windowManager;
     private readonly ApplicationLifetimeService _lifetimeService;
+    private readonly ITrayService _trayService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="App"/> class.
     /// </summary>
     /// <param name="windowManager">Window orchestration service.</param>
     /// <param name="lifetimeService">Application lifetime management service.</param>
-    public App(IWindowManager windowManager, ApplicationLifetimeService lifetimeService)
+    /// <param name="trayService">System tray management service.</param>
+    public App(
+        IWindowManager windowManager,
+        ApplicationLifetimeService lifetimeService,
+        ITrayService trayService)
     {
         _windowManager = windowManager;
         _lifetimeService = lifetimeService;
+        _trayService = trayService;
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
     }
 
@@ -29,6 +35,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        _trayService.Initialize();
+
         // Show compact widget by default on startup
         _windowManager.ShowWidget();
     }
@@ -36,6 +44,7 @@ public partial class App : Application
     /// <inheritdoc />
     protected override void OnExit(ExitEventArgs e)
     {
+        _trayService.Dispose();
         _lifetimeService.Shutdown(e.ApplicationExitCode);
         base.OnExit(e);
     }

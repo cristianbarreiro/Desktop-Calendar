@@ -249,3 +249,51 @@
   - Test suite: 318/318 passed.
   - Formatting: `dotnet format --verify-no-changes` passed.
   - Phase 10 stabilized; Phase 11 remains NEXT.
+
+## 2026-09-30 — Phase 11: Windows Integration
+
+### Activities
+- **Single-Instance Enforcement & Secondary-Instance Activation (`SingleInstanceCoordinator`)**:
+  - Enforced single-instance application execution using named global OS Mutex (`DesktopCalendarWidget_SingleInstance`) in `Program.cs` before Generic Host construction, preventing secondary processes from initializing duplicate state.
+  - Implemented asynchronous local Named Pipe IPC (`DesktopCalendarWidget_SingleInstance_Pipe`) over same-user security boundary.
+  - Secondary instance detects existing instance, transmits `"ACTIVATE"` signal via named pipe client, and exits immediately.
+  - Primary instance runs an asynchronous server loop listening for secondary launches, and dispatches `ActivateCurrentWindow()` on the WPF UI dispatcher, restoring minimized windows and bringing the primary window to the foreground.
+- **Dual-Window Lifecycle Coordination (`WindowManager`)**:
+  - Refined window switching and lifecycle between `MainWindow` and `WidgetWindow`.
+  - Added `ActivateCurrentWindow()` activating the active window mode or defaulting to widget mode.
+  - Ensured switching windows does not trigger application shutdown (`_isSwitching` guard flag).
+  - Maintained single authoritative shutdown path through `ApplicationLifetimeService.Shutdown()`.
+- **Window Position & Size Persistence (`WindowPlacementService`)**:
+  - Extended `UserSettings` entity with `MainWindowLeft`, `MainWindowTop`, `MainWindowWidth`, `MainWindowHeight`, `WidgetWindowLeft`, `WidgetWindowTop`, and `MinimizeToTray`.
+  - Implemented domain validation for bounds: minimum dimensions (>= 200px), finite values, rejecting NaN/Infinity.
+  - Implemented asynchronous coalesced debounced saving of window moves and resizes to `%LocalAppData%\DesktopCalendar\settings.json`, preventing excessive disk I/O during window dragging.
+  - Added `FlushPendingSaveAsync()` ensuring bounds are flushed to disk before window close or shutdown.
+- **Multi-Monitor Display Awareness & Off-Screen Recovery (`WindowBoundsHelper`, `WpfDisplayMonitorProvider`)**:
+  - Created pure geometry abstractions `DisplayArea` and `WindowBounds`.
+  - Implemented `WindowBoundsHelper.EnsureVisible()` calculating display intersection against all active monitor working areas.
+  - Supported negative monitor coordinates on mixed multi-monitor layouts without accidental repositioning.
+  - Handled disconnected monitors and out-of-bounds coordinates (e.g. `-5000, -5000`) by relocating windows safely to the primary monitor center.
+- **Per-Monitor V2 DPI Awareness (`app.manifest`)**:
+  - Created application manifest `app.manifest` configuring `<dpiAwareness>PerMonitorV2</dpiAwareness>` and Windows 10/11 compatibility (`supportedOS`).
+  - Configured project properties `<ApplicationManifest>app.manifest</ApplicationManifest>` and `<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>`.
+  - Ensured crisp rendering and correct hit-testing on mixed-DPI displays with 0 compiler warnings.
+- **System Tray Integration (`SystemTrayService`, `ITrayService`)**:
+  - Implemented shell notification area integration using `NotifyIcon` with a custom calendar icon.
+  - Added context menu: "Open Application", "Open Widget", separator, and "Exit".
+  - Implemented minimize-to-tray: minimizing hides window while keeping process alive under `ShutdownMode.OnExplicitShutdown`.
+  - Single-click and double-click restore/activate the preferred window.
+  - Coordinated clean shutdown from tray and deterministic disposal on exit, preventing ghost tray icons.
+- **Automated Test Suite Expansion**:
+  - Added `WindowBoundsHelperTests`: 10 unit tests for single monitor, multi-monitor with negative coordinates, disconnected monitor recovery, title bar clamping, and display centering.
+  - Added `UserSettingsBoundsTests`: 5 unit tests verifying bounds validation, invalid dimensions, non-finite coordinates, and faithful cloning.
+  - Added `SingleInstanceCoordinatorTests`: 4 unit tests covering mutex acquisition, second-instance rejection, Named Pipe IPC activation signaling, and mutex release on disposal.
+  - Added `WindowPlacementServiceTests`: 6 unit tests covering default display centering, saved bounds restoration, off-screen recovery, rapid drag-resize debouncing, and immediate flush.
+  - Added `SystemTrayServiceTests`: 3 unit tests verifying initialization, visibility, and safe disposal.
+  - Added 5 unit tests to `WindowManagerTests` covering `ActivateCurrentWindow()` for visible, minimized, and hidden states, plus bounds application hooks.
+  - Total automated tests expanded from 318 to 363 (302 unit + 61 integration, 0 failures).
+- **Validation**:
+  - Build: 0 errors, 0 warnings (Debug & Release).
+  - Test suite: 363/363 passed (Debug & Release).
+  - Formatting: `dotnet format --verify-no-changes` passed.
+  - Git diff check: passed.
+  - Phase 11 complete; Phase 12 is NEXT.

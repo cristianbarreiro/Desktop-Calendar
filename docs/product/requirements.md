@@ -60,10 +60,23 @@
 |-------------|----------|--------|
 | Calendar view | P0 | Complete |
 | Notes view | P0 | Complete |
-| Settings view | P1 | Shell / Placeholder |
+| Settings view | P1 | Complete |
 | Navigation sidebar | P0 | Complete |
 | Switch to widget action | P0 | Complete |
 | Standard window controls | P0 | Complete |
+
+### Windows Integration
+
+| Requirement | Priority | Status |
+|-------------|----------|--------|
+| Single-instance mutex enforcement | P0 | Complete |
+| Secondary-instance activation & IPC | P0 | Complete |
+| Dual-window lifecycle coordination | P0 | Complete |
+| Window position & size persistence | P0 | Complete |
+| Multi-monitor off-screen recovery | P0 | Complete |
+| Per-Monitor V2 DPI awareness | P0 | Complete |
+| System tray icon & minimize-to-tray | P0 | Complete |
+| Start with Windows logon integration | P1 | Complete |
 
 ## Future Features (Architecture-Ready, Not Implemented)
 
@@ -76,4 +89,3 @@
 - Tags and pinning
 - Note-to-event linking
 - Full-text search
-- System tray integration

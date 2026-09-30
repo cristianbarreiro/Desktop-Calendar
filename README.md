@@ -150,8 +150,8 @@ In progress:
 - [x] **Phase 8 — Events**: Event CRUD, validation, event indicators, day details, event persistence.
 - [x] **Phase 9 — Notes**: Notes CRUD, list, timestamps, search, persistence integration.
 - [x] **Phase 10 — Settings**: Theme switching (Dark/Light/System), always-on-top, Windows startup, opacity, first day of week, date/time format, export/import, factory reset.
-- [ ] **Phase 11 — Windows Integration** (NEXT): Single-instance global mutex, secondary-instance activation, position persistence, DPI awareness, tray integration.
-- [ ] **Phase 12 — Testing & Polish** (PLANNED): Test expansion, UI validation, accessibility, performance, edge cases, reliability.
+- [x] **Phase 11 — Windows Integration**: Single-instance global mutex, secondary-instance activation, position persistence, multi-monitor off-screen recovery, Per-Monitor V2 DPI awareness, system tray integration.
+- [ ] **Phase 12 — Testing & Polish** (NEXT): Test expansion, UI validation, accessibility, performance, edge cases, reliability.
 - [ ] **Phase 13 — Packaging & Release** (PLANNED): Production build, packaging, installer/distribution, versioning, GitHub release.
 
 ## Contributing

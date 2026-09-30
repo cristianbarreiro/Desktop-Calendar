@@ -44,6 +44,41 @@ public sealed class UserSettings
     public string DateFormat { get; set; } = "Default";
 
     /// <summary>
+    /// Gets or sets whether minimizing the application docks to the system notification tray.
+    /// </summary>
+    public bool MinimizeToTray { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the persisted horizontal position of the main window in virtual screen pixels.
+    /// </summary>
+    public double? MainWindowLeft { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted vertical position of the main window in virtual screen pixels.
+    /// </summary>
+    public double? MainWindowTop { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted width of the main window in device-independent units.
+    /// </summary>
+    public double? MainWindowWidth { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted height of the main window in device-independent units.
+    /// </summary>
+    public double? MainWindowHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted horizontal position of the compact widget window in virtual screen pixels.
+    /// </summary>
+    public double? WidgetWindowLeft { get; set; }
+
+    /// <summary>
+    /// Gets or sets the persisted vertical position of the compact widget window in virtual screen pixels.
+    /// </summary>
+    public double? WidgetWindowTop { get; set; }
+
+    /// <summary>
     /// Validates the domain invariants for user settings.
     /// </summary>
     /// <exception cref="DomainValidationException">Thrown when settings values violate domain rules.</exception>
@@ -74,6 +109,36 @@ public sealed class UserSettings
         {
             throw new DomainValidationException($"Invalid first day of week: {FirstDayOfWeek}.");
         }
+
+        if (MainWindowWidth.HasValue && (double.IsNaN(MainWindowWidth.Value) || double.IsInfinity(MainWindowWidth.Value) || MainWindowWidth.Value < 200))
+        {
+            throw new DomainValidationException($"MainWindowWidth must be a valid positive number >= 200. Value was: {MainWindowWidth.Value}.");
+        }
+
+        if (MainWindowHeight.HasValue && (double.IsNaN(MainWindowHeight.Value) || double.IsInfinity(MainWindowHeight.Value) || MainWindowHeight.Value < 200))
+        {
+            throw new DomainValidationException($"MainWindowHeight must be a valid positive number >= 200. Value was: {MainWindowHeight.Value}.");
+        }
+
+        if (MainWindowLeft.HasValue && (double.IsNaN(MainWindowLeft.Value) || double.IsInfinity(MainWindowLeft.Value)))
+        {
+            throw new DomainValidationException("MainWindowLeft must be a finite number.");
+        }
+
+        if (MainWindowTop.HasValue && (double.IsNaN(MainWindowTop.Value) || double.IsInfinity(MainWindowTop.Value)))
+        {
+            throw new DomainValidationException("MainWindowTop must be a finite number.");
+        }
+
+        if (WidgetWindowLeft.HasValue && (double.IsNaN(WidgetWindowLeft.Value) || double.IsInfinity(WidgetWindowLeft.Value)))
+        {
+            throw new DomainValidationException("WidgetWindowLeft must be a finite number.");
+        }
+
+        if (WidgetWindowTop.HasValue && (double.IsNaN(WidgetWindowTop.Value) || double.IsInfinity(WidgetWindowTop.Value)))
+        {
+            throw new DomainValidationException("WidgetWindowTop must be a finite number.");
+        }
     }
 
     /// <summary>
@@ -88,5 +153,12 @@ public sealed class UserSettings
         FirstDayOfWeek = FirstDayOfWeek,
         TimeFormat = TimeFormat,
         DateFormat = DateFormat,
+        MinimizeToTray = MinimizeToTray,
+        MainWindowLeft = MainWindowLeft,
+        MainWindowTop = MainWindowTop,
+        MainWindowWidth = MainWindowWidth,
+        MainWindowHeight = MainWindowHeight,
+        WidgetWindowLeft = WidgetWindowLeft,
+        WidgetWindowTop = WidgetWindowTop,
     };
 }
