@@ -130,7 +130,7 @@ Transition from Phase 12 (Testing, Accessibility, Performance & Hardening) into 
   - Added visible high-contrast keyboard focus indicators (`IsKeyboardFocused`) to sidebar buttons, header caption buttons, and danger action buttons.
   - Added keyboard default/cancel actions (`IsDefault="True"`, `IsCancel="True"`) to modal confirmation dialogs in Calendar, Notes, and Settings.
   - Reduced-motion path implemented in `WidgetWindow` DetailTray using `SystemParameters.ClientAreaAnimation`, bypassing animations when OS animations are turned off.
-  - Concurrency & lifecycle integration test suite: 74 integration tests + 325 unit tests (399 total, 0 failures), covering multi-monitor geometries, disconnected monitor fallback, restart persistence, IPC errors, and concurrent settings/placement updates.
+  - Concurrency & lifecycle integration test suite: 74 integration tests + 326 unit tests (400 total, 0 failures), covering multi-monitor geometries, disconnected monitor fallback, restart persistence, IPC errors, and concurrent settings/placement updates.
   - Build verified with 0 warnings, 0 errors, and formatting verification passes.
 
 ---
