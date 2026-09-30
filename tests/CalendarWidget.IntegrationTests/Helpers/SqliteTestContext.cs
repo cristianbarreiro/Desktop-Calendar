@@ -19,12 +19,20 @@ public sealed class SqliteTestContext : IAsyncDisposable
     public string DbPath => _dbPath;
 
     /// <summary>
-    /// Creates an <see cref="IServiceScopeFactory"/> configured for this test database.
+    /// Creates an <see cref="IServiceScopeFactory"/> configured for this test database, optionally with interceptors.
     /// </summary>
-    public IServiceScopeFactory CreateScopeFactory()
+    /// <param name="interceptors">Optional EF Core interceptors for fault injection.</param>
+    public IServiceScopeFactory CreateScopeFactory(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors)
     {
         Microsoft.Extensions.DependencyInjection.ServiceCollection services = new();
-        services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={_dbPath}"));
+        services.AddDbContext<AppDbContext>(options =>
+        {
+            options.UseSqlite($"Data Source={_dbPath}");
+            if (interceptors.Length > 0)
+            {
+                options.AddInterceptors(interceptors);
+            }
+        });
         services.AddScoped<CalendarWidget.Core.Interfaces.ICalendarEventRepository, EfCalendarEventRepository>();
         services.AddScoped<CalendarWidget.Core.Interfaces.INoteRepository, EfNoteRepository>();
         Microsoft.Extensions.DependencyInjection.ServiceProvider provider = services.BuildServiceProvider();

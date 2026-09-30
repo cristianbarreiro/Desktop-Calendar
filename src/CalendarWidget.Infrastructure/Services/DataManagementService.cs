@@ -33,6 +33,18 @@ public sealed class DataManagementService : IDataManagementService
     private static readonly Action<ILogger, Exception?> LogResetCompleted =
         LoggerMessage.Define(LogLevel.Information, new EventId(3, "ResetCompleted"), "All user events and notes have been cleared.");
 
+    private static readonly Action<ILogger, string, Exception?> LogImportFailed =
+        LoggerMessage.Define<string>(LogLevel.Error, new EventId(4, "ImportFailed"), "Data import failed: {Message}");
+
+    private static readonly Action<ILogger, Exception?> LogRollbackFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(5, "RollbackFailed"), "Database transaction rollback failed during import recovery.");
+
+    private static readonly Action<ILogger, Exception?> LogSettingsRestoreFailed =
+        LoggerMessage.Define(LogLevel.Error, new EventId(6, "SettingsRestoreFailed"), "Settings compensation restoration failed during import recovery.");
+
+    private static readonly Action<ILogger, string, Exception?> LogRecoveryIncomplete =
+        LoggerMessage.Define<string>(LogLevel.Critical, new EventId(7, "RecoveryIncomplete"), "Data import recovery could not be fully confirmed: {Details}");
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISettingsService _settingsService;
     private readonly ILogger<DataManagementService> _logger;
@@ -212,106 +224,165 @@ public sealed class DataManagementService : IDataManagementService
             notesToImport.Add(note);
         }
 
-        // 4. Atomically persist records with rollback on failure
+        // 4. Atomically persist records with explicit rollback and compensation on failure
         using IServiceScope scope = _scopeFactory.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         UserSettings? originalSettings = backup.Settings is not null ? _settingsService.CurrentSettings.Clone() : null;
+        bool settingsAttempted = false;
 
-        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
-            await context.Database.BeginTransactionAsync(cancellationToken);
-
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction;
         try
         {
-            HashSet<Guid> existingEventIds = (await context.CalendarEvents
-                .Select(e => e.Id)
-                .ToListAsync(cancellationToken))
-                .ToHashSet();
-
-            HashSet<Guid> existingNoteIds = (await context.Notes
-                .Select(n => n.Id)
-                .ToListAsync(cancellationToken))
-                .ToHashSet();
-
-            int eventsImported = 0;
-            int eventsSkipped = 0;
-            foreach (CalendarEvent ev in eventsToImport)
-            {
-                if (existingEventIds.Contains(ev.Id))
-                {
-                    eventsSkipped++;
-                }
-                else
-                {
-                    context.CalendarEvents.Add(ev);
-                    eventsImported++;
-                }
-            }
-
-            int notesImported = 0;
-            int notesSkipped = 0;
-            foreach (Note n in notesToImport)
-            {
-                if (existingNoteIds.Contains(n.Id))
-                {
-                    notesSkipped++;
-                }
-                else
-                {
-                    context.Notes.Add(n);
-                    notesImported++;
-                }
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            if (backup.Settings is not null)
-            {
-                await _settingsService.SaveSettingsAsync(backup.Settings, cancellationToken);
-            }
-
-            await transaction.CommitAsync(cancellationToken);
-
-            LogImportCompleted(_logger, eventsImported, notesImported, null);
-            DataChanged?.Invoke(this, EventArgs.Empty);
-
-            return new DataImportResult
-            {
-                Success = true,
-                EventsImported = eventsImported,
-                EventsSkipped = eventsSkipped,
-                NotesImported = notesImported,
-                NotesSkipped = notesSkipped,
-            };
+            transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            try
-            {
-                await transaction.RollbackAsync(cancellationToken);
-            }
-            catch
-            {
-                // Suppress secondary rollback exception
-            }
-
-            if (originalSettings is not null)
-            {
-                try
-                {
-                    await _settingsService.SaveSettingsAsync(originalSettings, cancellationToken);
-                }
-                catch
-                {
-                    // Suppress secondary settings restore exception
-                }
-            }
-
+            LogImportFailed(_logger, ex.Message, ex);
             return new DataImportResult
             {
                 Success = false,
                 ErrorMessage = $"Import failed: {ex.Message}",
             };
+        }
+
+        await using (transaction)
+        {
+            try
+            {
+                HashSet<Guid> existingEventIds = (await context.CalendarEvents
+                    .Select(e => e.Id)
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet();
+
+                HashSet<Guid> existingNoteIds = (await context.Notes
+                    .Select(n => n.Id)
+                    .ToListAsync(cancellationToken))
+                    .ToHashSet();
+
+                int eventsImported = 0;
+                int eventsSkipped = 0;
+                foreach (CalendarEvent ev in eventsToImport)
+                {
+                    if (existingEventIds.Contains(ev.Id))
+                    {
+                        eventsSkipped++;
+                    }
+                    else
+                    {
+                        context.CalendarEvents.Add(ev);
+                        eventsImported++;
+                    }
+                }
+
+                int notesImported = 0;
+                int notesSkipped = 0;
+                foreach (Note n in notesToImport)
+                {
+                    if (existingNoteIds.Contains(n.Id))
+                    {
+                        notesSkipped++;
+                    }
+                    else
+                    {
+                        context.Notes.Add(n);
+                        notesImported++;
+                    }
+                }
+
+                await context.SaveChangesAsync(cancellationToken);
+
+                // Transaction & Compensation Strategy:
+                // Settings persistence is executed before committing the SQLite transaction.
+                // If Settings persistence fails, the SQLite transaction has not been committed and is cleanly rolled back.
+                // If SQLite Commit fails, the SQLite transaction is aborted/rolled back, and Settings are compensated by restoring originalSettings.
+                if (backup.Settings is not null)
+                {
+                    settingsAttempted = true;
+                    await _settingsService.SaveSettingsAsync(backup.Settings, cancellationToken);
+                }
+
+                await transaction.CommitAsync(cancellationToken);
+
+                LogImportCompleted(_logger, eventsImported, notesImported, null);
+                DataChanged?.Invoke(this, EventArgs.Empty);
+
+                return new DataImportResult
+                {
+                    Success = true,
+                    EventsImported = eventsImported,
+                    EventsSkipped = eventsSkipped,
+                    NotesImported = notesImported,
+                    NotesSkipped = notesSkipped,
+                };
+            }
+            catch (Exception ex)
+            {
+                // Recovery and compensation:
+                // Use CancellationToken.None so that mandatory cleanup (rollback and settings restoration)
+                // is executed even if the operation was cancelled by the caller.
+                bool rollbackFailed = false;
+                Exception? rollbackException = null;
+
+                try
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+                catch (Exception rbEx)
+                {
+                    rollbackFailed = true;
+                    rollbackException = rbEx;
+                    LogRollbackFailed(_logger, rbEx);
+                }
+
+                bool settingsRestoreFailed = false;
+                Exception? settingsRestoreException = null;
+
+                if (settingsAttempted && originalSettings is not null)
+                {
+                    try
+                    {
+                        await _settingsService.SaveSettingsAsync(originalSettings, CancellationToken.None);
+                    }
+                    catch (Exception srEx)
+                    {
+                        settingsRestoreFailed = true;
+                        settingsRestoreException = srEx;
+                        LogSettingsRestoreFailed(_logger, srEx);
+                    }
+                }
+
+                string errorMessage;
+                if (rollbackFailed && settingsRestoreFailed)
+                {
+                    string details = $"Database rollback failed ({rollbackException?.Message}) and settings restoration failed ({settingsRestoreException?.Message}).";
+                    LogRecoveryIncomplete(_logger, details, ex);
+                    errorMessage = $"Import failed: {ex.Message}. Database rollback and complete settings restoration could not be confirmed.";
+                }
+                else if (rollbackFailed)
+                {
+                    string details = $"Database rollback failed ({rollbackException?.Message}).";
+                    LogRecoveryIncomplete(_logger, details, ex);
+                    errorMessage = $"Import failed: {ex.Message}. Database rollback could not be confirmed.";
+                }
+                else if (settingsRestoreFailed)
+                {
+                    string details = $"Settings restoration failed ({settingsRestoreException?.Message}).";
+                    LogRecoveryIncomplete(_logger, details, ex);
+                    errorMessage = $"Import failed: {ex.Message}. Complete settings restoration could not be confirmed.";
+                }
+                else
+                {
+                    LogImportFailed(_logger, ex.Message, ex);
+                    errorMessage = $"Import failed: {ex.Message}";
+                }
+
+                return new DataImportResult
+                {
+                    Success = false,
+                    ErrorMessage = errorMessage,
+                };
+            }
         }
     }
 

@@ -26,13 +26,23 @@ public sealed class DataManagementServiceIntegrationTests
 
         public bool ThrowOnSave { get; set; }
 
+        public bool ThrowOnRestore { get; set; }
+
+        public int SaveCallCount { get; private set; }
+
         public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default)
         {
-            if (ThrowOnSave)
+            SaveCallCount++;
+            if (ThrowOnSave && SaveCallCount == 1)
             {
                 throw new IOException("Simulated settings disk failure.");
+            }
+
+            if (ThrowOnRestore && SaveCallCount > 1)
+            {
+                throw new IOException("Simulated settings restoration failure.");
             }
 
             CurrentSettings = settings.Clone();
@@ -761,5 +771,331 @@ public sealed class DataManagementServiceIntegrationTests
 
         // Settings remain at original state
         settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.75);
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_DatabasePersistenceFailure_RollsBackAndLeavesStateUnchanged()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        Guid existingNoteId = Guid.NewGuid();
+        await noteRepo.AddAsync(new Note
+        {
+            Id = existingNoteId,
+            Title = "Note B",
+            Content = "Content B",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        TestSaveChangesInterceptor interceptor = new() { FailSavingChanges = true };
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.8;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(interceptor),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        bool dataChangedFired = false;
+        service.DataChanged += (_, _) => dataChangedFired = true;
+
+        Guid candidateEventId = Guid.NewGuid();
+        Guid candidateNoteId = Guid.NewGuid();
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = candidateEventId,
+                    Title = "Candidate Event X",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Notes =
+            [
+                new NoteBackupDto
+                {
+                    Id = candidateNoteId,
+                    Title = "Candidate Note Y",
+                    Content = "Candidate Content Y",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.5 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Simulated database persistence failure");
+
+        // Database rolled back: only existing records remain
+        (await db.Context.CalendarEvents.FindAsync(candidateEventId)).Should().BeNull();
+        (await db.Context.Notes.FindAsync(candidateNoteId)).Should().BeNull();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        (await db.Context.Notes.CountAsync()).Should().Be(1);
+
+        // Settings remain unchanged
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.8);
+        dataChangedFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_CommitFailure_RollsBackDatabaseAndRestoresSettings()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+        EfNoteRepository noteRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        TestTransactionInterceptor interceptor = new() { FailCommit = true };
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.85;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(interceptor),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        bool dataChangedFired = false;
+        service.DataChanged += (_, _) => dataChangedFired = true;
+
+        Guid candidateEventId = Guid.NewGuid();
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = candidateEventId,
+                    Title = "Candidate Event",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.55 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Simulated transaction commit failure");
+
+        // Database rolled back
+        (await db.Context.CalendarEvents.FindAsync(candidateEventId)).Should().BeNull();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+
+        // Settings compensated back to original
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.85);
+        dataChangedFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_RollbackFailure_DetectsFailureAndReportsDiagnosticMessage()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+
+        TestTransactionInterceptor interceptor = new() { FailCommit = true, FailRollback = true };
+        StubSettingsService settingsService = new();
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(interceptor),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        bool dataChangedFired = false;
+        service.DataChanged += (_, _) => dataChangedFired = true;
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Candidate Event",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ]
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Database rollback could not be confirmed");
+        dataChangedFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_SettingsRestorationFailure_DetectsFailureAndReportsDiagnosticMessage()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+
+        TestTransactionInterceptor interceptor = new() { FailCommit = true };
+        StubSettingsService settingsService = new();
+        settingsService.ThrowOnRestore = true;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(interceptor),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        bool dataChangedFired = false;
+        service.DataChanged += (_, _) => dataChangedFired = true;
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Settings = new UserSettings { WidgetOpacity = 0.6 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain("Complete settings restoration could not be confirmed");
+        dataChangedFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_WhenCancelled_CleanlyRollsBackAndRestoresSettings()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        EfCalendarEventRepository eventRepo = new(db.Context);
+
+        Guid existingEventId = Guid.NewGuid();
+        await eventRepo.AddAsync(new CalendarEvent
+        {
+            Id = existingEventId,
+            Title = "Event A",
+            StartTime = new DateTime(2026, 9, 30, 9, 0, 0),
+            EndTime = new DateTime(2026, 9, 30, 10, 0, 0),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+
+        StubSettingsService settingsService = new();
+        settingsService.CurrentSettings.WidgetOpacity = 0.85;
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        bool dataChangedFired = false;
+        service.DataChanged += (_, _) => dataChangedFired = true;
+
+        using CancellationTokenSource cts = new();
+        cts.Cancel(); // Pre-cancelled token
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Cancelled Candidate Event",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ],
+            Settings = new UserSettings { WidgetOpacity = 0.5 }
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json, cts.Token);
+
+        result.Success.Should().BeFalse();
+        (await db.Context.CalendarEvents.CountAsync()).Should().Be(1);
+        settingsService.CurrentSettings.WidgetOpacity.Should().Be(0.85);
+        dataChangedFired.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_SuccessfulImport_RaisesDataChangedExactlyOnce()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        StubSettingsService settingsService = new();
+
+        DataManagementService service = new(
+            db.CreateScopeFactory(),
+            settingsService,
+            NullLogger<DataManagementService>.Instance);
+
+        int dataChangedCount = 0;
+        service.DataChanged += (_, _) => dataChangedCount++;
+
+        AppBackupData backup = new()
+        {
+            Version = 1,
+            ExportedAt = DateTime.UtcNow,
+            Events =
+            [
+                new CalendarEventBackupDto
+                {
+                    Id = Guid.NewGuid(),
+                    Title = "Valid Event",
+                    StartTime = new DateTime(2026, 10, 1, 9, 0, 0),
+                    EndTime = new DateTime(2026, 10, 1, 10, 0, 0),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                }
+            ]
+        };
+
+        string json = JsonSerializer.Serialize(backup);
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeTrue();
+        dataChangedCount.Should().Be(1);
     }
 }

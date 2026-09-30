@@ -108,7 +108,7 @@ Transition from Phase 10 (Settings & Appearance) into Phase 11 (Windows Integrat
   - Safe transactional backup restore with domain validation, atomic rollback, and skipping of existing duplicates to prevent accidental overwrites.
   - Factory reset workflow with destructive confirmation modal dialog, resetting all calendar events and notes while keeping database schema intact.
   - Settings UI (`SettingsView.xaml`, `SettingsViewModel.cs`) organized into Appearance, Calendar, Windows, and Data sections with accessible names, error/success banners, and keyboard navigation.
-  - Test suite expanded to 312 tests (257 unit + 55 integration, 0 failures) including Phase 10.1 import atomicity and settings save serialization tests.
+  - Test suite expanded to 318 tests (257 unit + 61 integration, 0 failures) including Phase 10.1 & Phase 10.2 import atomicity, failure recovery, and settings save serialization tests.
 
 ---
 

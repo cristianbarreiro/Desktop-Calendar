@@ -223,4 +223,29 @@
   - Build: 0 errors, 0 warnings.
   - Test suite: 312/312 passed.
   - Formatting: `dotnet format --verify-no-changes` passed.
-  - CI workflow verification queued. Phase 11 remains NEXT.
+  - CI workflow verification succeeded (run 36665461368). Phase 11 remains NEXT.
+
+## 2026-09-30 — Phase 10.2: Import/Restore Atomicity Remediation
+
+### Activities
+- **Import/Restore Failure Recovery Hardening (`DataManagementService`)**:
+  - Refined transaction and compensation lifecycle across SQLite and Settings persistence boundaries.
+  - Implemented uncancelled token (`CancellationToken.None`) execution for rollback and settings compensation, guaranteeing mandatory cleanup completes even if the import operation is cancelled.
+  - Added explicit detection and handling for database rollback failures (`LogRollbackFailed`) and settings restoration failures (`LogSettingsRestoreFailed`), returning distinguished diagnostic error messages and logging incomplete recovery states without falsely claiming successful recovery.
+  - Ensured `DataChanged` is strictly not raised on any failure path (validation, persistence, commit, rollback, compensation, or cancellation).
+- **Test Infrastructure & Interceptor Seams**:
+  - Implemented `TestSaveChangesInterceptor` and `TestTransactionInterceptor` using EF Core `IInterceptor` diagnostics to deterministically simulate database persistence errors, transaction commit failures, and rollback failures against real SQLite instances.
+  - Enhanced `StubSettingsService` with `ThrowOnRestore` to simulate compensation failure scenarios.
+  - Added 6 integration tests in `DataManagementServiceIntegrationTests`:
+    - `ImportDataJsonAsync_DatabasePersistenceFailure_RollsBackAndLeavesStateUnchanged`
+    - `ImportDataJsonAsync_CommitFailure_RollsBackDatabaseAndRestoresSettings`
+    - `ImportDataJsonAsync_RollbackFailure_DetectsFailureAndReportsDiagnosticMessage`
+    - `ImportDataJsonAsync_SettingsRestorationFailure_DetectsFailureAndReportsDiagnosticMessage`
+    - `ImportDataJsonAsync_WhenCancelled_CleanlyRollsBackAndRestoresSettings`
+    - `ImportDataJsonAsync_SuccessfulImport_RaisesDataChangedExactlyOnce`
+  - Total automated tests expanded from 312 to 318 (257 unit + 61 integration, 0 failures).
+- **Validation**:
+  - Build: 0 errors, 0 warnings.
+  - Test suite: 318/318 passed.
+  - Formatting: `dotnet format --verify-no-changes` passed.
+  - Phase 10 stabilized; Phase 11 remains NEXT.
