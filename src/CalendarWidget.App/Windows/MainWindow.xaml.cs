@@ -24,6 +24,14 @@ public partial class MainWindow : Window, IManagedWindow
 
         LocationChanged += OnLocationOrSizeChanged;
         SizeChanged += OnLocationOrSizeChanged;
+        Closed += OnWindowClosed;
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        Closed -= OnWindowClosed;
+        LocationChanged -= OnLocationOrSizeChanged;
+        SizeChanged -= OnLocationOrSizeChanged;
     }
 
     private void OnLocationOrSizeChanged(object? sender, EventArgs e)

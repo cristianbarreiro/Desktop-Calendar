@@ -99,6 +99,7 @@ public sealed class SingleInstanceCoordinator : ISingleInstanceCoordinator
     /// <inheritdoc />
     public void Dispose()
     {
+        Task? taskToAwait = null;
         lock (_lock)
         {
             if (_disposed)
@@ -110,10 +111,16 @@ public sealed class SingleInstanceCoordinator : ISingleInstanceCoordinator
 
             if (_cts is not null)
             {
-                _cts.Cancel();
-                _cts.Dispose();
-                _cts = null;
+                try
+                {
+                    _cts.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
             }
+
+            taskToAwait = _listenerTask;
 
             if (_isPrimary && _mutex is not null)
             {
@@ -123,12 +130,30 @@ public sealed class SingleInstanceCoordinator : ISingleInstanceCoordinator
                 }
                 catch
                 {
-                    // Ignore if already released
+                    // Ignore if already released or not owned
                 }
 
                 _mutex.Dispose();
                 _mutex = null;
             }
+        }
+
+        if (taskToAwait is not null)
+        {
+            try
+            {
+                taskToAwait.Wait(TimeSpan.FromMilliseconds(500));
+            }
+            catch
+            {
+                // Ignore task faults or cancellation during shutdown
+            }
+        }
+
+        lock (_lock)
+        {
+            _cts?.Dispose();
+            _cts = null;
         }
     }
 
@@ -182,7 +207,7 @@ public sealed class SingleInstanceCoordinator : ISingleInstanceCoordinator
                     }
                 }
             }
-            catch (OperationCanceledException)
+            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
             {
                 server?.Dispose();
                 break;
@@ -190,7 +215,14 @@ public sealed class SingleInstanceCoordinator : ISingleInstanceCoordinator
             catch
             {
                 server?.Dispose();
-                if (token.IsCancellationRequested)
+                try
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                }
+                catch (ObjectDisposedException)
                 {
                     break;
                 }

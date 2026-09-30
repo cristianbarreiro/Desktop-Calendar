@@ -174,4 +174,79 @@ public sealed class WindowBoundsHelperTests
         actual.Width.Should().Be(600);
         actual.Height.Should().Be(400);
     }
+
+    [Theory]
+    [InlineData(double.NaN, 100, 800, 600)]
+    [InlineData(100, double.NaN, 800, 600)]
+    [InlineData(double.PositiveInfinity, 100, 800, 600)]
+    [InlineData(100, double.NegativeInfinity, 800, 600)]
+    [InlineData(100, 100, double.NaN, 600)]
+    [InlineData(100, 100, 800, double.NaN)]
+    public void EnsureVisible_WhenBoundsContainNaNOrInfinity_RecoversToDefaultCenter(double left, double top, double width, double height)
+    {
+        // Arrange
+        WindowBounds requested = new(left, top, width, height);
+        DisplayArea[] displays = [_primaryDisplay];
+
+        // Act
+        WindowBounds actual = WindowBoundsHelper.EnsureVisible(requested, displays, _primaryDisplay);
+
+        // Assert: safely sanitized and centered without NaN or Infinity
+        double.IsNaN(actual.Left).Should().BeFalse();
+        double.IsNaN(actual.Top).Should().BeFalse();
+        double.IsNaN(actual.Width).Should().BeFalse();
+        double.IsNaN(actual.Height).Should().BeFalse();
+        double.IsInfinity(actual.Left).Should().BeFalse();
+        double.IsInfinity(actual.Top).Should().BeFalse();
+        actual.Width.Should().BeGreaterThan(0);
+        actual.Height.Should().BeGreaterThan(0);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 800, 600)]
+    [InlineData(-100, 500, 800, 500)]
+    [InlineData(800, -200, 800, 600)]
+    public void EnsureVisible_WhenDimensionsAreZeroOrNegative_ResetsToSensibleDefaults(double width, double height, double expectedWidth, double expectedHeight)
+    {
+        // Arrange
+        WindowBounds requested = new(100, 100, width, height);
+        DisplayArea[] displays = [_primaryDisplay];
+
+        // Act
+        WindowBounds actual = WindowBoundsHelper.EnsureVisible(requested, displays, _primaryDisplay);
+
+        // Assert
+        actual.Width.Should().Be(expectedWidth);
+        actual.Height.Should().Be(expectedHeight);
+    }
+
+    [Fact]
+    public void EnsureVisible_WhenTopPositionedBelowMonitorBottom_ClampsTopSafely()
+    {
+        // Arrange: window top is placed near the bottom edge (1070) such that title bar is practically pushed off screen
+        WindowBounds requested = new(100, 1070, 800, 600);
+        DisplayArea[] displays = [_primaryDisplay];
+
+        // Act
+        WindowBounds actual = WindowBoundsHelper.EnsureVisible(requested, displays, _primaryDisplay);
+
+        // Assert: top is clamped so at least 32 DIPs of title bar remain visible
+        actual.Top.Should().BeLessThanOrEqualTo(_primaryDisplay.Height - 32);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 800, 600)]
+    [InlineData(-500, 400, 800, 400)]
+    [InlineData(double.NaN, double.NaN, 800, 600)]
+    public void CenterOnDisplay_WhenRequestedSizeIsInvalidOrZero_UsesSafeFallbackDimensions(double width, double height, double expectedWidth, double expectedHeight)
+    {
+        // Act
+        WindowBounds actual = WindowBoundsHelper.CenterOnDisplay(width, height, _primaryDisplay);
+
+        // Assert
+        actual.Width.Should().Be(expectedWidth);
+        actual.Height.Should().Be(expectedHeight);
+        actual.Left.Should().Be((1920 - expectedWidth) / 2);
+        actual.Top.Should().Be((1080 - expectedHeight) / 2);
+    }
 }

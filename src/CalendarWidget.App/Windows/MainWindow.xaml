@@ -57,21 +57,30 @@
                             Content="⤢ Widget"
                             Style="{DynamicResource HeaderActionButtonStyle}"
                             ToolTip="Switch to compact desktop widget"
+                            AutomationProperties.Name="Switch to widget"
+                            AutomationProperties.AutomationId="SwitchToWidgetButton"
+                            AutomationProperties.HelpText="Switch from full application to compact widget mode"
                             Margin="0,4,8,4" />
 
                     <!-- Window State Buttons -->
                     <Button Click="OnMinimizeClick"
                             Content="─"
                             Style="{DynamicResource WindowCaptionButtonStyle}"
-                            ToolTip="Minimize" />
+                            ToolTip="Minimize"
+                            AutomationProperties.Name="Minimize"
+                            AutomationProperties.AutomationId="MinimizeButton" />
                     <Button Click="OnMaximizeRestoreClick"
                             Content="◻"
                             Style="{DynamicResource WindowCaptionButtonStyle}"
-                            ToolTip="Maximize" />
+                            ToolTip="Maximize"
+                            AutomationProperties.Name="Maximize"
+                            AutomationProperties.AutomationId="MaximizeButton" />
                     <Button Click="OnCloseClick"
                             Content="✕"
                             Style="{DynamicResource WindowCloseButtonStyle}"
-                            ToolTip="Close" />
+                            ToolTip="Close"
+                            AutomationProperties.Name="Close"
+                            AutomationProperties.AutomationId="CloseButton" />
                 </StackPanel>
             </Grid>
         </Border>
@@ -100,13 +109,25 @@
                     <StackPanel Grid.Row="0" Margin="8,16,8,8">
                         <Button Command="{Binding NavigateCalendarCommand}"
                                 Content="📅  Calendar"
-                                Style="{DynamicResource SidebarNavButtonStyle}" />
+                                Style="{DynamicResource SidebarNavButtonStyle}"
+                                ToolTip="Calendar"
+                                AutomationProperties.Name="Calendar"
+                                AutomationProperties.AutomationId="NavCalendarButton"
+                                AutomationProperties.HelpText="Navigate to Calendar view" />
                         <Button Command="{Binding NavigateNotesCommand}"
                                 Content="📝  Notes"
-                                Style="{DynamicResource SidebarNavButtonStyle}" />
+                                Style="{DynamicResource SidebarNavButtonStyle}"
+                                ToolTip="Notes"
+                                AutomationProperties.Name="Notes"
+                                AutomationProperties.AutomationId="NavNotesButton"
+                                AutomationProperties.HelpText="Navigate to Notes view" />
                         <Button Command="{Binding NavigateSettingsCommand}"
                                 Content="⚙️  Settings"
-                                Style="{DynamicResource SidebarNavButtonStyle}" />
+                                Style="{DynamicResource SidebarNavButtonStyle}"
+                                ToolTip="Settings"
+                                AutomationProperties.Name="Settings"
+                                AutomationProperties.AutomationId="NavSettingsButton"
+                                AutomationProperties.HelpText="Navigate to Settings view" />
                     </StackPanel>
 
                     <!-- Bottom Widget Switch Action -->
@@ -114,7 +135,11 @@
                         <Separator Background="{DynamicResource BorderDividerBrush}" Margin="4,0,4,8" />
                         <Button Command="{Binding SwitchToWidgetCommand}"
                                 Content="⤢  Widget Mode"
-                                Style="{DynamicResource SidebarNavButtonStyle}" />
+                                Style="{DynamicResource SidebarNavButtonStyle}"
+                                ToolTip="Switch to compact widget mode"
+                                AutomationProperties.Name="Widget Mode"
+                                AutomationProperties.AutomationId="NavWidgetButton"
+                                AutomationProperties.HelpText="Switch to compact widget mode" />
                     </StackPanel>
                 </Grid>
             </Border>

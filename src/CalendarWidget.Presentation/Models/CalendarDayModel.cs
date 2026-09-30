@@ -19,4 +19,31 @@ public sealed record CalendarDayModel(
     /// Gets a DateTime representation of the date for XAML bindings that require DateTime.
     /// </summary>
     public DateTime DateTime => Date.ToDateTime(TimeOnly.MinValue);
+
+    /// <summary>
+    /// Gets a full descriptive accessibility label conveying date, today status, and event presence.
+    /// </summary>
+    public string AccessibleDescription
+    {
+        get
+        {
+            string dateStr = Date.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.CurrentCulture);
+            if (IsToday && HasEvents)
+            {
+                return $"{dateStr}, Today, has events";
+            }
+
+            if (IsToday)
+            {
+                return $"{dateStr}, Today";
+            }
+
+            if (HasEvents)
+            {
+                return $"{dateStr}, has events";
+            }
+
+            return dateStr;
+        }
+    }
 }

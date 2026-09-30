@@ -69,6 +69,8 @@
                         FontSize="10"
                         ToolTip="Switch to full desktop application"
                         AutomationProperties.Name="Switch to application"
+                        AutomationProperties.AutomationId="WidgetSwitchToAppButton"
+                        AutomationProperties.HelpText="Switch to full desktop application window"
                         Focusable="True" />
 
                 <!-- Drag region spacer -->
@@ -83,6 +85,7 @@
                             Style="{DynamicResource HeaderActionButtonStyle}"
                             ToolTip="Minimize widget"
                             AutomationProperties.Name="Minimize"
+                            AutomationProperties.AutomationId="WidgetMinimizeButton"
                             Margin="0,0,2,0"
                             Focusable="True" />
                     <Button Click="OnCloseClick"
@@ -90,6 +93,7 @@
                             Style="{DynamicResource HeaderActionButtonStyle}"
                             ToolTip="Close application"
                             AutomationProperties.Name="Close"
+                            AutomationProperties.AutomationId="WidgetCloseButton"
                             Focusable="True" />
                 </StackPanel>
             </Grid>
@@ -111,6 +115,7 @@
                             Margin="0,0,4,0"
                             ToolTip="Previous month"
                             AutomationProperties.Name="Previous month"
+                            AutomationProperties.AutomationId="WidgetPrevMonthButton"
                             Focusable="True" />
                     <TextBlock Text="{Binding MonthYearText}"
                                Style="{DynamicResource BodyRegularTextBlockStyle}"
@@ -125,6 +130,7 @@
                             Margin="4,0,0,0"
                             ToolTip="Next month"
                             AutomationProperties.Name="Next month"
+                            AutomationProperties.AutomationId="WidgetNextMonthButton"
                             Focusable="True" />
                 </StackPanel>
 
@@ -135,7 +141,9 @@
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            FontWeight="Medium"
                            FontFamily="Consolas, Segoe UI"
-                           VerticalAlignment="Center" />
+                           VerticalAlignment="Center"
+                           AutomationProperties.Name="Current time"
+                           AutomationProperties.AutomationId="WidgetClockText" />
             </Grid>
 
             <!-- 3. Weekday Column Headers -->
@@ -191,7 +199,8 @@
                                 Cursor="Hand"
                                 Focusable="True"
                                 FocusVisualStyle="{x:Null}"
-                                AutomationProperties.Name="{Binding Date, StringFormat='{}{0:MMMM d, yyyy}'}">
+                                AutomationProperties.Name="{Binding AccessibleDescription}"
+                                AutomationProperties.HelpText="Select to toggle day detail tray">
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="DayCellBorder"
@@ -327,8 +336,26 @@
                         <Setter Property="Padding" Value="0" />
                         <Setter Property="BorderThickness" Value="0" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsExpanded}" Value="True">
-                                <DataTrigger.EnterActions>
+                            <!-- Reduced-motion path: Instant appearance without transitions when OS animations are disabled -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsExpanded}" Value="True" />
+                                    <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="False" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="MaxHeight" Value="140" />
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="Margin" Value="0,8,0,0" />
+                                <Setter Property="Padding" Value="10" />
+                                <Setter Property="BorderThickness" Value="0,1,0,0" />
+                            </MultiDataTrigger>
+
+                            <!-- Standard motion path: Smooth coordinated animations when OS animations are enabled -->
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding IsExpanded}" Value="True" />
+                                    <Condition Binding="{Binding Source={x:Static SystemParameters.ClientAreaAnimation}}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <MultiDataTrigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <ThicknessAnimation Storyboard.TargetProperty="Margin"
@@ -352,8 +379,8 @@
                                                              DecelerationRatio="0.5" />
                                         </Storyboard>
                                     </BeginStoryboard>
-                                </DataTrigger.EnterActions>
-                                <DataTrigger.ExitActions>
+                                </MultiDataTrigger.EnterActions>
+                                <MultiDataTrigger.ExitActions>
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <ThicknessAnimation Storyboard.TargetProperty="Margin"
@@ -378,8 +405,8 @@
                                                              AccelerationRatio="0.5" />
                                         </Storyboard>
                                     </BeginStoryboard>
-                                </DataTrigger.ExitActions>
-                            </DataTrigger>
+                                </MultiDataTrigger.ExitActions>
+                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -404,6 +431,8 @@
                                 FontSize="9"
                                 ToolTip="Close details"
                                 AutomationProperties.Name="Close details"
+                                AutomationProperties.AutomationId="WidgetCloseDetailsButton"
+                                IsCancel="True"
                                 Focusable="True" />
                     </Grid>
 

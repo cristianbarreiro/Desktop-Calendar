@@ -24,6 +24,13 @@ public partial class WidgetWindow : Window, IManagedWindow
         _placementService = placementService;
 
         LocationChanged += OnLocationChanged;
+        Closed += OnWindowClosed;
+    }
+
+    private void OnWindowClosed(object? sender, EventArgs e)
+    {
+        Closed -= OnWindowClosed;
+        LocationChanged -= OnLocationChanged;
     }
 
     private void OnLocationChanged(object? sender, EventArgs e)

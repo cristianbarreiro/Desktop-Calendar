@@ -2,7 +2,7 @@
 
 ## Sprint Objective
 
-Transition from Phase 11 (Windows Integration) into Phase 12 (Testing, Accessibility & Polish).
+Transition from Phase 12 (Testing, Accessibility, Performance & Hardening) into Phase 13 (Packaging & Release).
 
 ---
 
@@ -17,7 +17,8 @@ Transition from Phase 11 (Windows Integration) into Phase 12 (Testing, Accessibi
 - **Phase 9 — Notes Management**: COMPLETE
 - **Phase 10 — Settings & Appearance**: COMPLETE
 - **Phase 11 — Windows Integration**: COMPLETE
-- **Next Target — Phase 12 (Testing, Accessibility & Polish)**: NEXT / READY
+- **Phase 12 — Testing, Accessibility, Performance & Hardening**: COMPLETE
+- **Next Target — Phase 13 (Packaging & Release)**: NEXT / READY
 
 ---
 
@@ -119,25 +120,35 @@ Transition from Phase 11 (Windows Integration) into Phase 12 (Testing, Accessibi
   - Per-Monitor V2 DPI awareness configured cleanly via `app.manifest` and project configuration for crisp rendering on mixed-DPI displays.
   - Notification area system tray icon (`SystemTrayService`, `ITrayService`) with context menu ("Open Application", "Open Widget", "Exit"), left-click / double-click activation, clean minimize-to-tray handling, and deterministic disposal without ghost tray icons.
   - Test suite expanded to 363 tests (302 unit + 61 integration, 0 failures) with comprehensive coverage for geometry calculations, single-instance coordination, IPC signaling, window bounds debouncing, and tray service lifecycle.
+- [x] **Testing, Accessibility, Performance & Hardening (Phase 12)**:
+  - Single-instance & IPC hardening: safe Named Pipe server cancellation, graceful disposal order, malformed payload resilience, timeout handling, and multiple sequential activations.
+  - Geometry and bounds hardening: robust handling of NaN, Infinity, negative/zero dimensions, and title-bar vertical clamping to active monitor work areas.
+  - Placement persistence & exit flushing: debounced window movement flushes on window close and application exit, preventing dropped placements when exiting quickly after moving.
+  - Resource cleanup: unsubscribed window LocationChanged/SizeChanged events on window close, added IDisposable to `MainWindowViewModel` to clean up child ViewModel event subscriptions, and made `SystemTrayService` disposal strictly idempotent with rollback on partial initialization failures.
+  - Accessibility & UI Automation: added `AutomationProperties.Name`, `AutomationProperties.HelpText`, and `AutomationProperties.AutomationId` across all views (`MainWindow`, `WidgetWindow`, `CalendarView`, `NotesView`, `SettingsView`).
+  - Added computed `AccessibleDescription` on `CalendarDayModel` providing rich date, today, and event status without relying exclusively on color.
+  - Added visible high-contrast keyboard focus indicators (`IsKeyboardFocused`) to sidebar buttons, header caption buttons, and danger action buttons.
+  - Added keyboard default/cancel actions (`IsDefault="True"`, `IsCancel="True"`) to modal confirmation dialogs in Calendar, Notes, and Settings.
+  - Reduced-motion path implemented in `WidgetWindow` DetailTray using `SystemParameters.ClientAreaAnimation`, bypassing animations when OS animations are turned off.
+  - Concurrency & lifecycle integration test suite: 74 integration tests + 325 unit tests (399 total, 0 failures), covering multi-monitor geometries, disconnected monitor fallback, restart persistence, IPC errors, and concurrent settings/placement updates.
+  - Build verified with 0 warnings, 0 errors, and formatting verification passes.
 
 ---
 
 ## Next Implementation Target
 
-### Phase 12 — Testing, Accessibility & Polish
+### Phase 13 — Packaging & Release
 
-- Comprehensive unit test expansion across edge cases.
-- Persistence and lifecycle integration tests.
-- UI/application-level validation.
-- Accessibility compliance (WCAG 2.1 AA, high-visibility focus indicators, screen reader AutomationProperties).
-- Keyboard navigation refinement across all application views.
-- Visual consistency and reduced-motion compliance.
-- Performance profiling and edge-case hardening.
+- Production Release configuration build.
+- Self-contained / framework-dependent packaging.
+- Distribution installer preparation.
+- Version numbering and release documentation.
+- GitHub Actions release workflow.
 
 ---
 
-## Explicitly Out of Scope for Phase 12
+## Explicitly Out of Scope for Phase 13
 
-Do NOT implement during Phase 12:
-- Packaging, installers, and release automation (Planned Phase 13)
+Do NOT implement during Phase 13:
 - Cloud synchronization, networking, telemetry (Prohibited by Architecture)
+- Unrelated feature changes or architecture rewrites

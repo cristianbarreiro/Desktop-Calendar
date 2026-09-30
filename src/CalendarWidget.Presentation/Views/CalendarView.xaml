@@ -46,6 +46,8 @@
                         Margin="0,0,12,0"
                         ToolTip="Go to today"
                         AutomationProperties.Name="Go to today"
+                        AutomationProperties.AutomationId="CalendarTodayButton"
+                        AutomationProperties.HelpText="Jump to current date"
                         Focusable="True" />
                 <Button Command="{Binding PreviousMonthCommand}"
                         Content="‹"
@@ -56,6 +58,7 @@
                         Margin="0,0,4,0"
                         ToolTip="Previous month"
                         AutomationProperties.Name="Previous month"
+                        AutomationProperties.AutomationId="CalendarPrevMonthButton"
                         Focusable="True" />
                 <Button Command="{Binding NextMonthCommand}"
                         Content="›"
@@ -65,6 +68,7 @@
                         Padding="0"
                         ToolTip="Next month"
                         AutomationProperties.Name="Next month"
+                        AutomationProperties.AutomationId="CalendarNextMonthButton"
                         Focusable="True" />
             </StackPanel>
         </Grid>
@@ -147,7 +151,7 @@
                                         Cursor="Hand"
                                         Focusable="True"
                                         FocusVisualStyle="{x:Null}"
-                                        AutomationProperties.Name="{Binding Date, StringFormat='{}{0:MMMM d, yyyy}'}"
+                                        AutomationProperties.Name="{Binding AccessibleDescription}"
                                         ToolTip="{Binding Date, StringFormat='{}{0:dddd, MMMM d, yyyy}'}">
                                     <Button.Template>
                                         <ControlTemplate TargetType="Button">
@@ -323,7 +327,9 @@
                             HorizontalAlignment="Stretch"
                             Margin="0,0,0,16"
                             ToolTip="Schedule a new event for the selected day"
-                            AutomationProperties.Name="Add event button">
+                            AutomationProperties.Name="Add event"
+                            AutomationProperties.AutomationId="AddEventButton"
+                            AutomationProperties.HelpText="Schedule a new event for the selected day">
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
                                 <Style.Triggers>
@@ -605,12 +611,15 @@
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Margin="0,0,8,0"
                                 Padding="16,6"
-                                AutomationProperties.Name="Cancel event form" />
+                                IsCancel="True"
+                                AutomationProperties.Name="Cancel event form"
+                                AutomationProperties.AutomationId="CancelEventButton" />
                         <Button Content="Save"
                                 Command="{Binding SaveEventFormCommand}"
                                 Style="{DynamicResource AccentButtonStyle}"
                                 Padding="20,6"
-                                AutomationProperties.Name="Save event" />
+                                AutomationProperties.Name="Save event"
+                                AutomationProperties.AutomationId="SaveEventButton" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -663,7 +672,9 @@
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Margin="0,0,8,0"
                                 Padding="16,6"
-                                AutomationProperties.Name="Cancel delete event" />
+                                IsCancel="True"
+                                AutomationProperties.Name="Cancel delete event"
+                                AutomationProperties.AutomationId="CancelDeleteEventButton" />
                         <Button Content="Delete"
                                 Command="{Binding ConfirmDeleteEventCommand}"
                                 Background="#D83B01"
@@ -672,7 +683,9 @@
                                 FontWeight="SemiBold"
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Padding="20,6"
-                                AutomationProperties.Name="Confirm delete event" />
+                                IsDefault="True"
+                                AutomationProperties.Name="Confirm delete event"
+                                AutomationProperties.AutomationId="ConfirmDeleteEventButton" />
                     </StackPanel>
                 </StackPanel>
             </Border>

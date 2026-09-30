@@ -109,19 +109,18 @@ This document serves as the canonical source of truth for project phase definiti
   - Per-Monitor V2 DPI scaling awareness
   - System tray icon and minimize-to-tray integration
 
-### Phase 12 — Testing & Polish
-- **Status**: NEXT
+### Phase 12 — Testing, Accessibility, Performance & Hardening
+- **Status**: COMPLETED
 - **Scope**:
-  - Comprehensive unit test expansion
-  - Persistence and lifecycle integration tests
-  - UI/application-level validation
-  - Accessibility compliance (WCAG 2.1 AA, high-visibility focus, screen reader names)
-  - Keyboard navigation refinement
-  - Visual consistency and reduced-motion compliance
-  - Performance profiling and edge-case hardening
+  - Comprehensive unit test expansion (Single-instance IPC edge cases, bounds validation, tray idempotency, accessibility labels)
+  - Integration test suite for window placement persistence, multi-monitor geometry, disconnected monitor recovery, debounced dragging, single-instance lifecycle, and settings/placement concurrency
+  - Accessibility audit (AutomationProperties Name, HelpText, AutomationId, accessible day descriptions for screen readers, visible high-contrast focus rings, default/cancel dialog keys)
+  - Reduced-motion integration via `SystemParameters.ClientAreaAnimation`
+  - Lifecycle hardening, graceful IPC shutdown, and deterministic resource disposal
+  - Elimination of event handler and ViewModel memory leaks
 
 ### Phase 13 — Packaging & Release
-- **Status**: PLANNED
+- **Status**: NEXT
 - **Scope**:
   - Production Release configuration build
   - Self-contained / framework-dependent packaging

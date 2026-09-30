@@ -3,8 +3,8 @@
 ## Overview
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
-- **Product Implementation**: In Progress (Phase 11 complete)
-- **Next Phase**: Phase 12 — Testing, Accessibility & Polish
+- **Product Implementation**: In Progress (Phase 12 complete)
+- **Next Phase**: Phase 13 — Packaging & Release
 - **Current Date**: 2026-09-30
 
 ---
@@ -25,8 +25,8 @@
 | **Phase 9** | Product Implementation | Notes Management | **COMPLETED** |
 | **Phase 10** | Product Implementation | Settings & Appearance | **COMPLETED** |
 | **Phase 11** | Product Implementation | Windows OS Integration | **COMPLETED** |
-| **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **NEXT** |
-| **Phase 13** | Product Implementation | Packaging & Distribution | **PLANNED** |
+| **Phase 12** | Product Implementation | Testing, Accessibility & Polish | **COMPLETED** |
+| **Phase 13** | Product Implementation | Packaging & Distribution | **NEXT** |
 
 ---
 
@@ -141,9 +141,9 @@
 
 ### Testing & QA
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
-- [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite)
-- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, and system tray lifecycle
-- [x] 363 automated tests passing (302 unit tests, 61 integration tests, 0 failures)
+- [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite + WPF application lifecycle)
+- [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, system tray lifecycle, multi-monitor geometry, IPC error handling, malformed payloads, concurrent settings/placement updates, accessible day descriptions, and modal keyboard bindings.
+- [x] 399 automated tests passing (325 unit tests, 74 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -155,9 +155,8 @@
 ---
 
 ## Current Priorities
-1. **Phase 12 — Testing, Accessibility & Polish**:
-   - Comprehensive unit test expansion across edge cases.
-   - Persistence and lifecycle integration tests.
-   - Accessibility compliance (WCAG 2.1 AA, high-visibility focus, screen reader names).
-   - Visual consistency and reduced-motion compliance.
-   - Performance profiling and edge-case hardening.
+1. **Phase 13 — Packaging & Release**:
+   - Production Release configuration build.
+   - Self-contained / framework-dependent packaging.
+   - Distribution installer preparation.
+   - Version numbering and release documentation.

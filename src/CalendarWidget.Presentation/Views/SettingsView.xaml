@@ -36,6 +36,10 @@
                                               Margin="{TemplateBinding Padding}" />
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#FFFFFF" />
+                                <Setter TargetName="border" Property="BorderThickness" Value="2" />
+                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="border" Property="Background" Value="#C81E1E" />
                                 <Setter TargetName="border" Property="BorderBrush" Value="#C81E1E" />
@@ -94,7 +98,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="✔" Foreground="#4ECB71" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding SuccessMessage}" Foreground="#E6F4EA" Style="{DynamicResource BodySubtleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                            <Button Grid.Column="2" Command="{Binding DismissSuccessMessageCommand}" Content="✕" Style="{DynamicResource HeaderActionButtonStyle}" Padding="4,0" ToolTip="Dismiss" AutomationProperties.Name="Dismiss success message" />
+                            <Button Grid.Column="2" Command="{Binding DismissSuccessMessageCommand}" Content="✕" Style="{DynamicResource HeaderActionButtonStyle}" Padding="4,0" ToolTip="Dismiss" AutomationProperties.Name="Dismiss success message" AutomationProperties.AutomationId="BtnDismissSuccess" />
                         </Grid>
                     </Border>
 
@@ -113,7 +117,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="⚠️" Foreground="#F7630C" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="#FDE7E7" Style="{DynamicResource BodySubtleTextBlockStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                            <Button Grid.Column="2" Command="{Binding DismissErrorMessageCommand}" Content="✕" Style="{DynamicResource HeaderActionButtonStyle}" Padding="4,0" ToolTip="Dismiss" AutomationProperties.Name="Dismiss error message" />
+                            <Button Grid.Column="2" Command="{Binding DismissErrorMessageCommand}" Content="✕" Style="{DynamicResource HeaderActionButtonStyle}" Padding="4,0" ToolTip="Dismiss" AutomationProperties.Name="Dismiss error message" AutomationProperties.AutomationId="BtnDismissError" />
                         </Grid>
                     </Border>
                 </StackPanel>
@@ -150,7 +154,9 @@
                                           SelectedItem="{Binding SelectedTheme}"
                                           Width="140"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="Theme selection" />
+                                          AutomationProperties.Name="Theme selection"
+                                          AutomationProperties.AutomationId="CmbTheme"
+                                          AutomationProperties.HelpText="Select theme: Dark, Light, or System" />
                             </Grid>
 
                             <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,2,0,14" />
@@ -175,7 +181,9 @@
                                             IsSnapToTickEnabled="True"
                                             Width="140"
                                             VerticalAlignment="Center"
-                                            AutomationProperties.Name="Widget opacity slider" />
+                                            AutomationProperties.Name="Widget opacity slider"
+                                            AutomationProperties.AutomationId="SldWidgetOpacity"
+                                            AutomationProperties.HelpText="Adjusts opacity from 50% to 100%" />
                                     <TextBlock Text="{Binding WidgetOpacityPercent, StringFormat='{}{0}%'}"
                                                Style="{DynamicResource BodyRegularTextBlockStyle}"
                                                FontWeight="SemiBold"
@@ -203,7 +211,9 @@
                                 <CheckBox Grid.Column="1"
                                           IsChecked="{Binding AlwaysOnTop}"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="Always on top" />
+                                          AutomationProperties.Name="Always on top"
+                                          AutomationProperties.AutomationId="ChkAlwaysOnTop"
+                                          AutomationProperties.HelpText="Keep widget pinned on top of other windows" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -237,7 +247,9 @@
                                           SelectedItem="{Binding SelectedFirstDayOfWeek}"
                                           Width="140"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="First day of week selection" />
+                                          AutomationProperties.Name="First day of week selection"
+                                          AutomationProperties.AutomationId="CmbFirstDayOfWeek"
+                                          AutomationProperties.HelpText="Select Monday or Sunday as first day of week" />
                             </Grid>
 
                             <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,2,0,14" />
@@ -259,7 +271,9 @@
                                           SelectedItem="{Binding SelectedTimeFormat}"
                                           Width="140"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="Time format selection" />
+                                          AutomationProperties.Name="Time format selection"
+                                          AutomationProperties.AutomationId="CmbTimeFormat"
+                                          AutomationProperties.HelpText="Select 12-hour or 24-hour time format" />
                             </Grid>
 
                             <Separator Background="{DynamicResource BorderDividerBrush}" Margin="0,2,0,14" />
@@ -281,7 +295,9 @@
                                           SelectedItem="{Binding SelectedDateFormat}"
                                           Width="140"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="Date format selection" />
+                                          AutomationProperties.Name="Date format selection"
+                                          AutomationProperties.AutomationId="CmbDateFormat"
+                                          AutomationProperties.HelpText="Select date format pattern" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -312,7 +328,9 @@
                                 <CheckBox Grid.Column="1"
                                           IsChecked="{Binding StartWithWindows}"
                                           VerticalAlignment="Center"
-                                          AutomationProperties.Name="Start with Windows" />
+                                          AutomationProperties.Name="Start with Windows"
+                                          AutomationProperties.AutomationId="ChkStartWithWindows"
+                                          AutomationProperties.HelpText="Launch widget on Windows startup" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -336,16 +354,22 @@
                                         Content="Export Data"
                                         Style="{DynamicResource StandardButtonStyle}"
                                         Margin="0,0,10,0"
-                                        AutomationProperties.Name="Export data backup" />
+                                        AutomationProperties.Name="Export data backup"
+                                        AutomationProperties.AutomationId="BtnExportData"
+                                        AutomationProperties.HelpText="Export calendar data and notes to a JSON backup file" />
                                 <Button Command="{Binding ImportDataCommand}"
                                         Content="Import Data"
                                         Style="{DynamicResource StandardButtonStyle}"
                                         Margin="0,0,10,0"
-                                        AutomationProperties.Name="Import data backup" />
+                                        AutomationProperties.Name="Import data backup"
+                                        AutomationProperties.AutomationId="BtnImportData"
+                                        AutomationProperties.HelpText="Import and restore calendar data and notes from a JSON backup file" />
                                 <Button Command="{Binding RequestResetDataCommand}"
                                         Content="Reset Database"
                                         Style="{StaticResource DangerActionButtonStyle}"
-                                        AutomationProperties.Name="Reset database" />
+                                        AutomationProperties.Name="Reset database"
+                                        AutomationProperties.AutomationId="BtnRequestResetData"
+                                        AutomationProperties.HelpText="Permanently clear all calendar events and notes" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -390,11 +414,15 @@
                                 Content="Cancel"
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Margin="0,0,10,0"
-                                AutomationProperties.Name="Cancel data reset" />
+                                IsCancel="True"
+                                AutomationProperties.Name="Cancel data reset"
+                                AutomationProperties.AutomationId="BtnCancelResetData" />
                         <Button Command="{Binding ConfirmResetDataCommand}"
                                 Content="Reset Everything"
                                 Style="{StaticResource DangerActionButtonStyle}"
-                                AutomationProperties.Name="Confirm reset everything" />
+                                IsDefault="True"
+                                AutomationProperties.Name="Confirm reset everything"
+                                AutomationProperties.AutomationId="BtnConfirmResetData" />
                     </StackPanel>
                 </StackPanel>
             </Border>

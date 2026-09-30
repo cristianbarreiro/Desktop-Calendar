@@ -297,3 +297,48 @@
   - Formatting: `dotnet format --verify-no-changes` passed.
   - Git diff check: passed.
   - Phase 11 complete; Phase 12 is NEXT.
+
+## 2026-09-30 — Phase 12: Testing, Accessibility, Performance & Hardening
+
+### Activities
+- **Single-Instance & IPC Hardening (`SingleInstanceCoordinator`)**:
+  - Hardened asynchronous Named Pipe server loop against ObjectDisposedException and race conditions on application shutdown.
+  - Added graceful listener task drain with timeout before CancellationTokenSource disposal.
+  - Hardened Named Pipe reader against malformed payloads and non-"ACTIVATE" messages, ensuring rogue clients cannot crash the listener.
+  - Added unit tests for unavailable server, timeout, malformed payload, repeated activations, and clean listener shutdown.
+- **Window Geometry & Display Bounds Hardening (`WindowBoundsHelper`)**:
+  - Handled NaN, Infinity, and zero/negative dimensions by applying safe fallbacks (800x600) and clamping to visible display work areas.
+  - Implemented vertical clamping ensuring at least 32 DIPs of window title bar remain visible within active display bounds.
+  - Added unit tests verifying robust recovery for non-finite dimensions, invalid sizes, and display boundary constraints.
+- **Window Placement Persistence & Exit Flushing (`WindowPlacementService`, `App.xaml.cs`, `WindowManager`)**:
+  - Wired `FlushPendingSaveAsync()` to window `Closed` events and application `OnExit` shutdown sequence.
+  - Ensured window moves occurring within the 400ms debounce window before close or exit are reliably saved to disk.
+  - Hardened debounced save worker tasks against ObjectDisposedException during disposal.
+- **Resource Cleanup & Leak Prevention**:
+  - Unsubscribed `LocationChanged` and `SizeChanged` event handlers in `MainWindow.xaml.cs` and `WidgetWindow.xaml.cs` upon window `Closed`.
+  - Implemented `IDisposable` on `MainWindowViewModel` to cleanly propagate disposal to child ViewModels (`CalendarViewModel`, `NotesViewModel`), unsubscribing from settings, data, and format notifications.
+  - Made `SystemTrayService` disposal strictly idempotent with rollback cleanup on partial initialization failure.
+  - Guarded tray click and context menu handlers against executing during application shutdown.
+- **Accessibility & UI Automation Audit**:
+  - Added `AutomationProperties.Name`, `AutomationProperties.HelpText`, and `AutomationProperties.AutomationId` across `MainWindow.xaml`, `WidgetWindow.xaml`, `CalendarView.xaml`, `NotesView.xaml`, and `SettingsView.xaml`.
+  - Added `AccessibleDescription` on `CalendarDayModel` conveying date, today status, and event indicators in spoken text without relying solely on color.
+  - Added visible high-contrast keyboard focus indicators (`IsKeyboardFocused` triggers) to navigation sidebar buttons, window caption buttons, and modal danger buttons.
+  - Set `IsDefault="True"` and `IsCancel="True"` on all modal dialog actions (Event Create/Edit/Delete, Note Delete, Settings Reset) ensuring Escape and Enter work predictably.
+  - Implemented reduced-motion support in `WidgetWindow.xaml` DetailTray using `SystemParameters.ClientAreaAnimation`: when animations are disabled in Windows settings, tray expands and collapses instantly without Storyboard animation.
+- **Comprehensive Automated Test Expansion**:
+  - Expanded unit test suite from 302 to 325 tests (+23 unit tests):
+    - `SingleInstanceCoordinatorTests`: tests for unavailable server, timeout, malformed payload, repeated activations, and shutdown drain.
+    - `WindowBoundsHelperTests`: tests for NaN/Infinity, zero/negative sizes, and bottom title-bar clamping.
+    - `SystemTrayServiceTests`: tests for idempotent initialization and uninitialized disposal.
+    - `CalendarDayModelTests`: tests for screen-reader accessible descriptions across all day states.
+  - Expanded integration test suite from 61 to 74 tests (+13 integration tests):
+    - `WindowPlacementIntegrationTests`: restart bounds restoration, offscreen bounds recovery, negative multi-monitor preservation, disconnected monitor fallback, and drag-close flushing.
+    - `SingleInstanceAndLifecycleIntegrationTests`: primary mutex acquisition, secondary signal and exit, mutex release on shutdown, window switching, minimize to tray without exit, and close triggering shutdown.
+    - `SettingsAndPlacementConcurrencyIntegrationTests`: concurrent user settings and placement saves, in-flight window movements, and shutdown flushing.
+  - Total automated tests expanded from 363 to 399 tests (325 unit + 74 integration, 0 failures).
+- **Validation**:
+  - Build: 0 errors, 0 warnings (Debug & Release).
+  - Test suite: 399/399 passed (Debug & Release).
+  - Formatting: `dotnet format --verify-no-changes` passed.
+  - Phase 12 complete; Phase 13 is NEXT.
+

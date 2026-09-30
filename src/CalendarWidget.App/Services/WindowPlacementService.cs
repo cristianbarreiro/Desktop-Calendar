@@ -186,8 +186,17 @@ public sealed class WindowPlacementService : IWindowPlacementService
 
         if (oldCts is not null)
         {
-            await oldCts.CancelAsync().ConfigureAwait(false);
-            oldCts.Dispose();
+            try
+            {
+                await oldCts.CancelAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                oldCts.Dispose();
+            }
         }
 
         if (toSave is not null)
@@ -207,16 +216,34 @@ public sealed class WindowPlacementService : IWindowPlacementService
             }
 
             _disposed = true;
-            _debounceCts?.Cancel();
-            _debounceCts?.Dispose();
-            _debounceCts = null;
+            try
+            {
+                _debounceCts?.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            finally
+            {
+                _debounceCts?.Dispose();
+                _debounceCts = null;
+            }
         }
     }
 
     private void ScheduleDebouncedSaveLocked()
     {
-        _debounceCts?.Cancel();
-        _debounceCts?.Dispose();
+        try
+        {
+            _debounceCts?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        finally
+        {
+            _debounceCts?.Dispose();
+        }
 
         _debounceCts = new CancellationTokenSource();
         CancellationToken token = _debounceCts.Token;
@@ -230,7 +257,14 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 UserSettings? toSave = null;
                 lock (_lock)
                 {
-                    if (token.IsCancellationRequested || _disposed)
+                    try
+                    {
+                        if (token.IsCancellationRequested || _disposed)
+                        {
+                            return;
+                        }
+                    }
+                    catch (ObjectDisposedException)
                     {
                         return;
                     }
@@ -247,9 +281,9 @@ public sealed class WindowPlacementService : IWindowPlacementService
                     await _settingsService.SaveSettingsAsync(toSave, token).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException)
+            catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
             {
-                // Expected when new changes coalesce
+                // Expected when new changes coalesce or during disposal
             }
         }, token);
     }

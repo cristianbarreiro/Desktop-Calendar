@@ -41,6 +41,7 @@ public sealed class SystemTrayService : ITrayService
     public bool IsVisible => _notifyIcon is not null && _notifyIcon.Visible;
 
     /// <inheritdoc />
+    /// <inheritdoc />
     public void Initialize()
     {
         lock (_lock)
@@ -50,21 +51,29 @@ public sealed class SystemTrayService : ITrayService
                 return;
             }
 
-            _trayIcon = CreateCalendarIcon();
-            _contextMenu = CreateContextMenu();
-
-            _notifyIcon = new NotifyIcon
+            try
             {
-                Text = "Desktop Calendar",
-                Icon = _trayIcon,
-                ContextMenuStrip = _contextMenu,
-                Visible = true,
-            };
+                _trayIcon = CreateCalendarIcon();
+                _contextMenu = CreateContextMenu();
 
-            _notifyIcon.MouseClick += OnTrayIconMouseClick;
-            _notifyIcon.DoubleClick += OnTrayIconDoubleClick;
+                _notifyIcon = new NotifyIcon
+                {
+                    Text = "Desktop Calendar",
+                    Icon = _trayIcon,
+                    ContextMenuStrip = _contextMenu,
+                    Visible = true,
+                };
 
-            _isInitialized = true;
+                _notifyIcon.MouseClick += OnTrayIconMouseClick;
+                _notifyIcon.DoubleClick += OnTrayIconDoubleClick;
+
+                _isInitialized = true;
+            }
+            catch
+            {
+                DisposeInternal();
+                throw;
+            }
         }
     }
 
@@ -79,33 +88,37 @@ public sealed class SystemTrayService : ITrayService
             }
 
             _disposed = true;
+            DisposeInternal();
+        }
+    }
 
-            if (_notifyIcon is not null)
-            {
-                _notifyIcon.MouseClick -= OnTrayIconMouseClick;
-                _notifyIcon.DoubleClick -= OnTrayIconDoubleClick;
-                _notifyIcon.Visible = false;
-                _notifyIcon.Dispose();
-                _notifyIcon = null;
-            }
+    private void DisposeInternal()
+    {
+        if (_notifyIcon is not null)
+        {
+            _notifyIcon.MouseClick -= OnTrayIconMouseClick;
+            _notifyIcon.DoubleClick -= OnTrayIconDoubleClick;
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            _notifyIcon = null;
+        }
 
-            if (_contextMenu is not null)
-            {
-                _contextMenu.Dispose();
-                _contextMenu = null;
-            }
+        if (_contextMenu is not null)
+        {
+            _contextMenu.Dispose();
+            _contextMenu = null;
+        }
 
-            if (_trayIcon is not null)
-            {
-                _trayIcon.Dispose();
-                _trayIcon = null;
-            }
+        if (_trayIcon is not null)
+        {
+            _trayIcon.Dispose();
+            _trayIcon = null;
         }
     }
 
     private void OnTrayIconMouseClick(object? sender, MouseEventArgs e)
     {
-        if (e.Button == MouseButtons.Left)
+        if (e.Button == MouseButtons.Left && !_lifetimeService.IsShuttingDown)
         {
             ActivatePreferredWindow();
         }
@@ -113,11 +126,19 @@ public sealed class SystemTrayService : ITrayService
 
     private void OnTrayIconDoubleClick(object? sender, EventArgs e)
     {
-        ActivatePreferredWindow();
+        if (!_lifetimeService.IsShuttingDown)
+        {
+            ActivatePreferredWindow();
+        }
     }
 
     private void ActivatePreferredWindow()
     {
+        if (_lifetimeService.IsShuttingDown)
+        {
+            return;
+        }
+
         if (_windowManager.IsFullApplicationVisible)
         {
             _windowManager.ShowFullApplication();
@@ -132,8 +153,20 @@ public sealed class SystemTrayService : ITrayService
     {
         ContextMenuStrip menu = new();
 
-        ToolStripMenuItem openAppItem = new("Open Application", null, (s, e) => _windowManager.ShowFullApplication());
-        ToolStripMenuItem openWidgetItem = new("Open Widget", null, (s, e) => _windowManager.ShowWidget());
+        ToolStripMenuItem openAppItem = new("Open Application", null, (s, e) =>
+        {
+            if (!_lifetimeService.IsShuttingDown)
+            {
+                _windowManager.ShowFullApplication();
+            }
+        });
+        ToolStripMenuItem openWidgetItem = new("Open Widget", null, (s, e) =>
+        {
+            if (!_lifetimeService.IsShuttingDown)
+            {
+                _windowManager.ShowWidget();
+            }
+        });
         ToolStripSeparator separator = new();
         ToolStripMenuItem exitItem = new("Exit", null, (s, e) => _lifetimeService.Shutdown());
 

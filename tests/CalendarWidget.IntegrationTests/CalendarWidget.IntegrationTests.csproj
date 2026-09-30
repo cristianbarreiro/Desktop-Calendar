@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -19,11 +20,14 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="System.IO" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CalendarWidget.App\CalendarWidget.App.csproj" />
     <ProjectReference Include="..\..\src\CalendarWidget.Core\CalendarWidget.Core.csproj" />
     <ProjectReference Include="..\..\src\CalendarWidget.Infrastructure\CalendarWidget.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\CalendarWidget.Presentation\CalendarWidget.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

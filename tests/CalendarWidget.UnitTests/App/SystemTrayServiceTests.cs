@@ -54,4 +54,27 @@ public sealed class SystemTrayServiceTests
         sut.Dispose();
         sut.Invoking(s => s.Dispose()).Should().NotThrow();
     }
+
+    [Fact]
+    public void Initialize_CalledMultipleTimes_IsIdempotentAndDoesNotThrow()
+    {
+        // Arrange
+        using SystemTrayService sut = new(_windowManager, _lifetimeService);
+
+        // Act & Assert
+        sut.Initialize();
+        sut.Invoking(s => s.Initialize()).Should().NotThrow();
+        sut.IsVisible.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Dispose_WhenNeverInitialized_DoesNotThrow()
+    {
+        // Arrange
+        SystemTrayService sut = new(_windowManager, _lifetimeService);
+
+        // Act & Assert
+        sut.Invoking(s => s.Dispose()).Should().NotThrow();
+        sut.IsVisible.Should().BeFalse();
+    }
 }

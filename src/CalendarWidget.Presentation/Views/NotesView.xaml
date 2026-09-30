@@ -62,8 +62,7 @@
                                    Text="🔍"
                                    FontSize="12"
                                    Foreground="{DynamicResource TextDisabledBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="4,0,6,0" />
+                                   VerticalAlignment="Center" />
 
                         <!-- Search Input -->
                         <TextBox Grid.Column="1"
@@ -74,7 +73,9 @@
                                  VerticalAlignment="Center"
                                  Padding="0"
                                  MaxLength="100"
-                                 AutomationProperties.Name="Search notes input" />
+                                 AutomationProperties.Name="Search notes input"
+                                 AutomationProperties.AutomationId="NoteSearchInput"
+                                 AutomationProperties.HelpText="Type to search notes by title or content" />
 
                         <!-- Watermark / Placeholder -->
                         <TextBlock Grid.Column="1"
@@ -87,7 +88,7 @@
                                     <Setter Property="Visibility" Value="Collapsed" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding SearchText}" Value="">
-                                            <Setter Property="Visibility" Value="Visible" />
+                                             <Setter Property="Visibility" Value="Visible" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -103,6 +104,7 @@
                                 Margin="2,0,0,0"
                                 ToolTip="Clear search"
                                 AutomationProperties.Name="Clear search"
+                                AutomationProperties.AutomationId="ClearSearchButton"
                                 Visibility="{Binding IsSearching, Converter={StaticResource BoolToVisConverter}}" />
                     </Grid>
                 </Border>
@@ -113,7 +115,8 @@
                         Style="{DynamicResource AccentButtonStyle}"
                         Padding="16,6"
                         ToolTip="Create a new note (Ctrl+N)"
-                        AutomationProperties.Name="Create new note" />
+                        AutomationProperties.Name="Create new note"
+                        AutomationProperties.AutomationId="NewNoteButton" />     AutomationProperties.Name="Create new note" />
             </StackPanel>
         </Grid>
 
@@ -223,9 +226,11 @@
                              Background="Transparent"
                              BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                             AutomationProperties.Name="Notes list">
+                             AutomationProperties.Name="Notes list"
+                             AutomationProperties.AutomationId="NotesListBox">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
                                 <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
                                 <Setter Property="Padding" Value="10,8" />
@@ -372,13 +377,16 @@
                                         Style="{DynamicResource StandardButtonStyle}"
                                         Margin="0,0,8,0"
                                         Padding="16,6"
-                                        AutomationProperties.Name="Cancel editing note" />
+                                        IsCancel="True"
+                                        AutomationProperties.Name="Cancel editing note"
+                                        AutomationProperties.AutomationId="CancelNoteButton" />
                                 <Button Content="Save"
                                         Command="{Binding SaveNoteCommand}"
                                         Style="{DynamicResource AccentButtonStyle}"
                                         Padding="20,6"
                                         IsEnabled="{Binding IsSaving, Converter={StaticResource BoolToVisConverter}, ConverterParameter=invert}"
-                                        AutomationProperties.Name="Save note" />
+                                        AutomationProperties.Name="Save note"
+                                        AutomationProperties.AutomationId="SaveNoteButton" />
                             </StackPanel>
                         </DockPanel>
                     </Grid>
@@ -567,7 +575,9 @@
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Margin="0,0,8,0"
                                 Padding="16,6"
-                                AutomationProperties.Name="Cancel delete note" />
+                                IsCancel="True"
+                                AutomationProperties.Name="Cancel delete note"
+                                AutomationProperties.AutomationId="CancelDeleteNoteButton" />
                         <Button Content="Delete"
                                 Command="{Binding ConfirmDeleteCommand}"
                                 Background="#D83B01"
@@ -576,7 +586,9 @@
                                 FontWeight="SemiBold"
                                 Style="{DynamicResource StandardButtonStyle}"
                                 Padding="20,6"
-                                AutomationProperties.Name="Confirm delete note" />
+                                IsDefault="True"
+                                AutomationProperties.Name="Confirm delete note"
+                                AutomationProperties.AutomationId="ConfirmDeleteNoteButton" />
                     </StackPanel>
                 </StackPanel>
             </Border>

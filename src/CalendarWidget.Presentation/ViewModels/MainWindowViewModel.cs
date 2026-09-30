@@ -7,7 +7,7 @@ namespace CalendarWidget.Presentation.ViewModels;
 /// <summary>
 /// ViewModel for the main application window shell.
 /// </summary>
-public sealed partial class MainWindowViewModel : ViewModelBase
+public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly IWindowManager _windowManager;
     private readonly CalendarViewModel _calendarViewModel;
@@ -78,5 +78,12 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     public void SwitchToWidget()
     {
         _windowManager.ShowWidget();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _calendarViewModel.Dispose();
+        _notesViewModel.Dispose();
     }
 }

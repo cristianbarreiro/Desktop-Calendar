@@ -171,6 +171,15 @@ public sealed class WindowManager : IWindowManager
             _mainWindow = null;
         }
 
+        try
+        {
+            _placementService?.FlushPendingSaveAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Ignore persistence errors on close
+        }
+
         if (!_isSwitching)
         {
             _lifetimeService.Shutdown();
@@ -183,6 +192,15 @@ public sealed class WindowManager : IWindowManager
         {
             _widgetWindow.Closed -= OnWidgetWindowClosed;
             _widgetWindow = null;
+        }
+
+        try
+        {
+            _placementService?.FlushPendingSaveAsync().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            // Ignore persistence errors on close
         }
 
         if (!_isSwitching)
