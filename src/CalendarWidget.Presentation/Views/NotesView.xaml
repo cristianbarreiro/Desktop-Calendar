@@ -116,7 +116,7 @@
                         Padding="16,6"
                         ToolTip="Create a new note (Ctrl+N)"
                         AutomationProperties.Name="Create new note"
-                        AutomationProperties.AutomationId="NewNoteButton" />     AutomationProperties.Name="Create new note" />
+                        AutomationProperties.AutomationId="NewNoteButton" />
             </StackPanel>
         </Grid>
 
@@ -478,7 +478,7 @@
                                      Background="Transparent"
                                      BorderThickness="0"
                                      Foreground="{DynamicResource TextPrimaryBrush}"
-                                     Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                     FontSize="{StaticResource FontSizeBodyRegular}"
                                      Padding="0"
                                      AutomationProperties.Name="Note content viewer" />
                         </ScrollViewer>
