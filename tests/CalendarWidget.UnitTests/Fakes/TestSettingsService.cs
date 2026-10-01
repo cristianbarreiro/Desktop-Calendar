@@ -44,4 +44,11 @@ public sealed class TestSettingsService : ISettingsService
         SavedHistory.Add(settings.Clone());
         SettingsChanged?.Invoke(this, _settings);
     }
+
+    public async Task MutateSettingsAsync(Action<UserSettings> mutator, CancellationToken cancellationToken = default)
+    {
+        UserSettings updated = _settings.Clone();
+        mutator(updated);
+        await SaveSettingsAsync(updated, cancellationToken);
+    }
 }

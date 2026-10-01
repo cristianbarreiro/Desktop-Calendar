@@ -61,7 +61,8 @@ public sealed class NotesViewRegressionTests
             }
         });
 
-        completed.Wait();
+        bool finished = completed.Wait(TimeSpan.FromSeconds(30));
+        finished.Should().BeTrue("STA queue action should finish within 30 seconds");
 
         if (exception is not null)
         {

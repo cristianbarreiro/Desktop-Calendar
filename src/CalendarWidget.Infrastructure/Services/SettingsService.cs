@@ -103,6 +103,37 @@ public sealed class SettingsService : ISettingsService, IDisposable
     }
 
     /// <inheritdoc />
+    public async Task MutateSettingsAsync(Action<UserSettings> mutator, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(mutator);
+
+        if (BeforeAcquireLockForTesting is not null)
+        {
+            await BeforeAcquireLockForTesting().ConfigureAwait(false);
+        }
+
+        await _saveLock.WaitAsync(cancellationToken);
+        try
+        {
+            UserSettings updated = CurrentSettings;
+            mutator(updated);
+            updated.Validate();
+
+            long version = Interlocked.Increment(ref _versionCounter);
+            await _repository.SaveSettingsAsync(updated, cancellationToken);
+            CurrentSettings = updated.Clone();
+            _lastSavedVersion = version;
+
+            LogSaved(_logger, null);
+            SettingsChanged?.Invoke(this, updated.Clone());
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         _saveLock.Dispose();

@@ -26,6 +26,13 @@ public interface ISettingsService
     Task SaveSettingsAsync(UserSettings settings, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Atomically mutates current settings under the persistence lock and saves them.
+    /// </summary>
+    /// <param name="mutator">Action modifying the latest settings snapshot.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    Task MutateSettingsAsync(Action<UserSettings> mutator, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Occurs when any application settings value changes.
     /// </summary>
     event EventHandler<UserSettings>? SettingsChanged;

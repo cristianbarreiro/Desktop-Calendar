@@ -11,3 +11,4 @@ using System.Windows;
 )]
 
 [assembly: InternalsVisibleTo("CalendarWidget.UnitTests")]
+[assembly: InternalsVisibleTo("CalendarWidget.IntegrationTests")]

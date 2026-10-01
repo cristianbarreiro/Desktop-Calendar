@@ -27,7 +27,16 @@ public sealed class WindowPlacementService : IWindowPlacementService
     private double? _pendingWidgetLeft;
     private double? _pendingWidgetTop;
 
-    private Task? _currentSaveTask;
+    private double? _lastAcceptedMainLeft;
+    private double? _lastAcceptedMainTop;
+    private double? _lastAcceptedMainWidth;
+    private double? _lastAcceptedMainHeight;
+
+    private double? _lastAcceptedWidgetLeft;
+    private double? _lastAcceptedWidgetTop;
+
+    private Task _activeSaveTask = Task.CompletedTask;
+    private bool _isSaveLoopRunning;
     private bool _disposed;
 
     /// <summary>
@@ -144,6 +153,11 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 return;
             }
 
+            _lastAcceptedMainLeft = left;
+            _lastAcceptedMainTop = top;
+            _lastAcceptedMainWidth = width;
+            _lastAcceptedMainHeight = height;
+
             _pendingMainLeft = left;
             _pendingMainTop = top;
             _pendingMainWidth = width;
@@ -168,6 +182,9 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 return;
             }
 
+            _lastAcceptedWidgetLeft = left;
+            _lastAcceptedWidgetTop = top;
+
             _pendingWidgetLeft = left;
             _pendingWidgetTop = top;
 
@@ -178,55 +195,37 @@ public sealed class WindowPlacementService : IWindowPlacementService
     /// <inheritdoc />
     public async Task FlushPendingSaveAsync()
     {
-        Task? activeSave;
-
-        lock (_lock)
+        while (true)
         {
-            if (_disposed)
+            Task saveTaskToAwait;
+            lock (_lock)
             {
-                return;
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _debounceTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                EnsureSaveLoopRunningLocked();
+                saveTaskToAwait = _activeSaveTask;
             }
 
-            _debounceTimer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-            activeSave = _currentSaveTask;
-        }
-
-        if (activeSave is not null)
-        {
             try
             {
-                await activeSave.ConfigureAwait(false);
+                await saveTaskToAwait.ConfigureAwait(false);
             }
             catch (Exception)
             {
-                // Background save failure logged/handled within active task
-            }
-        }
-
-        UserSettings? toSave = null;
-        lock (_lock)
-        {
-            if (_disposed)
-            {
-                return;
+                // Handled in SaveLoopAsync
             }
 
-            if (HasPendingChangesLocked())
-            {
-                toSave = BuildUpdatedSettingsLocked();
-                ClearPendingChangesLocked();
-            }
-        }
-
-        if (toSave is not null)
-        {
-            Task flushTask = ExecuteSaveAsync(toSave);
             lock (_lock)
             {
-                _currentSaveTask = flushTask;
+                if (_disposed || (!HasPendingChangesLocked() && !_isSaveLoopRunning))
+                {
+                    return;
+                }
             }
-
-            await flushTask.ConfigureAwait(false);
         }
     }
 
@@ -255,14 +254,23 @@ public sealed class WindowPlacementService : IWindowPlacementService
         {
             lock (_lock)
             {
-                return _currentSaveTask;
+                return _activeSaveTask;
             }
         }
     }
 
+    /// <summary>
+    /// Hook invoked before persisting placement, for deterministic concurrency testing.
+    /// </summary>
+    internal Func<Task>? BeforePersistHookForTesting { get; set; }
+
+    /// <summary>
+    /// Hook invoked after persisting placement, for deterministic concurrency testing.
+    /// </summary>
+    internal Func<Task>? AfterPersistHookForTesting { get; set; }
+
     private void OnDebounceTimerElapsed(object? state)
     {
-        UserSettings? toSave = null;
         lock (_lock)
         {
             if (_disposed || !HasPendingChangesLocked())
@@ -270,55 +278,122 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 return;
             }
 
-            toSave = BuildUpdatedSettingsLocked();
-            ClearPendingChangesLocked();
+            EnsureSaveLoopRunningLocked();
+        }
+    }
+
+    private void EnsureSaveLoopRunningLocked()
+    {
+        if (_disposed || !HasPendingChangesLocked())
+        {
+            return;
         }
 
-        if (toSave is not null)
+        if (!_isSaveLoopRunning)
         {
-            Task saveTask = ExecuteSaveAsync(toSave);
+            _isSaveLoopRunning = true;
+            _activeSaveTask = Task.Run(SaveLoopAsync);
+        }
+    }
+
+    private async Task SaveLoopAsync()
+    {
+        try
+        {
+            while (true)
+            {
+                PendingPlacement toSave;
+                lock (_lock)
+                {
+                    if (_disposed || !HasPendingChangesLocked())
+                    {
+                        _isSaveLoopRunning = false;
+                        return;
+                    }
+
+                    toSave = ExtractPendingChangesLocked();
+                }
+
+                try
+                {
+                    if (BeforePersistHookForTesting is not null)
+                    {
+                        await BeforePersistHookForTesting().ConfigureAwait(false);
+                    }
+
+                    await PersistPlacementAsync(toSave).ConfigureAwait(false);
+
+                    if (AfterPersistHookForTesting is not null)
+                    {
+                        await AfterPersistHookForTesting().ConfigureAwait(false);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Best-effort debounced persistence
+                }
+            }
+        }
+        finally
+        {
             lock (_lock)
             {
-                _currentSaveTask = saveTask;
+                _isSaveLoopRunning = false;
             }
         }
     }
 
-    private async Task ExecuteSaveAsync(UserSettings toSave)
+    private async Task PersistPlacementAsync(PendingPlacement toSave)
     {
-        try
+        await _settingsService.MutateSettingsAsync(settings =>
         {
-            await _settingsService.SaveSettingsAsync(toSave).ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            // Best-effort debounced persistence
-        }
+            if (toSave.MainLeft.HasValue) settings.MainWindowLeft = toSave.MainLeft.Value;
+            if (toSave.MainTop.HasValue) settings.MainWindowTop = toSave.MainTop.Value;
+            if (toSave.MainWidth.HasValue) settings.MainWindowWidth = toSave.MainWidth.Value;
+            if (toSave.MainHeight.HasValue) settings.MainWindowHeight = toSave.MainHeight.Value;
+
+            if (toSave.WidgetLeft.HasValue) settings.WidgetWindowLeft = toSave.WidgetLeft.Value;
+            if (toSave.WidgetTop.HasValue) settings.WidgetWindowTop = toSave.WidgetTop.Value;
+        }).ConfigureAwait(false);
     }
 
     private bool HasPendingChangesLocked()
     {
-        return _pendingMainLeft.HasValue ||
-               _pendingMainTop.HasValue ||
-               _pendingMainWidth.HasValue ||
-               _pendingMainHeight.HasValue ||
-               _pendingWidgetLeft.HasValue ||
-               _pendingWidgetTop.HasValue;
+        if (_pendingMainLeft.HasValue ||
+            _pendingMainTop.HasValue ||
+            _pendingMainWidth.HasValue ||
+            _pendingMainHeight.HasValue ||
+            _pendingWidgetLeft.HasValue ||
+            _pendingWidgetTop.HasValue)
+        {
+            return true;
+        }
+
+        UserSettings current = _settingsService.CurrentSettings;
+        if (_lastAcceptedMainLeft.HasValue && current.MainWindowLeft != _lastAcceptedMainLeft.Value) return true;
+        if (_lastAcceptedMainTop.HasValue && current.MainWindowTop != _lastAcceptedMainTop.Value) return true;
+        if (_lastAcceptedMainWidth.HasValue && current.MainWindowWidth != _lastAcceptedMainWidth.Value) return true;
+        if (_lastAcceptedMainHeight.HasValue && current.MainWindowHeight != _lastAcceptedMainHeight.Value) return true;
+        if (_lastAcceptedWidgetLeft.HasValue && current.WidgetWindowLeft != _lastAcceptedWidgetLeft.Value) return true;
+        if (_lastAcceptedWidgetTop.HasValue && current.WidgetWindowTop != _lastAcceptedWidgetTop.Value) return true;
+
+        return false;
     }
 
-    private UserSettings BuildUpdatedSettingsLocked()
+    private PendingPlacement ExtractPendingChangesLocked()
     {
-        UserSettings updated = _settingsService.CurrentSettings.Clone();
+        UserSettings current = _settingsService.CurrentSettings;
 
-        if (_pendingMainLeft.HasValue) updated.MainWindowLeft = _pendingMainLeft.Value;
-        if (_pendingMainTop.HasValue) updated.MainWindowTop = _pendingMainTop.Value;
-        if (_pendingMainWidth.HasValue) updated.MainWindowWidth = _pendingMainWidth.Value;
-        if (_pendingMainHeight.HasValue) updated.MainWindowHeight = _pendingMainHeight.Value;
+        double? mainLeft = _pendingMainLeft ?? (_lastAcceptedMainLeft.HasValue && current.MainWindowLeft != _lastAcceptedMainLeft.Value ? _lastAcceptedMainLeft : null);
+        double? mainTop = _pendingMainTop ?? (_lastAcceptedMainTop.HasValue && current.MainWindowTop != _lastAcceptedMainTop.Value ? _lastAcceptedMainTop : null);
+        double? mainWidth = _pendingMainWidth ?? (_lastAcceptedMainWidth.HasValue && current.MainWindowWidth != _lastAcceptedMainWidth.Value ? _lastAcceptedMainWidth : null);
+        double? mainHeight = _pendingMainHeight ?? (_lastAcceptedMainHeight.HasValue && current.MainWindowHeight != _lastAcceptedMainHeight.Value ? _lastAcceptedMainHeight : null);
 
-        if (_pendingWidgetLeft.HasValue) updated.WidgetWindowLeft = _pendingWidgetLeft.Value;
-        if (_pendingWidgetTop.HasValue) updated.WidgetWindowTop = _pendingWidgetTop.Value;
+        double? widgetLeft = _pendingWidgetLeft ?? (_lastAcceptedWidgetLeft.HasValue && current.WidgetWindowLeft != _lastAcceptedWidgetLeft.Value ? _lastAcceptedWidgetLeft : null);
+        double? widgetTop = _pendingWidgetTop ?? (_lastAcceptedWidgetTop.HasValue && current.WidgetWindowTop != _lastAcceptedWidgetTop.Value ? _lastAcceptedWidgetTop : null);
 
-        return updated;
+        ClearPendingChangesLocked();
+        return new PendingPlacement(mainLeft, mainTop, mainWidth, mainHeight, widgetLeft, widgetTop);
     }
 
     private void ClearPendingChangesLocked()
@@ -330,4 +405,12 @@ public sealed class WindowPlacementService : IWindowPlacementService
         _pendingWidgetLeft = null;
         _pendingWidgetTop = null;
     }
+
+    private sealed record PendingPlacement(
+        double? MainLeft,
+        double? MainTop,
+        double? MainWidth,
+        double? MainHeight,
+        double? WidgetLeft,
+        double? WidgetTop);
 }

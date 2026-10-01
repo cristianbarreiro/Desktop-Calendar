@@ -49,6 +49,13 @@ public sealed class DataManagementServiceIntegrationTests
             SettingsChanged?.Invoke(this, CurrentSettings);
             return Task.CompletedTask;
         }
+
+        public Task MutateSettingsAsync(Action<UserSettings> mutator, CancellationToken cancellationToken = default)
+        {
+            UserSettings updated = CurrentSettings.Clone();
+            mutator(updated);
+            return SaveSettingsAsync(updated, cancellationToken);
+        }
     }
 
     [Fact]
