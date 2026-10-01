@@ -1,10 +1,8 @@
-using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using CalendarWidget.App.Windows;
-using CalendarWidget.Core.Entities;
 using CalendarWidget.Core.Interfaces;
+using CalendarWidget.IntegrationTests.Helpers;
 using CalendarWidget.Presentation.Services;
 using CalendarWidget.Presentation.ViewModels;
 using CalendarWidget.Presentation.Views;
@@ -17,77 +15,22 @@ namespace CalendarWidget.IntegrationTests.Views;
 /// Regression tests verifying that <see cref="NotesView"/> and its DataTemplate materialization
 /// in <see cref="MainWindow"/> load without XAML parse or element collection exceptions.
 /// </summary>
-public sealed class NotesViewRegressionTests
+[Collection(WpfTestCollection.Name)]
+public sealed class NotesViewRegressionTests : IDisposable
 {
-    private static readonly System.Collections.Concurrent.BlockingCollection<Action> StaQueue = new();
+    private readonly WpfTestContext _wpfContext = new();
 
-    static NotesViewRegressionTests()
+    /// <inheritdoc />
+    public void Dispose()
     {
-        Thread staThread = new(RunStaPump)
-        {
-            IsBackground = true,
-            Name = "NotesViewRegressionTests.STA"
-        };
-        staThread.SetApartmentState(ApartmentState.STA);
-        staThread.Start();
-    }
-
-    private static void RunStaPump()
-    {
-        foreach (Action action in StaQueue.GetConsumingEnumerable())
-        {
-            action();
-        }
-    }
-
-    private static void RunInSta(Action action)
-    {
-        Exception? exception = null;
-        using ManualResetEventSlim completed = new();
-
-        StaQueue.Add(() =>
-        {
-            try
-            {
-                action();
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-            }
-            finally
-            {
-                completed.Set();
-            }
-        });
-
-        bool finished = completed.Wait(TimeSpan.FromSeconds(30));
-        finished.Should().BeTrue("STA queue action should finish within 30 seconds");
-
-        if (exception is not null)
-        {
-            ExceptionDispatchInfo.Capture(exception).Throw();
-        }
-    }
-
-    private static void EnsureApplicationWithTheme()
-    {
-        Application app = Application.Current ?? new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-
-        Uri themeUri = new("pack://application:,,,/CalendarWidget.Presentation;component/Resources/Theme.xaml", UriKind.Absolute);
-        if (!app.Resources.MergedDictionaries.Any(d => d.Source == themeUri))
-        {
-            app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
-        }
+        _wpfContext.Dispose();
     }
 
     [Fact]
     public void NotesView_WhenInstantiatedDirectly_InitializesWithoutException()
     {
-        RunInSta(() =>
+        _wpfContext.Invoke(() =>
         {
-            EnsureApplicationWithTheme();
-
             Action instantiate = () => _ = new NotesView();
             instantiate.Should().NotThrow();
         });
@@ -96,10 +39,8 @@ public sealed class NotesViewRegressionTests
     [Fact]
     public void MainWindow_WhenNavigatedToNotes_DataTemplateMaterializesNotesViewWithoutException()
     {
-        RunInSta(() =>
+        _wpfContext.Invoke(() =>
         {
-            EnsureApplicationWithTheme();
-
             ServiceCollection services = new();
             services.AddSingleton<ICalendarGridService, CalendarGridService>();
             services.AddSingleton<IClockService, SystemClockService>();
@@ -157,8 +98,6 @@ public sealed class NotesViewRegressionTests
 
         return null;
     }
-
-
 
     private sealed class StubWindowManager : IWindowManager
     {

@@ -408,4 +408,45 @@
   - Formatting: `dotnet format --verify-no-changes` passed.
   - Packaging pipeline executed end-to-end; both zip archives and installer exe produced with verified SHA-256 hashes.
 
+## 2026-10-01 — Phase 12 Remediation 3: WPF Integration Test Isolation & Dispatcher Deadlock
+
+### Problem & Root Cause
+- **Issue**: Full solution test execution hung intermittently when running `dotnet test CalendarWidget.slnx`. Blame-hang diagnostics identified the hang during `WindowManager_LifecycleSwitching_HidesPreviousAndShowsNext` or `WindowManager_MinimizeWidget_HidesWindowForTrayStateWithoutExiting`.
+- **Root Cause**:
+  - `NotesViewRegressionTests` established a background STA thread running a custom action queue loop (`StaQueue.GetConsumingEnumerable()`) without a real WPF `Dispatcher.Run()` message pump.
+  - The fixture initialized `Application.Current` on that thread and merged theme resource dictionaries.
+  - When subsequent headless integration tests (such as `SingleInstanceAndLifecycleIntegrationTests`) executed, `WindowManager.ExecuteOnDispatcher(...)` evaluated `Application.Current is not null` and dispatched cross-thread calls via `Application.Current.Dispatcher.Invoke(...)`.
+  - Because the STA thread was blocked waiting on `BlockingCollection<Action>` rather than pumping Win32/WPF messages via `Dispatcher.Run()`, cross-thread `Dispatcher.Invoke` deadlocked indefinitely.
+  - The defect only appeared when test classes ran together in the same process, as individual test classes in isolation either never instantiated `Application.Current` or completed their queue actions before other tests could observe the leaked state.
+- **Missing Lifecycle Invariant**:
+  - Global WPF state (`Application.Current`) was leaking across test class boundaries.
+  - Any STA thread holding an active `Application.Current` must actively pump its `Dispatcher` message loop, and must scope `Application.Current` strictly to the tests requiring WPF UI/Dispatcher infrastructure.
+
+### Remediation & Architectural Implementation
+- **WPF Test Infrastructure (`WpfTestContext` & `WpfTestCollection`)**:
+  - Created `WpfTestContext` in `CalendarWidget.IntegrationTests.Helpers`:
+    - Implements Option B (isolated WPF test application lifecycle) with per-test `Application.Current` scoping.
+    - Spawns a dedicated background STA thread running a real, actively pumped `Dispatcher.Run()` loop with `DispatcherSynchronizationContext`.
+    - Merges `Theme.xaml` resources cleanly on startup.
+    - Scopes `Application.Current` to the context lifetime, resetting `_appInstance` to `null` upon disposal so non-WPF tests run in a clean headless environment.
+    - Synchronizes access via a re-entrant concurrency gate (`SemaphoreSlim`) and xUnit test collection definition (`WpfTestCollection`).
+  - Refactored `NotesViewRegressionTests` to use `WpfTestContext` and `[Collection(WpfTestCollection.Name)]`, eliminating the unpumped `BlockingCollection<Action>` loop and static thread leaks.
+  - Decorated `SingleInstanceAndLifecycleIntegrationTests` with `[Collection(WpfTestCollection.Name)]` to serialize execution against WPF global state tests.
+- **Deterministic Regression Coverage**:
+  - Added `WpfDispatcherIsolationRegressionTests` with 2 new integration tests:
+    - `WpfDispatcherIsolation_SequentialContexts_AllowsSubsequentWindowManagerDispatcherExecutionWithoutDeadlock`: Verifies sequential `WpfTestContext` instances, proves active message pumping on the Dispatcher, executes cross-thread `WindowManager` dispatcher operations without deadlocking, and asserts clean headless execution following context disposal.
+    - `WpfDispatcherIsolation_HeadlessTests_ExecuteWithoutWpfContamination`: Verifies headless `WindowManager` and `ApplicationLifetimeService.Shutdown()` operations execute cleanly without WPF state contamination.
+- **Production Code Preservation**:
+  - Zero modifications to production code (`WindowManager.cs`, `ApplicationLifetimeService.cs`). Production dispatcher logic is verified correct.
+
+### Validation
+- **Build**: 0 errors, 0 warnings (`dotnet build CalendarWidget.slnx -c Release`).
+- **Formatting**: Verification passed (`dotnet format CalendarWidget.slnx --verify-no-changes`).
+- **Targeted Tests**:
+  - `NotesViewRegressionTests`: 2/2 passed.
+  - Windows tests: 20/20 passed.
+- **Blame-Hang Diagnostics**: Full solution passed with `--blame-hang --blame-hang-timeout 2m` (0 hangs, 0 aborted test hosts).
+- **Stability**: Full solution suite repeated twice consecutively: 409/409 passed (326 unit tests + 83 integration tests, 0 failed, 0 skipped).
+
+
 

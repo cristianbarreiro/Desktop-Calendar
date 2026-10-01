@@ -4,6 +4,7 @@ using FluentAssertions;
 
 namespace CalendarWidget.IntegrationTests.Windows;
 
+[Collection(WpfTestCollection.Name)]
 public sealed class SingleInstanceAndLifecycleIntegrationTests
 {
     [Fact]
