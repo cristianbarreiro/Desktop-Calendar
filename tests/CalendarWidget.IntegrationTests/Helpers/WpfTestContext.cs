@@ -8,38 +8,79 @@ namespace CalendarWidget.IntegrationTests.Helpers;
 /// <summary>
 /// Provides a dedicated, deterministic STA thread and actively pumped WPF <see cref="Dispatcher"/>
 /// for integration tests requiring UI element instantiation, theme resolution, and Dispatcher execution.
-/// Ensures complete isolation by scoping <see cref="Application.Current"/> strictly to the context lifetime.
+/// Ensures complete lifecycle closure by scoping <see cref="Application.Current"/> strictly to active context ownership,
+/// deterministically shutting down the Dispatcher and terminating the STA thread upon disposal of the final owner.
 /// </summary>
 public sealed class WpfTestContext : IDisposable, IAsyncDisposable
 {
-    private static readonly SemaphoreSlim ContextGate = new(1, 1);
     private static readonly object SyncRoot = new();
 
+    private static int s_activeOwnerCount;
     private static Thread? s_staThread;
     private static Dispatcher? s_dispatcher;
     private static Application? s_application;
+
+    // WPF System.Windows.Application has no public setter for Application.Current and internally records
+    // _appCreatedInThisAppDomain = true, which throws InvalidOperationException if new Application() is called
+    // again in the same AppDomain/process. Furthermore, Application.Shutdown() does not reset Application.Current
+    // to null. Reflection is strictly isolated to this test helper to reset these static fields upon final disposal,
+    // ensuring clean headless execution for subsequent tests and allowing clean context recreation.
     private static readonly FieldInfo? AppInstanceField =
         typeof(Application).GetField("_appInstance", BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly FieldInfo? AppCreatedField =
+        typeof(Application).GetField("_appCreatedInThisAppDomain", BindingFlags.Static | BindingFlags.NonPublic);
+    private static readonly FieldInfo? IsShuttingDownField =
+        typeof(Application).GetField("_isShuttingDown", BindingFlags.Static | BindingFlags.NonPublic);
 
-    private bool _isDisposed;
+    private readonly Thread _staThread;
+    private readonly Dispatcher _dispatcher;
+    private int _disposeState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WpfTestContext"/> class, ensuring
-    /// the shared STA test dispatcher is running and attaching <see cref="Application.Current"/>.
+    /// the STA test dispatcher is actively pumping and attaching <see cref="Application.Current"/>.
     /// </summary>
     public WpfTestContext()
     {
-        ContextGate.Wait();
-
-        try
+        lock (SyncRoot)
         {
             EnsureInitialized();
-            AppInstanceField?.SetValue(null, s_application);
+            s_activeOwnerCount++;
+            _staThread = s_staThread!;
+            _dispatcher = s_dispatcher!;
         }
-        catch
+    }
+
+    /// <summary>
+    /// Gets a test seam allowing unit/integration tests to simulate an exception during STA initialization.
+    /// </summary>
+    internal static Action? InitializationSeamForTesting { get; set; }
+
+    /// <summary>
+    /// Gets the number of currently active owners sharing the test dispatcher.
+    /// </summary>
+    internal static int ActiveOwnerCount
+    {
+        get
         {
-            ContextGate.Release();
-            throw;
+            lock (SyncRoot)
+            {
+                return s_activeOwnerCount;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether an STA worker thread is currently running.
+    /// </summary>
+    internal static bool HasActiveStaThread
+    {
+        get
+        {
+            lock (SyncRoot)
+            {
+                return s_staThread is not null && s_staThread.IsAlive;
+            }
         }
     }
 
@@ -51,7 +92,7 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
         get
         {
             ThrowIfDisposed();
-            return s_dispatcher!;
+            return _dispatcher;
         }
     }
 
@@ -63,14 +104,16 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
         get
         {
             ThrowIfDisposed();
-            return s_staThread!;
+            return _staThread;
         }
     }
 
     /// <summary>
     /// Gets a value indicating whether the dispatcher thread is alive and pumping.
     /// </summary>
-    public bool IsRunning => !_isDisposed && s_staThread is not null && s_staThread.IsAlive && s_dispatcher is not null && !s_dispatcher.HasShutdownStarted;
+    public bool IsRunning => _disposeState == 0
+        && _staThread.IsAlive
+        && !_dispatcher.HasShutdownStarted;
 
     /// <summary>
     /// Executes a synchronous action on the STA Dispatcher thread.
@@ -79,13 +122,13 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public void Invoke(Action action)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             action();
             return;
         }
 
-        Dispatcher.Invoke(action);
+        _dispatcher.Invoke(action);
     }
 
     /// <summary>
@@ -97,12 +140,12 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public T Invoke<T>(Func<T> func)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             return func();
         }
 
-        return Dispatcher.Invoke(func);
+        return _dispatcher.Invoke(func);
     }
 
     /// <summary>
@@ -113,13 +156,13 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public async Task InvokeAsync(Action action)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             action();
             return;
         }
 
-        await Dispatcher.InvokeAsync(action);
+        await _dispatcher.InvokeAsync(action);
     }
 
     /// <summary>
@@ -131,12 +174,12 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public async Task<T> InvokeAsync<T>(Func<T> func)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             return func();
         }
 
-        return await Dispatcher.InvokeAsync(func);
+        return await _dispatcher.InvokeAsync(func);
     }
 
     /// <summary>
@@ -147,13 +190,13 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public async Task InvokeAsync(Func<Task> asyncAction)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             await asyncAction();
             return;
         }
 
-        Task task = await Dispatcher.InvokeAsync(asyncAction);
+        Task task = await _dispatcher.InvokeAsync(asyncAction);
         await task;
     }
 
@@ -166,60 +209,31 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
     public async Task<T> InvokeAsync<T>(Func<Task<T>> asyncFunc)
     {
         ThrowIfDisposed();
-        if (Dispatcher.CheckAccess())
+        if (_dispatcher.CheckAccess())
         {
             return await asyncFunc();
         }
 
-        Task<T> task = await Dispatcher.InvokeAsync(asyncFunc);
+        Task<T> task = await _dispatcher.InvokeAsync(asyncFunc);
         return await task;
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
-        if (_isDisposed)
+        if (Interlocked.Exchange(ref _disposeState, 1) != 0)
         {
             return;
         }
 
-        _isDisposed = true;
-
-        try
+        lock (SyncRoot)
         {
-            // Close any open windows created during the test
-            if (s_dispatcher is not null && !s_dispatcher.HasShutdownStarted)
+            s_activeOwnerCount--;
+            if (s_activeOwnerCount <= 0)
             {
-                try
-                {
-                    s_dispatcher.Invoke(() =>
-                    {
-                        if (Application.Current is not null)
-                        {
-                            foreach (Window window in Application.Current.Windows.OfType<Window>().ToList())
-                            {
-                                try
-                                {
-                                    window.Close();
-                                }
-                                catch
-                                {
-                                }
-                            }
-                        }
-                    });
-                }
-                catch
-                {
-                }
+                s_activeOwnerCount = 0;
+                PerformTerminalCleanup();
             }
-
-            // Detach Application.Current so non-WPF tests see null
-            AppInstanceField?.SetValue(null, null);
-        }
-        finally
-        {
-            ContextGate.Release();
         }
     }
 
@@ -232,72 +246,178 @@ public sealed class WpfTestContext : IDisposable, IAsyncDisposable
 
     private static void EnsureInitialized()
     {
-        if (s_staThread is not null && s_dispatcher is not null && s_application is not null)
+        if (s_staThread is not null && s_dispatcher is not null && s_application is not null && s_staThread.IsAlive)
         {
             return;
         }
 
-        lock (SyncRoot)
+        using ManualResetEventSlim initialized = new();
+        Exception? initException = null;
+
+        Thread thread = new(() =>
         {
-            if (s_staThread is not null && s_dispatcher is not null && s_application is not null)
+            try
             {
-                return;
+                s_dispatcher = Dispatcher.CurrentDispatcher;
+                SynchronizationContext.SetSynchronizationContext(
+                    new DispatcherSynchronizationContext(s_dispatcher));
+
+                InitializationSeamForTesting?.Invoke();
+
+                s_application = new Application
+                {
+                    ShutdownMode = ShutdownMode.OnExplicitShutdown
+                };
+
+                Uri themeUri = new("pack://application:,,,/CalendarWidget.Presentation;component/Resources/Theme.xaml", UriKind.Absolute);
+                if (!s_application.Resources.MergedDictionaries.Any(d => d.Source == themeUri))
+                {
+                    s_application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
+                }
+
+                initialized.Set();
+                Dispatcher.Run();
+            }
+            catch (Exception ex)
+            {
+                initException = ex;
+                initialized.Set();
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "WpfTestContext.STA"
+        };
+
+        s_staThread = thread;
+        s_staThread.SetApartmentState(ApartmentState.STA);
+        s_staThread.Start();
+
+        bool ready = initialized.Wait(TimeSpan.FromSeconds(10));
+        if (!ready || initException is not null || s_dispatcher is null || s_application is null)
+        {
+            PerformTerminalCleanup();
+
+            if (initException is not null)
+            {
+                ExceptionDispatchInfo.Capture(initException).Throw();
             }
 
-            using ManualResetEventSlim initialized = new();
-            Exception? initException = null;
+            throw new TimeoutException("WPF test STA thread failed to initialize within 10 seconds.");
+        }
+    }
 
-            s_staThread = new Thread(() =>
+    private static void PerformTerminalCleanup()
+    {
+        List<Exception> cleanupExceptions = new();
+
+        // 1. Close open windows if dispatcher is active
+        try
+        {
+            CloseOpenWindows();
+        }
+        catch (Exception ex)
+        {
+            cleanupExceptions.Add(ex);
+        }
+
+        // 2. Request dispatcher shutdown
+        try
+        {
+            if (s_dispatcher is not null && !s_dispatcher.HasShutdownStarted)
             {
-                try
+                s_dispatcher.BeginInvokeShutdown(DispatcherPriority.Normal);
+            }
+        }
+        catch (Exception ex)
+        {
+            cleanupExceptions.Add(ex);
+        }
+
+        // 3. Wait for STA thread termination
+        try
+        {
+            if (s_staThread is not null && s_staThread.IsAlive && Thread.CurrentThread != s_staThread)
+            {
+                bool terminated = s_staThread.Join(TimeSpan.FromSeconds(10));
+                if (!terminated)
                 {
-                    s_dispatcher = Dispatcher.CurrentDispatcher;
-                    SynchronizationContext.SetSynchronizationContext(
-                        new DispatcherSynchronizationContext(s_dispatcher));
+                    cleanupExceptions.Add(new TimeoutException("WPF test STA thread failed to terminate within 10 seconds."));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            cleanupExceptions.Add(ex);
+        }
 
-                    s_application = Application.Current ?? new Application
-                    {
-                        ShutdownMode = ShutdownMode.OnExplicitShutdown
-                    };
+        // 4. Detach Application.Current and reset internal WPF flags via reflection
+        try
+        {
+            AppInstanceField?.SetValue(null, null);
+            AppCreatedField?.SetValue(null, false);
+            IsShuttingDownField?.SetValue(null, false);
+        }
+        catch (Exception ex)
+        {
+            cleanupExceptions.Add(ex);
+        }
 
-                    Uri themeUri = new("pack://application:,,,/CalendarWidget.Presentation;component/Resources/Theme.xaml", UriKind.Absolute);
-                    if (!s_application.Resources.MergedDictionaries.Any(d => d.Source == themeUri))
+        // 5. Clear static references
+        s_staThread = null;
+        s_dispatcher = null;
+        s_application = null;
+
+        if (cleanupExceptions.Count > 0)
+        {
+            if (cleanupExceptions.Count == 1)
+            {
+                ExceptionDispatchInfo.Capture(cleanupExceptions[0]).Throw();
+            }
+            else
+            {
+                throw new AggregateException("One or more errors occurred during WPF test teardown.", cleanupExceptions);
+            }
+        }
+    }
+
+    private static void CloseOpenWindows()
+    {
+        if (s_dispatcher is null || s_dispatcher.HasShutdownStarted)
+        {
+            return;
+        }
+
+        Action closeAction = () =>
+        {
+            if (Application.Current is not null)
+            {
+                foreach (Window window in Application.Current.Windows.OfType<Window>().ToList())
+                {
+                    try
                     {
-                        s_application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = themeUri });
+                        window.Close();
                     }
-
-                    initialized.Set();
-                    Dispatcher.Run();
+                    catch
+                    {
+                        // Best-effort window closure
+                    }
                 }
-                catch (Exception ex)
-                {
-                    initException = ex;
-                    initialized.Set();
-                }
-            })
-            {
-                IsBackground = true,
-                Name = "WpfTestContext.STA"
-            };
-
-            s_staThread.SetApartmentState(ApartmentState.STA);
-            s_staThread.Start();
-
-            bool ready = initialized.Wait(TimeSpan.FromSeconds(10));
-            if (!ready || initException is not null || s_dispatcher is null || s_application is null)
-            {
-                if (initException is not null)
-                {
-                    ExceptionDispatchInfo.Capture(initException).Throw();
-                }
-
-                throw new TimeoutException("WPF test STA thread failed to initialize within 10 seconds.");
             }
+        };
+
+        if (s_dispatcher.CheckAccess())
+        {
+            closeAction();
+        }
+        else
+        {
+            s_dispatcher.Invoke(closeAction);
         }
     }
 
     private void ThrowIfDisposed()
     {
-        ObjectDisposedException.ThrowIf(_isDisposed, this);
+        ObjectDisposedException.ThrowIf(_disposeState != 0, this);
     }
 }
