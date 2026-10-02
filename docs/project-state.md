@@ -144,7 +144,7 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite + WPF application lifecycle)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, system tray lifecycle, multi-monitor geometry, IPC error handling, malformed payloads, concurrent settings/placement updates, accessible day descriptions, and modal keyboard bindings.
-- [x] 409 automated tests passing (326 unit tests, 83 integration tests, 0 failures)
+- [x] 418 automated tests passing (326 unit tests, 92 integration tests, 0 failures)
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 

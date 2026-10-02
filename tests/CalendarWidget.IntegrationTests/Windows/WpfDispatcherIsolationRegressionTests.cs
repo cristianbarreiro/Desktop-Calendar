@@ -136,6 +136,7 @@ public sealed class WpfDispatcherIsolationRegressionTests
         // After final disposal:
         staThread.IsAlive.Should().BeFalse("STA worker thread must terminate upon final disposal");
         dispatcher.HasShutdownStarted.Should().BeTrue("Dispatcher shutdown must have been requested");
+        dispatcher.HasShutdownFinished.Should().BeTrue("Dispatcher shutdown must finish upon final disposal");
         WpfTestContext.HasActiveStaThread.Should().BeFalse("No active STA worker thread should remain");
         Application.Current.Should().BeNull("Application.Current must be reset to null");
     }
@@ -244,6 +245,43 @@ public sealed class WpfDispatcherIsolationRegressionTests
     }
 
     [Fact]
+    public void WpfTestContext_InitializationFailure_BeforeDispatcherCreation_CleansUpAndAllowsSubsequentContext()
+    {
+        try
+        {
+            WpfTestContext.SeamBeforeDispatcherCreationForTesting = () => throw new InvalidOperationException("Simulated early init failure");
+
+            Action act = () =>
+            {
+                using WpfTestContext broken = new();
+            };
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("Simulated early init failure");
+        }
+        finally
+        {
+            WpfTestContext.SeamBeforeDispatcherCreationForTesting = null;
+        }
+
+        WpfTestContext.ActiveOwnerCount.Should().Be(0);
+        WpfTestContext.HasActiveStaThread.Should().BeFalse("Failed early initialization must not leak an STA thread");
+        WpfTestContext.LastStaThreadForTesting.Should().NotBeNull();
+        WpfTestContext.LastStaThreadForTesting!.IsAlive.Should().BeFalse("Early failed STA thread must terminate");
+        Application.Current.Should().BeNull();
+
+        using (WpfTestContext healthy = new())
+        {
+            healthy.IsRunning.Should().BeTrue();
+            bool ran = healthy.Invoke(() => new NotesView() is not null);
+            ran.Should().BeTrue("Subsequent context must initialize cleanly after early failure");
+        }
+
+        WpfTestContext.ActiveOwnerCount.Should().Be(0);
+        WpfTestContext.HasActiveStaThread.Should().BeFalse();
+        Application.Current.Should().BeNull();
+    }
+
+    [Fact]
     public void WpfTestContext_InitializationFailure_CleansUpLeakedThreadAndAllowsSubsequentContext()
     {
         try
@@ -262,9 +300,13 @@ public sealed class WpfDispatcherIsolationRegressionTests
             WpfTestContext.InitializationSeamForTesting = null;
         }
 
-        // Verify no leaked thread or stale state
+        // Verify no leaked thread, proper owner count, and dispatcher shutdown completion
         WpfTestContext.ActiveOwnerCount.Should().Be(0);
         WpfTestContext.HasActiveStaThread.Should().BeFalse("Failed initialization must not leak a running STA thread");
+        WpfTestContext.LastStaThreadForTesting.Should().NotBeNull();
+        WpfTestContext.LastStaThreadForTesting!.IsAlive.Should().BeFalse("Failed STA worker thread must terminate");
+        WpfTestContext.LastDispatcherForTesting.Should().NotBeNull();
+        WpfTestContext.LastDispatcherForTesting!.HasShutdownFinished.Should().BeTrue("Dispatcher shutdown must finish on failed initialization");
         Application.Current.Should().BeNull("Failed initialization must not leave Application.Current set");
 
         // Verify subsequent healthy context initializes and works properly
@@ -273,6 +315,45 @@ public sealed class WpfDispatcherIsolationRegressionTests
             healthy.IsRunning.Should().BeTrue();
             bool ran = healthy.Invoke(() => new NotesView() is not null);
             ran.Should().BeTrue("Subsequent context must initialize cleanly and execute WPF operations");
+        }
+
+        WpfTestContext.ActiveOwnerCount.Should().Be(0);
+        WpfTestContext.HasActiveStaThread.Should().BeFalse();
+        Application.Current.Should().BeNull();
+    }
+
+    [Fact]
+    public void WpfTestContext_InitializationFailure_AfterApplicationCreation_CleansUpAndAllowsSubsequentContext()
+    {
+        try
+        {
+            WpfTestContext.SeamAfterApplicationCreationForTesting = () => throw new InvalidOperationException("Simulated late init failure");
+
+            Action act = () =>
+            {
+                using WpfTestContext broken = new();
+            };
+
+            act.Should().Throw<InvalidOperationException>().WithMessage("Simulated late init failure");
+        }
+        finally
+        {
+            WpfTestContext.SeamAfterApplicationCreationForTesting = null;
+        }
+
+        WpfTestContext.ActiveOwnerCount.Should().Be(0);
+        WpfTestContext.HasActiveStaThread.Should().BeFalse("Failed late initialization must not leak an STA thread");
+        WpfTestContext.LastStaThreadForTesting.Should().NotBeNull();
+        WpfTestContext.LastStaThreadForTesting!.IsAlive.Should().BeFalse("Late failed STA thread must terminate");
+        WpfTestContext.LastDispatcherForTesting.Should().NotBeNull();
+        WpfTestContext.LastDispatcherForTesting!.HasShutdownFinished.Should().BeTrue("Dispatcher must complete shutdown");
+        Application.Current.Should().BeNull("Application.Current must not leak even if failure occurred after Application creation");
+
+        using (WpfTestContext healthy = new())
+        {
+            healthy.IsRunning.Should().BeTrue();
+            bool ran = healthy.Invoke(() => new NotesView() is not null);
+            ran.Should().BeTrue("Subsequent context must initialize cleanly after late failure");
         }
 
         WpfTestContext.ActiveOwnerCount.Should().Be(0);

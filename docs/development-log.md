@@ -448,5 +448,52 @@
 - **Blame-Hang Diagnostics**: Full solution passed with `--blame-hang --blame-hang-timeout 2m` (0 hangs, 0 aborted test hosts).
 - **Stability**: Full solution suite repeated twice consecutively: 409/409 passed (326 unit tests + 83 integration tests, 0 failed, 0 skipped).
 
+## 2026-10-01 — Phase 12 Remediation 5: WPF Initialization Cleanup Deadlock Remediation
+
+### Problem & Root Cause
+- **Issue**: Test execution hung when running `CalendarWidget.IntegrationTests.Windows.WpfDispatcherIsolationRegressionTests.WpfTestContext_InitializationFailure_CleansUpLeakedThreadAndAllowsSubsequentContext`. Blame-hang diagnostics and dumps confirmed that the test host blocked during initialization-failure cleanup in `WpfTestContext.EnsureInitialized()`.
+- **Root Cause**:
+  - In `WpfTestContext.EnsureInitialized()`, `s_dispatcher = Dispatcher.CurrentDispatcher` was assigned before executing `InitializationSeamForTesting?.Invoke()`.
+  - When the seam (or any subsequent initialization step prior to `Dispatcher.Run()`) threw an exception, the Dispatcher existed but had never entered its message pump (`Dispatcher.Run()`).
+  - The STA thread caught the exception and was terminating.
+  - The calling test thread detected `initException is not null` and invoked `PerformTerminalCleanup()`.
+  - `PerformTerminalCleanup()` unconditionally invoked `CloseOpenWindows()`, which executed `s_dispatcher.Invoke(closeAction)` cross-thread.
+  - Calling synchronous `Dispatcher.Invoke(...)` against a Dispatcher whose STA thread is not actively pumping messages caused an indefinite cross-thread deadlock or a `TaskCanceledException` masking the underlying initialization exception.
+
+### Lifecycle Architecture & Invariants
+- **Explicit Lifecycle State Machine (`WpfLifecycleState`)**:
+  - Implemented explicit lifecycle states: `NotStarted`, `Starting`, `DispatcherCreatedNotPumping`, `ApplicationAttached`, `Pumping`, `Stopping`, `Stopped`, and `InitializationFailed`.
+  - Distinguished fundamentally between a created `Dispatcher` (`Dispatcher.CurrentDispatcher`) and an actively pumping `Dispatcher` (`Dispatcher.Run()`).
+  - Introduced `s_isPumping` tracking the active duration of `Dispatcher.Run()`.
+- **Critical Cleanup Invariant**:
+  - Synchronous `Dispatcher.Invoke` is strictly prohibited against any Dispatcher whose owning STA thread is not alive and actively pumping.
+  - `CloseOpenWindows()` checks `s_isPumping`, `s_dispatcher.HasShutdownStarted == false`, and `s_staThread.IsAlive`, skipping cross-thread dispatch if initialization failed or if the message loop has terminated.
+  - `PerformTerminalCleanup(bool isInitializationFailure)` skips window closure entirely on initialization failure paths.
+- **STA-Affine Ownership & Cleanup**:
+  - The initialization STA thread safely owns partially created WPF state. If an exception occurs before `Dispatcher.Run()`, `CleanupOnStaThread()` executes on the STA thread:
+    - Closes any partially opened windows directly on the STA thread where access is valid.
+    - Executes `s_dispatcher.InvokeShutdown()` synchronously on the STA thread, ensuring `HasShutdownStarted` and `HasShutdownFinished` transition to `true` deterministically without hanging.
+  - The STA thread then signals failure and terminates, allowing the controlling test thread to join the dead STA thread cleanly in milliseconds.
+- **Locking & Deadlock Avoidance**:
+  - `SyncRoot` is never held across blocking or cross-thread operations (`initialized.Wait()`, `s_staThread.Join()`, or `CloseOpenWindows()`).
+  - Atomicity of state transitions is preserved via `Monitor.Wait(SyncRoot)` and `Monitor.PulseAll(SyncRoot)`, guaranteeing subsequent contexts cannot instantiate against partially cleaned or stopping state.
+- **Enhanced Failure Matrix Coverage**:
+  - Added deterministic tests for failure before Dispatcher creation, failure after Dispatcher creation but before `Dispatcher.Run()`, and failure after `Application` creation.
+  - Strengthened `WpfTestContext_InitializationFailure_CleansUpLeakedThreadAndAllowsSubsequentContext` to assert complete thread termination (`IsAlive == false`), dispatcher shutdown completion (`HasShutdownFinished == true`), `ActiveOwnerCount == 0`, and `Application.Current == null`.
+  - Verified `HasShutdownFinished == true` on normal disposal.
+
+### Validation
+- **Build**: 0 errors, 0 warnings (`dotnet build CalendarWidget.slnx -c Release`).
+- **Formatting**: Verification passed (`dotnet format CalendarWidget.slnx --verify-no-changes`).
+- **Targeted Tests**:
+  - `WpfTestContext_InitializationFailure_CleansUpLeakedThreadAndAllowsSubsequentContext`: Passed (< 500 ms).
+  - All 11 tests in `WpfDispatcherIsolationRegressionTests`: 11/11 passed (0 failed).
+  - `NotesViewRegressionTests`: 2/2 passed.
+  - All Windows tests (`FullyQualifiedName~Windows`): 32/32 passed.
+- **Blame-Hang Diagnostics**: Full solution test suite passed with `--blame-hang --blame-hang-timeout 2m` (0 hangs, 0 blame dumps).
+- **Full Suite Second Run**: Repeated with 0 errors: 418/418 passed (326 unit tests + 92 integration tests).
+- **Stress Repetition**: 20 consecutive independent executions of `WpfTestContext_InitializationFailure_CleansUpLeakedThreadAndAllowsSubsequentContext` passed with 0 failures (20/20).
+- **Production Code**: Zero production code modified; fix isolated to test infrastructure.
+
 
 
