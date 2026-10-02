@@ -12,6 +12,7 @@
    - All persistence logic is encapsulated behind repository interfaces (`ICalendarEventRepository`, `INoteRepository`).
    - The UI communicates with persistence only via these repository contracts or dedicated domain services.
    - EF Core `DbContext` must never leak into ViewModels.
+   - Calendar events and notes use SQLite; settings and window placement use the file-backed settings repository. Both live below `%LOCALAPPDATA%\DesktopCalendar` and are user data, not build output.
 
 3. **Window Model**:
    - The widget and the full application are two presentation views of the same state and persistence backing.

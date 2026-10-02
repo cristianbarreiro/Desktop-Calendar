@@ -4,28 +4,25 @@
 - **Project**: Modern Desktop Calendar Widget
 - **Engineering Foundation**: Complete (Phases 0–3)
 - **Product Implementation**: Complete (Phases 4–13 complete)
-- **Version**: 1.0.0
-- **Status**: Production Release Ready
-- **Current Date**: 2026-10-02
 
 ## Current State
 
 ### Implementation State
 - Product implementation phases 0–13 are complete. No product feature work is active.
-- AI context hardening is delivered in this change; no product feature work is assigned next.
-- Build and installer regeneration are unified through `scripts/build_installer.ps1`, backed by the existing `scripts/package.ps1` pipeline.
+- Agent guidance is routed through `AGENTS.md`, task workflows through `skills/`, and durable curated knowledge through `knowledge/`.
+- Build and installer regeneration use `scripts/build_installer.ps1`, backed by the single packaging implementation in `scripts/package.ps1`.
 
 ### Validation State
-- Full clean Release packaging passed twice locally on Windows/.NET 10, including 421 tests (326 unit, 95 integration), formatting, both publish modes, ZIP validation, Inno Setup compilation, checksums, and manifest generation.
-- `-SkipInstaller` and `-SkipTests` modes were also exercised; skipped stages were reported explicitly. Existing `%LOCALAPPDATA%\DesktopCalendar` data remained outside the build cleanup scope.
-- GitHub Actions CI for the remote baseline `df4252d` passed. Local packaging changes are not pushed, so no CI run has validated this change yet.
+- Baseline `c37d5ed` passed the complete Release suite twice: 421 tests (326 unit, 95 integration); one run included `--blame-hang-timeout 5m`. Format verification and `git diff --check` passed.
+- GitHub Actions CI passed for the exact baseline SHA `c37d5edb00022c30a2b60f43fe366f10021416e7`. CI results must be checked against the exact commit under review; do not transfer this result to a later SHA.
+- Latest baseline evidence is not a claim that unrun changes are validated. Record new test and CI results here when they are actually available.
 
 ### Release State
-- Existing product release remains `v1.0.0`; no new release or tag is part of this work.
+- Project version is `1.0.0` in `Directory.Build.props`. Local package files do not by themselves establish a published release.
+- No release or tag is created by this context update; release publication state is unchanged.
 
 ### Next Work
-- AI context hardening is delivered with this change; no next product feature is currently assigned.
-- Choose future work from an explicit request. `docs/current-sprint.md` is a historical Phase 13 record.
+- No product feature is assigned next. Select future work from an explicit request; `docs/current-sprint.md` is a historical Phase 13 record.
 
 ---
 
@@ -163,9 +160,9 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite + WPF application lifecycle)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, system tray lifecycle, multi-monitor geometry, IPC error handling, malformed payloads, concurrent settings/placement updates, accessible day descriptions, and modal keyboard bindings.
-  - [x] 421 automated tests passing (326 unit tests, 95 integration tests, 0 failures) as of 2026-10-02
+  - [x] Automated test suite covers unit, persistence, WPF lifecycle, OS integration, and concurrency behavior; current counts and results are in Validation State above.
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
-- [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
+- [x] Code formatting verification is part of the validation gate above
 
 ### Packaging & Release (Phase 13)
 - [x] Single source of truth versioning (`1.0.0`) in `Directory.Build.props` propagating to all build targets
@@ -188,8 +185,3 @@
 ## Known Technical Debt
 - None.
 
----
-
-## Current Priorities
-- Product implementation phases 0–13 are complete; the existing `v1.0.0` release is unchanged.
-- The current non-product task is AI context hardening, tracked in the Current State section.

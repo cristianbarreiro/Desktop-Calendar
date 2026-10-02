@@ -1,167 +1,45 @@
-# AGENTS.md — Desktop Calendar Widget
+# Agent Contract — Desktop Calendar
 
-> Canonical agent contract. All AI agents must read this file before making changes.
+Read this router before changing the repository. Load only the linked source needed for the task; do not copy its details here.
 
-## Project Identity
+## Repository Identity
 
-- **Name**: Desktop Calendar Widget
-- **Platform**: Windows
-- **Language**: C# / .NET 10
-- **UI Framework**: WPF (XAML)
-- **Architecture**: MVVM + Layered Architecture
-- **Storage**: SQLite via Entity Framework Core
-- **Status**: Product phases 0–13 implemented; see [`docs/project-state.md`](docs/project-state.md) for current validation, release, and next-work state.
+- Windows desktop calendar: C# / .NET 10, WPF, MVVM, SQLite/EF Core.
+- `src/CalendarWidget.Core`: domain and contracts.
+- `src/CalendarWidget.Infrastructure`: persistence and operating-system integrations.
+- `src/CalendarWidget.Presentation`: views, view models, and presentation services.
+- `src/CalendarWidget.App`: startup, dependency wiring, and application lifecycle.
+- `tests/CalendarWidget.UnitTests` and `tests/CalendarWidget.IntegrationTests`: behavioral and integration coverage.
 
-## Architecture
+Dependency direction: `Presentation → Core`; `Infrastructure → Core`; `App → Core, Infrastructure, Presentation`; tests may reference all projects. Core remains technology- and UI-independent; Presentation must not depend on Infrastructure; persistence stays behind domain contracts.
 
-```
-src/
-  CalendarWidget.App/            → Application host, DI, startup
-  CalendarWidget.Core/           → Domain entities, interfaces, rules
-  CalendarWidget.Infrastructure/ → EF Core, SQLite, OS integrations
-  CalendarWidget.Presentation/   → ViewModels, Views, XAML, themes
-tests/
-  CalendarWidget.UnitTests/      → xUnit unit tests
-  CalendarWidget.IntegrationTests/ → Integration tests
-```
+## Working Rules
 
-### Dependency Direction (strict)
+- Preserve layer ownership and user data. Do not change production behavior to accommodate a test-harness failure.
+- Prefer deterministic regression tests for behavior and concurrency; coordinate with explicit gates instead of sleeps or scheduler timing.
+- Do not hide failures by skipping tests, weakening assertions, retrying blindly, or disabling parallel execution.
+- Keep changes scoped, use existing dependencies, and distinguish observations from hypotheses and confirmed causes.
+- Do not treat a successful local build as a published release. Do not change release metadata without an explicit request.
 
-```
-Presentation → Core
-App → Core, Infrastructure, Presentation
-Infrastructure → Core
-Tests → All (for testing only)
-```
+## Validation
 
-**Violations are blocking.**
+Choose validation proportional to the change using [`skills/testing/SKILL.md`](skills/testing/SKILL.md). Project test counts and the latest verified implementation, validation, release, and next-work states belong in [`docs/project-state.md`](docs/project-state.md), not in this file.
 
-- Core MUST NOT reference Infrastructure, Presentation, or App.
-- Presentation MUST NOT reference Infrastructure directly.
-- Infrastructure MUST NOT reference Presentation.
-- UI MUST NOT access EF Core or persistence logic directly.
-- Domain MUST NOT depend on WPF.
+## Context Router
 
-## Commands
+| Need | Load |
+|---|---|
+| Layer boundaries | [`knowledge/architecture.md`](knowledge/architecture.md), [`docs/architecture/`](docs/architecture/), [`skills/architecture/SKILL.md`](skills/architecture/SKILL.md) |
+| Product requirements | [`docs/product/`](docs/product/) |
+| Current implementation / validation / release / next work | [`docs/project-state.md`](docs/project-state.md) |
+| Historical incidents and confidence | [`knowledge/failure-memory.md`](knowledge/failure-memory.md), [`skills/failure-investigation/SKILL.md`](skills/failure-investigation/SKILL.md) |
+| Test selection, regressions, hang diagnosis | [`skills/testing/SKILL.md`](skills/testing/SKILL.md) |
+| Persistence / concurrency invariants | [`docs/architecture/persistence.md`](docs/architecture/persistence.md), [`skills/database/SKILL.md`](skills/database/SKILL.md) |
+| WPF behavior or test STA lifecycle | [`docs/architecture/windows-integration.md`](docs/architecture/windows-integration.md), [`skills/wpf-ui/SKILL.md`](skills/wpf-ui/SKILL.md) |
+| Durable domain and engineering knowledge | [`knowledge/index.md`](knowledge/index.md); load only the relevant topic |
+| Data and security boundaries | [`knowledge/constraints.md`](knowledge/constraints.md) |
+| C# and XAML conventions | [`knowledge/conventions.md`](knowledge/conventions.md) |
+| Packaging and release process | [`skills/release/SKILL.md`](skills/release/SKILL.md), [`README.md`](README.md), `scripts/build_installer.ps1` |
+| Updating docs, AGENTS, skills, or knowledge | [`skills/documentation/SKILL.md`](skills/documentation/SKILL.md) |
 
-```bash
-# Restore
-dotnet restore
-
-# Build
-dotnet build
-
-# Test
-dotnet test
-
-# Format check
-dotnet format --verify-no-changes
-
-# Format fix
-dotnet format
-
-# Run application
-dotnet run --project src/CalendarWidget.App
-```
-
-## Coding Conventions
-
-- Use file-scoped namespaces
-- Use primary constructors where appropriate
-- Use `readonly` and `sealed` by default
-- Prefer records for DTOs and value objects
-- Use nullable reference types (enabled project-wide)
-- Follow Microsoft C# coding conventions
-- XML doc comments on all public API surfaces
-- No `var` when the type is not obvious from the right-hand side
-
-## Dependency Rules
-
-- Every NuGet dependency must have a concrete justification
-- Prefer official Microsoft libraries
-- No MediatR, no AutoMapper, no unnecessary abstractions
-- CommunityToolkit.Mvvm for MVVM infrastructure
-- Microsoft.Extensions.DependencyInjection for DI
-- Microsoft.EntityFrameworkCore.Sqlite for persistence
-
-## Testing Rules
-
-- Every meaningful business rule must have automated tests
-- Use xUnit + FluentAssertions
-- Test naming: `MethodName_Condition_ExpectedResult`
-- Do not test framework behavior
-- Do not create tests that merely assert constructor assignment
-
-## Security Rules
-
-- Never commit secrets or credentials
-- Never hardcode connection strings or API keys
-- Never log sensitive user data
-- Never introduce telemetry without explicit requirements
-- Never execute arbitrary downloaded code
-- Validate all external input
-
-## Development Workflow
-
-1. Read this file and relevant documentation
-2. Identify affected architecture layer
-3. Make the smallest coherent change
-4. Run `dotnet build` — must succeed
-5. Run `dotnet test` — must pass
-6. Run `dotnet format --verify-no-changes` — must pass
-7. Update documentation if behavior/architecture changed
-8. Report validation results honestly
-
-## Definition of Done
-
-- [ ] Implementation exists and compiles
-- [ ] Architecture boundaries respected
-- [ ] Tests added/updated where appropriate
-- [ ] All tests pass
-- [ ] Formatting passes
-- [ ] No unnecessary warnings introduced
-- [ ] Documentation updated if needed
-- [ ] No secrets introduced
-- [ ] No unrelated files changed
-
-## Prohibited Behavior
-
-- Do NOT invent requirements or features
-- Do NOT delete working code without justification
-- Do NOT rewrite entire files unnecessarily
-- Do NOT modify unrelated modules
-- Do NOT disable tests to make CI pass
-- Do NOT hide or suppress errors
-- Do NOT create speculative abstractions
-- Do NOT introduce network calls without explicit requirements
-
-## Commit Convention
-
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `build:`, `chore:`, `perf:`, `style:`
-
-## Documentation Hierarchy
-
-| Topic | Location |
-|-------|----------|
-| Product requirements | `/docs/product/` |
-| Architecture | `/docs/architecture/` |
-| UI/UX | `/docs/ui/` |
-| ADRs | `/docs/adr/` |
-| Project state | `/docs/project-state.md` |
-| Knowledge base | `/knowledge/` |
-| Agent skills | `/skills/` |
-
-## Context Loading Strategy
-
-**Always load**: This file (AGENTS.md)
-
-**Load on demand** (only when relevant to the task):
-- `/docs/architecture/` — for architectural changes
-- `/docs/ui/` — for UI work
-- `/docs/product/` — for feature planning
-- `/knowledge/domain.md` — for domain logic
-- `/skills/` — for specialized workflows
-- `/docs/adr/` — when making architectural decisions
-
-Load the narrowest relevant source; do not copy its content into this file or read every skill by default. Skills are optional workflows and decision aids: adapt them to the task and repository evidence. For known incidents, consult `/knowledge/failure-memory.md`; use its causes and diagnostics as evidence, not as a universal recipe. `/docs/project-state.md` is the current source for implementation, validation, release, and next work.
+Skills are workflows and decision aids, not mandatory command sequences. Code, tests, and the designated source documents remain authoritative for implementation facts.
