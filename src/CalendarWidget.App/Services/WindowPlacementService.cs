@@ -81,7 +81,8 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 settings.MainWindowWidth.Value,
                 settings.MainWindowHeight.Value);
 
-            WindowBounds recovered = WindowBoundsHelper.EnsureVisible(requested, displayAreas, primary);
+            WindowBounds visible = WindowBoundsHelper.EnsureVisible(requested, displayAreas, primary);
+            WindowBounds recovered = WindowBoundsHelper.EnsureFullyVisible(visible, displayAreas, primary);
 
             window.WindowStartupLocation = WindowStartupLocation.Manual;
             window.Left = recovered.Left;

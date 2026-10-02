@@ -54,6 +54,26 @@ public sealed class WindowPlacementServiceTests
     }
 
     [Fact]
+    public void ApplyMainWindowBounds_WhenSavedBoundsExceedDisplay_FitsBoundsWithinWorkingArea()
+    {
+        _settingsService.CurrentSettings.MainWindowLeft = 100;
+        _settingsService.CurrentSettings.MainWindowTop = 80;
+        _settingsService.CurrentSettings.MainWindowWidth = 2400;
+        _settingsService.CurrentSettings.MainWindowHeight = 1400;
+
+        using WindowPlacementService sut = new(_settingsService, _displayProvider);
+
+        sut.ApplyMainWindowBounds(_window);
+
+        _window.Left.Should().Be(0);
+        _window.Top.Should().Be(0);
+        _window.Width.Should().Be(1920);
+        _window.Height.Should().Be(1080);
+        (_window.Left + _window.Width).Should().BeLessThanOrEqualTo(_displayProvider.Primary.Right);
+        (_window.Top + _window.Height).Should().BeLessThanOrEqualTo(_displayProvider.Primary.Bottom);
+    }
+
+    [Fact]
     public void ApplyMainWindowBounds_WhenSavedBoundsOffScreen_RecoversToPrimaryCenter()
     {
         // Arrange: coordinates far off screen (-5000, -5000)

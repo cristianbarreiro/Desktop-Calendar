@@ -338,7 +338,8 @@
                     </Border>
 
                     <!-- 4. Data Management Section -->
-                    <Border Background="{DynamicResource SurfaceCardBrush}"
+                    <Border x:Name="DataManagementSection"
+                            Background="{DynamicResource SurfaceCardBrush}"
                             BorderBrush="{DynamicResource BorderDividerBrush}"
                             BorderThickness="1"
                             CornerRadius="{DynamicResource CornerRadiusCard}"

@@ -163,7 +163,10 @@
             </Border>
 
             <!-- Dynamic Content Area -->
-            <ContentControl Grid.Column="1"
+            <ContentControl x:Name="MainContentControl"
+                            Grid.Column="1"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
                             Content="{Binding CurrentViewModel}">
                 <ContentControl.Resources>
                     <DataTemplate DataType="{x:Type vm:CalendarViewModel}">

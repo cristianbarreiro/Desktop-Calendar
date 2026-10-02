@@ -10,7 +10,7 @@ public static class WindowBoundsHelper
     private const double DefaultWidgetHeight = 240.0;
 
     /// <summary>
-    /// Clamps a widget window to the usable area of the display where it is currently located.
+    /// Fits a window within the usable area of the display where it is currently located.
     /// </summary>
     /// <param name="requestedBounds">The requested or current widget bounds.</param>
     /// <param name="displayAreas">The usable areas of connected displays.</param>
