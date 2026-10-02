@@ -8,7 +8,6 @@
         mc:Ignorable="d"
         Title="Desktop Calendar"
         Height="620" Width="960"
-        MinHeight="500" MinWidth="750"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BackgroundRootBrush}">
 
@@ -63,24 +62,43 @@
                             Margin="0,4,8,4" />
 
                     <!-- Window State Buttons -->
-                    <Button Click="OnMinimizeClick"
-                            Content="─"
+                    <Button x:Name="MinimizeButton"
+                            Click="OnMinimizeClick"
                             Style="{DynamicResource WindowCaptionButtonStyle}"
                             ToolTip="Minimize"
                             AutomationProperties.Name="Minimize"
-                            AutomationProperties.AutomationId="MinimizeButton" />
+                            AutomationProperties.AutomationId="MinimizeButton">
+                        <Path Data="M 2,7 H 12"
+                              Width="14" Height="14"
+                              Stretch="Uniform"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.4" />
+                    </Button>
                     <Button Click="OnMaximizeRestoreClick"
-                            Content="◻"
+                            x:Name="MaximizeRestoreButton"
                             Style="{DynamicResource WindowCaptionButtonStyle}"
                             ToolTip="Maximize"
                             AutomationProperties.Name="Maximize"
-                            AutomationProperties.AutomationId="MaximizeButton" />
-                    <Button Click="OnCloseClick"
-                            Content="✕"
+                            AutomationProperties.AutomationId="MaximizeButton">
+                        <Path x:Name="MaximizeRestoreIcon"
+                              Data="M 2,2 H 12 V 12 H 2 Z"
+                              Width="14" Height="14"
+                              Stretch="Uniform"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.4" />
+                    </Button>
+                    <Button x:Name="CloseButton"
+                            Click="OnCloseClick"
                             Style="{DynamicResource WindowCloseButtonStyle}"
                             ToolTip="Close"
                             AutomationProperties.Name="Close"
-                            AutomationProperties.AutomationId="CloseButton" />
+                            AutomationProperties.AutomationId="CloseButton">
+                        <Path Data="M 3,3 L 11,11 M 11,3 L 3,11"
+                              Width="14" Height="14"
+                              Stretch="Uniform"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="1.4" />
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

@@ -104,6 +104,15 @@ public sealed class WindowPlacementService : IWindowPlacementService
     }
 
     /// <inheritdoc />
+    public WindowBounds EnsureWidgetWindowVisible(WindowBounds currentBounds)
+    {
+        return WindowBoundsHelper.EnsureFullyVisible(
+            currentBounds,
+            _displayProvider.GetDisplayAreas(),
+            _displayProvider.GetPrimaryDisplayArea());
+    }
+
+    /// <inheritdoc />
     public void ApplyWidgetWindowBounds(IManagedWindow window)
     {
         UserSettings settings = _settingsService.CurrentSettings;
@@ -121,7 +130,7 @@ public sealed class WindowPlacementService : IWindowPlacementService
                 defaultWidth,
                 defaultHeight);
 
-            WindowBounds recovered = WindowBoundsHelper.EnsureVisible(requested, displayAreas, primary);
+            WindowBounds recovered = WindowBoundsHelper.EnsureFullyVisible(requested, displayAreas, primary);
 
             window.WindowStartupLocation = WindowStartupLocation.Manual;
             window.Left = recovered.Left;

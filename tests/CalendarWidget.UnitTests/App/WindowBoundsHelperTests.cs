@@ -114,6 +114,92 @@ public sealed class WindowBoundsHelperTests
     }
 
     [Fact]
+    public void EnsureFullyVisible_WhenRightEdgeOverflows_ClampsWindowInsideWorkingArea()
+    {
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(1800, 100, 288, 400),
+            [_primaryDisplay],
+            _primaryDisplay);
+
+        actual.Left.Should().Be(1632);
+        actual.Top.Should().Be(100);
+        actual.Right.Should().Be(_primaryDisplay.Right);
+        actual.Width.Should().Be(288);
+    }
+
+    [Fact]
+    public void EnsureFullyVisible_WhenBottomEdgeOverflows_ClampsAboveWorkingAreaBottom()
+    {
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(100, 900, 288, 240),
+            [_primaryDisplay],
+            _primaryDisplay);
+
+        actual.Top.Should().Be(840);
+        actual.Bottom.Should().Be(_primaryDisplay.Bottom);
+    }
+
+    [Theory]
+    [InlineData(-40, 30, 0, 30)]
+    [InlineData(40, -30, 40, 0)]
+    public void EnsureFullyVisible_WhenWindowCrossesLeftOrTopBoundary_ClampsToBoundary(
+        double requestedLeft,
+        double requestedTop,
+        double expectedLeft,
+        double expectedTop)
+    {
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(requestedLeft, requestedTop, 288, 240),
+            [_primaryDisplay],
+            _primaryDisplay);
+
+        actual.Left.Should().Be(expectedLeft);
+        actual.Top.Should().Be(expectedTop);
+    }
+
+    [Fact]
+    public void EnsureFullyVisible_WhenWidgetIsOnNegativeCoordinateMonitor_ClampsWithinThatMonitor()
+    {
+        DisplayArea secondaryLeft = new(-1280, -100, 1280, 900);
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(-30, 650, 288, 300),
+            [secondaryLeft, _primaryDisplay],
+            _primaryDisplay);
+
+        actual.Left.Should().Be(-288);
+        actual.Top.Should().Be(500);
+        actual.Left.Should().BeGreaterThanOrEqualTo(secondaryLeft.Left);
+        actual.Right.Should().BeLessThanOrEqualTo(secondaryLeft.Right);
+        actual.Bottom.Should().BeLessThanOrEqualTo(secondaryLeft.Bottom);
+    }
+
+    [Fact]
+    public void EnsureFullyVisible_WhenWidgetExceedsWorkingArea_ShrinksOnlyToFit()
+    {
+        DisplayArea smallDisplay = new(-200, 100, 240, 180);
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(-100, 120, 288, 240),
+            [smallDisplay],
+            smallDisplay);
+
+        actual.Should().Be(new WindowBounds(-200, 100, 240, 180));
+    }
+
+    [Fact]
+    public void EnsureFullyVisible_WhenSavedPositionIsOffScreen_UsesNearestAvailableMonitor()
+    {
+        DisplayArea secondary = new(-1280, 0, 1280, 900);
+        WindowBounds actual = WindowBoundsHelper.EnsureFullyVisible(
+            new WindowBounds(-5000, 100, 288, 240),
+            [secondary, _primaryDisplay],
+            _primaryDisplay);
+
+        actual.Left.Should().Be(secondary.Left);
+        actual.Top.Should().Be(100);
+        actual.Right.Should().BeLessThanOrEqualTo(secondary.Right);
+    }
+
+    [Fact]
     public void EnsureVisible_WhenTopEdgeAboveScreen_ClampsTopToScreenTopSoTitleBarIsGrabable()
     {
         // Arrange: window is positioned at Top = -50, hiding title bar off the top edge

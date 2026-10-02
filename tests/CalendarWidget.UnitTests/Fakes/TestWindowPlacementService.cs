@@ -20,6 +20,8 @@ public sealed class TestWindowPlacementService : IWindowPlacementService
         ApplyWidgetWindowBoundsCallCount++;
     }
 
+    public WindowBounds EnsureWidgetWindowVisible(WindowBounds currentBounds) => currentBounds;
+
     public void OnMainWindowBoundsChanged(double left, double top, double width, double height)
     {
         OnMainWindowBoundsChangedCallCount++;

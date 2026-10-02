@@ -63,7 +63,9 @@
     </UserControl.Resources>
 
     <Grid>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <ScrollViewer x:Name="SettingsScrollViewer"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
             <Grid Margin="24">
                 <Grid.RowDefinitions>
                     <!-- Header -->
@@ -71,7 +73,7 @@
                     <!-- Feedback Banners -->
                     <RowDefinition Height="Auto" />
                     <!-- Settings Sections -->
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <!-- Title -->
@@ -81,7 +83,7 @@
                            Margin="0,0,0,20" />
 
                 <!-- Feedback Banners (Success & Error) -->
-                <StackPanel Grid.Row="1" Margin="0,0,0,16" MaxWidth="640" HorizontalAlignment="Left">
+                <StackPanel Grid.Row="1" Margin="0,0,0,16">
                     <!-- Success Banner -->
                     <Border Background="#1C3829"
                             BorderBrush="#107C41"
@@ -123,7 +125,7 @@
                 </StackPanel>
 
                 <!-- Settings Sections Container -->
-                <StackPanel Grid.Row="2" MaxWidth="640" HorizontalAlignment="Left">
+                <StackPanel x:Name="SettingsSections" Grid.Row="2">
 
                     <!-- 1. Appearance Section -->
                     <Border Background="{DynamicResource SurfaceCardBrush}"

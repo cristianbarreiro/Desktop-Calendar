@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Media;
 using CalendarWidget.App.Services;
 using CalendarWidget.Presentation.ViewModels;
 
@@ -24,7 +26,9 @@ public partial class MainWindow : Window, IManagedWindow
 
         LocationChanged += OnLocationOrSizeChanged;
         SizeChanged += OnLocationOrSizeChanged;
+        StateChanged += OnWindowStateChanged;
         Closed += OnWindowClosed;
+        UpdateMaximizeRestoreControl();
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
@@ -32,6 +36,24 @@ public partial class MainWindow : Window, IManagedWindow
         Closed -= OnWindowClosed;
         LocationChanged -= OnLocationOrSizeChanged;
         SizeChanged -= OnLocationOrSizeChanged;
+        StateChanged -= OnWindowStateChanged;
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        UpdateMaximizeRestoreControl();
+    }
+
+    private void UpdateMaximizeRestoreControl()
+    {
+        bool isMaximized = WindowState == WindowState.Maximized;
+        string actionName = isMaximized ? "Restore" : "Maximize";
+
+        MaximizeRestoreIcon.Data = Geometry.Parse(isMaximized
+            ? "M 5,2 H 12 V 9 M 10,5 H 2 V 12 H 10 Z"
+            : "M 2,2 H 12 V 12 H 2 Z");
+        AutomationProperties.SetName(MaximizeRestoreButton, actionName);
+        MaximizeRestoreButton.ToolTip = actionName;
     }
 
     private void OnLocationOrSizeChanged(object? sender, EventArgs e)

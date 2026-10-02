@@ -6,6 +6,36 @@ namespace CalendarWidget.App.Services;
 public static class WindowBoundsHelper
 {
     private const double MinVisibleDimension = 50.0;
+    private const double DefaultWidgetWidth = 288.0;
+    private const double DefaultWidgetHeight = 240.0;
+
+    /// <summary>
+    /// Clamps a widget window to the usable area of the display where it is currently located.
+    /// </summary>
+    /// <param name="requestedBounds">The requested or current widget bounds.</param>
+    /// <param name="displayAreas">The usable areas of connected displays.</param>
+    /// <param name="defaultDisplay">The fallback display when no usable display is available.</param>
+    /// <returns>Bounds fully contained by one display working area.</returns>
+    public static WindowBounds EnsureFullyVisible(
+        WindowBounds requestedBounds,
+        IReadOnlyList<DisplayArea> displayAreas,
+        DisplayArea defaultDisplay)
+    {
+        double width = IsPositiveFinite(requestedBounds.Width) ? requestedBounds.Width : DefaultWidgetWidth;
+        double height = IsPositiveFinite(requestedBounds.Height) ? requestedBounds.Height : DefaultWidgetHeight;
+        DisplayArea[] validDisplays = displayAreas
+            .Where(IsValidDisplay)
+            .ToArray();
+
+        if (!IsFinite(requestedBounds.Left) || !IsFinite(requestedBounds.Top) || validDisplays.Length == 0)
+        {
+            return ClampToDisplay(requestedBounds.Left, requestedBounds.Top, width, height, defaultDisplay);
+        }
+
+        WindowBounds selectionBounds = new(requestedBounds.Left, requestedBounds.Top, width, height);
+        DisplayArea targetDisplay = FindBestDisplay(selectionBounds, validDisplays);
+        return ClampToDisplay(requestedBounds.Left, requestedBounds.Top, width, height, targetDisplay);
+    }
 
     /// <summary>
     /// Validates whether the given window bounds are sufficiently visible on any active display area.
@@ -86,4 +116,66 @@ public static class WindowBoundsHelper
 
         return new WindowBounds(left, top, actualWidth, actualHeight);
     }
+
+    private static DisplayArea FindBestDisplay(WindowBounds bounds, DisplayArea[] displays)
+    {
+        foreach (DisplayArea display in displays)
+        {
+            if (bounds.Left >= display.Left && bounds.Left < display.Right &&
+                bounds.Top >= display.Top && bounds.Top < display.Bottom)
+            {
+                return display;
+            }
+        }
+
+        DisplayArea bestDisplay = displays[0];
+        double bestIntersectionArea = -1;
+        double bestDistance = double.PositiveInfinity;
+
+        foreach (DisplayArea display in displays)
+        {
+            double intersectionWidth = Math.Max(0, Math.Min(bounds.Right, display.Right) - Math.Max(bounds.Left, display.Left));
+            double intersectionHeight = Math.Max(0, Math.Min(bounds.Bottom, display.Bottom) - Math.Max(bounds.Top, display.Top));
+            double intersectionArea = intersectionWidth * intersectionHeight;
+            double horizontalDistance = Math.Max(0, Math.Max(display.Left - bounds.Left, bounds.Left - display.Right));
+            double verticalDistance = Math.Max(0, Math.Max(display.Top - bounds.Top, bounds.Top - display.Bottom));
+            double distance = (horizontalDistance * horizontalDistance) + (verticalDistance * verticalDistance);
+
+            if (intersectionArea > bestIntersectionArea ||
+                (intersectionArea == bestIntersectionArea && distance < bestDistance))
+            {
+                bestDisplay = display;
+                bestIntersectionArea = intersectionArea;
+                bestDistance = distance;
+            }
+        }
+
+        return bestDisplay;
+    }
+
+    private static WindowBounds ClampToDisplay(double left, double top, double width, double height, DisplayArea display)
+    {
+        double safeWidth = IsPositiveFinite(width) ? width : DefaultWidgetWidth;
+        double safeHeight = IsPositiveFinite(height) ? height : DefaultWidgetHeight;
+        double displayLeft = IsFinite(display.Left) ? display.Left : 0;
+        double displayTop = IsFinite(display.Top) ? display.Top : 0;
+        double displayWidth = IsPositiveFinite(display.Width) ? display.Width : safeWidth;
+        double displayHeight = IsPositiveFinite(display.Height) ? display.Height : safeHeight;
+        double fittedWidth = Math.Min(safeWidth, displayWidth);
+        double fittedHeight = Math.Min(safeHeight, displayHeight);
+        double requestedLeft = IsFinite(left) ? left : displayLeft;
+        double requestedTop = IsFinite(top) ? top : displayTop;
+        double clampedLeft = Math.Clamp(requestedLeft, displayLeft, displayLeft + displayWidth - fittedWidth);
+        double clampedTop = Math.Clamp(requestedTop, displayTop, displayTop + displayHeight - fittedHeight);
+
+        return new WindowBounds(clampedLeft, clampedTop, fittedWidth, fittedHeight);
+    }
+
+    private static bool IsValidDisplay(DisplayArea display) =>
+        IsFinite(display.Left) && IsFinite(display.Top) &&
+        IsPositiveFinite(display.Width) && IsPositiveFinite(display.Height);
+
+    private static bool IsPositiveFinite(double value) => value > 0 && IsFinite(value);
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

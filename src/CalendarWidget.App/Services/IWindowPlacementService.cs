@@ -18,6 +18,13 @@ public interface IWindowPlacementService : IDisposable
     void ApplyWidgetWindowBounds(IManagedWindow window);
 
     /// <summary>
+    /// Returns widget bounds clamped to the usable area of the display where they are located.
+    /// </summary>
+    /// <param name="currentBounds">The current widget bounds in desktop coordinates.</param>
+    /// <returns>Bounds fully contained by a connected display working area.</returns>
+    WindowBounds EnsureWidgetWindowVisible(WindowBounds currentBounds);
+
+    /// <summary>
     /// Records an updated bounds change for the main application window and schedules a debounced persist.
     /// </summary>
     /// <param name="left">Window left coordinate.</param>

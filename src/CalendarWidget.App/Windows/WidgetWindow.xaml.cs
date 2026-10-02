@@ -11,6 +11,7 @@ namespace CalendarWidget.App.Windows;
 public partial class WidgetWindow : Window, IManagedWindow
 {
     private readonly IWindowPlacementService? _placementService;
+    private bool _isConstrainingBounds;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WidgetWindow"/> class.
@@ -24,6 +25,7 @@ public partial class WidgetWindow : Window, IManagedWindow
         _placementService = placementService;
 
         LocationChanged += OnLocationChanged;
+        SizeChanged += OnSizeChanged;
         Closed += OnWindowClosed;
     }
 
@@ -31,13 +33,50 @@ public partial class WidgetWindow : Window, IManagedWindow
     {
         Closed -= OnWindowClosed;
         LocationChanged -= OnLocationChanged;
+        SizeChanged -= OnSizeChanged;
     }
 
     private void OnLocationChanged(object? sender, EventArgs e)
     {
+        ConstrainToWorkingArea(ActualWidth, ActualHeight);
+
         if (WindowState == WindowState.Normal && IsLoaded)
         {
             _placementService?.OnWidgetWindowBoundsChanged(Left, Top);
+        }
+    }
+
+    private void OnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ConstrainToWorkingArea(e.NewSize.Width, e.NewSize.Height);
+    }
+
+    private void ConstrainToWorkingArea(double width, double height)
+    {
+        if (_placementService is null || _isConstrainingBounds || width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        WindowBounds bounded = _placementService.EnsureWidgetWindowVisible(new WindowBounds(Left, Top, width, height));
+        _isConstrainingBounds = true;
+        try
+        {
+            Left = bounded.Left;
+            Top = bounded.Top;
+            if (bounded.Width < width)
+            {
+                Width = bounded.Width;
+            }
+            if (bounded.Height < height)
+            {
+                MinHeight = bounded.Height;
+                Height = bounded.Height;
+            }
+        }
+        finally
+        {
+            _isConstrainingBounds = false;
         }
     }
 

@@ -91,6 +91,22 @@ public sealed class WindowPlacementServiceTests
     }
 
     [Fact]
+    public void ApplyWidgetWindowBounds_WhenSavedPositionOverflowsWorkingArea_ClampsPosition()
+    {
+        _settingsService.CurrentSettings.WidgetWindowLeft = 1800;
+        _settingsService.CurrentSettings.WidgetWindowTop = 1000;
+        _window.Width = 288;
+        _window.Height = 240;
+
+        using WindowPlacementService sut = new(_settingsService, _displayProvider);
+
+        sut.ApplyWidgetWindowBounds(_window);
+
+        _window.Left.Should().Be(1632);
+        _window.Top.Should().Be(840);
+    }
+
+    [Fact]
     public async Task OnMainWindowBoundsChanged_RapidConsecutiveCalls_DebouncesAndSavesOnce()
     {
         // Arrange: 50ms debounce with deterministic test time provider
