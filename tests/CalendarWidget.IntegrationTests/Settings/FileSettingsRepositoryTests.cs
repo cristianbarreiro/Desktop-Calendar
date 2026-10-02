@@ -92,6 +92,60 @@ public sealed class FileSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveSettingsAsync_FromMultipleRepositories_ForSamePath_IsSerializedAndSafe()
+    {
+        FileSettingsRepository repoA = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);
+        FileSettingsRepository repoB = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);
+        using Barrier barrier = new(2);
+
+        Task taskA = Task.Run(async () =>
+        {
+            barrier.SignalAndWait();
+            for (int i = 0; i < 20; i++)
+            {
+                UserSettings settings = new()
+                {
+                    Theme = (i % 2 == 0) ? AppThemeMode.Dark : AppThemeMode.Light,
+                    WidgetOpacity = Math.Min(1.0, 0.55 + (i * 0.015)),
+                    MainWindowLeft = 100 + i,
+                    MainWindowTop = 200 + i,
+                    DateFormat = "yyyy-MM-dd"
+                };
+
+                await repoA.SaveSettingsAsync(settings);
+            }
+        });
+
+        Task taskB = Task.Run(async () =>
+        {
+            barrier.SignalAndWait();
+            for (int i = 0; i < 20; i++)
+            {
+                UserSettings settings = new()
+                {
+                    Theme = (i % 2 == 0) ? AppThemeMode.Light : AppThemeMode.Dark,
+                    WidgetOpacity = Math.Min(1.0, 0.65 + (i * 0.02)),
+                    MainWindowLeft = 300 + i,
+                    MainWindowTop = 400 + i,
+                    DateFormat = "dd/MM/yyyy"
+                };
+
+                await repoB.SaveSettingsAsync(settings);
+            }
+        });
+
+        await Task.WhenAll(taskA, taskB);
+
+        FileSettingsRepository verifyRepo = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);
+        UserSettings finalSettings = await verifyRepo.LoadSettingsAsync();
+
+        finalSettings.MainWindowLeft.Should().BeOneOf(119, 319);
+        finalSettings.MainWindowTop.Should().BeOneOf(219, 419);
+        finalSettings.DateFormat.Should().BeOneOf("yyyy-MM-dd", "dd/MM/yyyy");
+        finalSettings.WidgetOpacity.Should().BeInRange(0.55, 1.0);
+    }
+
+    [Fact]
     public async Task LoadSettingsAsync_WhenFileCorrupted_ReturnsDefaultsAndBacksUpCorruptFile()
     {
         await File.WriteAllTextAsync(_settingsFilePath, "{ invalid json content: 123 ]");

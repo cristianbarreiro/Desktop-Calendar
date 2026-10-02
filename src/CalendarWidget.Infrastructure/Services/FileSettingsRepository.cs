@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -29,9 +30,11 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
     private static readonly Action<ILogger, string, Exception?> LogReadError =
         LoggerMessage.Define<string>(LogLevel.Error, new EventId(3, "ReadError"), "Unexpected error reading settings file from {FilePath}.");
 
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> FileLocks = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly string _filePath;
     private readonly ILogger<FileSettingsRepository> _logger;
-    private readonly SemaphoreSlim _fileLock = new(1, 1);
+    private readonly SemaphoreSlim _fileLock;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileSettingsRepository"/> class.
@@ -42,6 +45,9 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
     {
         _filePath = filePath;
         _logger = logger;
+
+        string normalizedPath = Path.GetFullPath(filePath);
+        _fileLock = FileLocks.GetOrAdd(normalizedPath, _ => new SemaphoreSlim(1, 1));
     }
 
     /// <inheritdoc />
@@ -120,10 +126,39 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
             }
 
             string json = JsonSerializer.Serialize(settings, SerializerOptions);
-            string tempFile = _filePath + ".tmp";
+            string directory = Path.GetDirectoryName(_filePath) ?? Directory.GetCurrentDirectory();
+            string tempFile = Path.Combine(directory, $"{Path.GetFileName(_filePath)}.{Guid.NewGuid():N}.tmp");
+            string backupFile = Path.Combine(directory, $"{Path.GetFileName(_filePath)}.{Guid.NewGuid():N}.bak");
 
             await File.WriteAllTextAsync(tempFile, json, cancellationToken);
-            File.Move(tempFile, _filePath, overwrite: true);
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    File.Move(_filePath, backupFile);
+                }
+
+                File.Move(tempFile, _filePath);
+
+                if (File.Exists(backupFile))
+                {
+                    File.Delete(backupFile);
+                }
+            }
+            catch
+            {
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+
+                if (File.Exists(backupFile) && !File.Exists(_filePath))
+                {
+                    File.Move(backupFile, _filePath);
+                }
+
+                throw;
+            }
         }
         finally
         {
@@ -134,6 +169,8 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        _fileLock.Dispose();
+        // This repository coordinates file-path-level synchronization across all instances.
+        // Disposing the shared semaphore here would invalidate in-flight writers created by
+        // other repository instances that point to the same settings file.
     }
 }
