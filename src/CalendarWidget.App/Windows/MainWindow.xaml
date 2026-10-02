@@ -19,7 +19,7 @@
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
-    <Grid>
+    <Grid x:Name="MainWindowRootGrid">
         <Grid.RowDefinitions>
             <!-- Custom Title Bar -->
             <RowDefinition Height="36" />
