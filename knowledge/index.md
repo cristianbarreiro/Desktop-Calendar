@@ -4,6 +4,10 @@ Welcome to the internal project knowledge base for the Modern Desktop Calendar W
 
 This layer provides consolidated, curated domain and engineering knowledge for human contributors and AI coding agents.
 
+## Loading Guidance
+
+Start with `AGENTS.md`, then open only the topic needed for the task. Use `docs/project-state.md` for current status and `failure-memory.md` for evidence-backed incident history. Skills provide task-specific decision support; they do not replace architecture, product, or code sources of truth.
+
 ## Knowledge Topics
 
 | Document | Description |
@@ -16,3 +20,4 @@ This layer provides consolidated, curated domain and engineering knowledge for h
 | [glossary.md](./glossary.md) | Domain terminology and concepts |
 | [roadmap.md](./roadmap.md) | Phased implementation plan |
 | [constraints.md](./constraints.md) | Hard boundaries, non-goals, and security guardrails |
+| [failure-memory.md](./failure-memory.md) | Root causes, verified fixes, and diagnostic lessons from recent failures |

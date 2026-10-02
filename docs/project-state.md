@@ -6,7 +6,25 @@
 - **Product Implementation**: Complete (Phases 4–13 complete)
 - **Version**: 1.0.0
 - **Status**: Production Release Ready
-- **Current Date**: 2026-09-30
+- **Current Date**: 2026-10-02
+
+## Current State
+
+### Implementation State
+- Product implementation phases 0–13 are complete. No product feature work is active.
+- AI context hardening is delivered in this change; no product feature work is assigned next.
+
+### Validation State
+- Release validation: 421 tests passed (326 unit, 95 integration), twice locally on Windows/.NET 10.
+- Focused persistence and NotesView regressions pass; `dotnet format --verify-no-changes` passes.
+- GitHub Actions CI for `395b4b3` passed build, tests, and format verification.
+
+### Release State
+- Existing product release remains `v1.0.0`; no new release or tag is part of this work.
+
+### Next Work
+- AI context hardening is delivered with this change; no next product feature is currently assigned.
+- Choose future work from an explicit request. `docs/current-sprint.md` is a historical Phase 13 record.
 
 ---
 
@@ -144,7 +162,7 @@
 - [x] Unit test project configured (`xUnit` + `FluentAssertions`)
 - [x] Integration test project configured (`xUnit` + `FluentAssertions` + EF Core Sqlite + WPF application lifecycle)
 - [x] Comprehensive test suite covering grid calculations, view models, window orchestration, lifecycle, keyboard navigation, selection edge cases, converter logic, event domain validation, event form view model, calendar event loading/CRUD, note domain validation, note view model CRUD/search/selection, settings validation, settings view model preferences/export/import/reset, date/time formatting, file settings repository persistence and recovery, data management export/import/rollback, off-screen recovery, single-instance coordination and IPC signaling, window placement debouncing, system tray lifecycle, multi-monitor geometry, IPC error handling, malformed payloads, concurrent settings/placement updates, accessible day descriptions, and modal keyboard bindings.
-- [x] 418 automated tests passing (326 unit tests, 92 integration tests, 0 failures)
+  - [x] 421 automated tests passing (326 unit tests, 95 integration tests, 0 failures) as of 2026-10-02
 - [x] Solution builds with 0 errors and 0 warnings in Debug and Release configurations
 - [x] Code formatting verification passes (`dotnet format --verify-no-changes`)
 
@@ -171,4 +189,5 @@
 ---
 
 ## Current Priorities
-- Phase 13 Packaging & Release is complete and verified. Application is production-ready at `v1.0.0`.
+- Product implementation phases 0–13 are complete; the existing `v1.0.0` release is unchanged.
+- The current non-product task is AI context hardening, tracked in the Current State section.

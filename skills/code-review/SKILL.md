@@ -3,35 +3,18 @@ name: code-review
 description: Comprehensive review checklist for architecture, security, performance, and code quality.
 ---
 
-# Code Review Skill
+# Code Review Decision Aid
 
-## Purpose
-Systematically review code changes before completing a task or submitting a pull request.
+Use for meaningful changes or when another layer's contract is affected. Scale review to the diff and its risk.
 
-## When to Use
-- Prior to finalizing any non-trivial code modifications.
-- When validating contributions across architectural layers.
+## Review Questions
 
-## Checklist
-1. **Architecture Boundaries**:
-   - Did any UI code bleed into Core?
-   - Did Presentation reference Infrastructure?
-2. **Quality & Standards**:
-   - Are public members documented with XML comments?
-   - Are classes marked `sealed` where appropriate?
-   - Is formatting compliant (`dotnet format --verify-no-changes`)?
-3. **Tests**:
-   - Are new business rules backed by automated tests?
-   - Do all unit and integration tests pass (`dotnet test`)?
-4. **Security & Privacy**:
-   - Are connection strings or secrets committed? (Must be NO)
-   - Is user input validated properly?
-   - Are there any unexpected network calls? (Must be NO)
+- Does the change preserve project boundaries and existing ownership?
+- Are failure paths, cancellation, cleanup, and user-data effects handled?
+- Are inputs validated and secrets absent? Does the diff introduce network activity?
+- Do tests assert required behavior and fail deterministically?
+- Are public APIs documented and formatting consistent where relevant?
 
-## Validation
-Execute:
-```bash
-dotnet build
-dotnet test
-dotnet format --verify-no-changes
-```
+## Evidence
+
+Inspect the diff and run the narrowest relevant build/tests first. Run full Release tests and `dotnet format --verify-no-changes` when the change or repository gate warrants it. Report commands and outcomes; do not infer success from inspection.

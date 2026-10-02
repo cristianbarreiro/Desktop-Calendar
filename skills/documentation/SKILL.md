@@ -3,24 +3,17 @@ name: documentation
 description: Standards and guidelines for keeping project documentation synchronized with code changes.
 ---
 
-# Documentation Skill
+# Documentation Decision Aid
 
-## Purpose
-Ensure that whenever architectural, domain, or UI behaviors change, documentation is updated immediately as part of the Definition of Done.
+Use when behavior, ownership, requirements, or project status changes. Update the source that owns the fact; avoid copying detailed rules into indexes or agent adapters.
 
-## When to Use
-- Implementing a new feature.
-- Changing an architectural pattern or data boundary.
-- Resolving technical debt or discovering a new constraint.
+## Choose the Source
 
-## Mapping Matrix
-| Change Type | Documents to Update |
-|-------------|---------------------|
-| New Feature | `docs/product/requirements.md`, `docs/product/feature-map.md` |
-| Architectural Shift | `docs/adr/`, `docs/architecture/overview.md` |
-| UI/Theme Update | `docs/ui/design-system.md`, `docs/ui/interaction-rules.md` |
-| New Domain Rule | `knowledge/domain.md` |
-| Sprint Progress | `docs/project-state.md`, `docs/current-sprint.md`, `docs/development-log.md` |
+- Requirements and user flows: `docs/product/`.
+- Architecture and durable trade-offs: `docs/architecture/` and `docs/adr/`.
+- UI behavior and accessibility: `docs/ui/`.
+- Domain rules and shared concepts: `knowledge/`.
+- Implementation, validation, release, and next work: `docs/project-state.md`.
+- Dated history: `docs/development-log.md`.
 
-## Validation
-- Review updated markdown files for clarity, correct relative links, and absence of outdated claims.
+Update indexes or adapter files only when links or routing change. Check links, dates, counts, and status claims against repository and test evidence.

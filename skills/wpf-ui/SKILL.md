@@ -3,30 +3,15 @@ name: wpf-ui
 description: Best practices for XAML design, MVVM bindings, theming, and accessibility in WPF.
 ---
 
-# WPF UI Skill
+# WPF UI Decision Aid
 
-## Purpose
-Guide the development of responsive, accessible, and elegant WPF interfaces in `CalendarWidget.Presentation` and `CalendarWidget.App`.
+Use for XAML, view models, themes, accessibility, or WPF lifecycle changes. Load relevant design-system and interaction guidance only.
 
-## When to Use
-- Creating or editing XAML views, user controls, styles, or templates.
-- Writing ViewModels with `CommunityToolkit.Mvvm`.
-- Adjusting color palettes, themes, and animations.
+## Choose the Owner
 
-## Prerequisites
-- Review `docs/ui/design-system.md` and `docs/ui/interaction-rules.md`.
+- Keep view state and commands in Presentation view models; reserve code-behind for view-specific interaction such as focus or dragging.
+- Keep persistence and EF Core behind Core contracts and Infrastructure services.
+- Follow nearby resource dictionaries and theme behavior; avoid a new styling pattern without a concrete need.
+- Give interactive controls accessible names and preserve keyboard navigation.
 
-## Workflow
-1. Inherit ViewModels from `ObservableObject`.
-2. Use `[ObservableProperty]` and `[RelayCommand]` source generators.
-3. Keep code-behind files (`.xaml.cs`) minimal—restricted to view-only logic (focus, window dragging).
-4. Organize styles into resource dictionaries under `Presentation/Themes/`.
-5. Provide `AutomationProperties.Name` on all interactive elements.
-
-## Constraints
-- No business logic inside View code-behind.
-- No direct database access or EF Core references in presentation layer.
-
-## Validation
-- Verify XAML compiles cleanly during `dotnet build`.
-- Verify key navigation and tab traversal.
+For WPF tests, account for process-wide `Application.Current`, STA thread, and Dispatcher state. Exercise lifecycle isolation in test helpers; do not add production workarounds for test-host initialization problems. Validate XAML with a build and test affected interactions.

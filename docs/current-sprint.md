@@ -1,4 +1,4 @@
-# Current Sprint
+# Historical Sprint — Phase 13
 
 ## Sprint Objective
 
@@ -151,8 +151,8 @@ Complete Phase 13 (Packaging & Release) to establish reproducible, installable, 
 
 ## Next Implementation Target
 
-- Deployment / Release Tag `v1.0.0`.
-- All Phases 0–13 are COMPLETE.
+- This Phase 13 sprint is complete; the existing `v1.0.0` release is unchanged.
+- Current implementation, validation, release, and next-work state is maintained in `project-state.md`.
 
 ---
 

@@ -3,37 +3,20 @@ name: architecture
 description: Guides evaluation, boundary validation, and design decisions for layered clean architecture in CalendarWidget.
 ---
 
-# Architecture Skill
+# Architecture Decision Aid
 
-## Purpose
-Ensure all changes adhere to Clean Architecture, unidirectional dependency rules, and domain-driven design principles.
+Use when a change crosses projects, adds an abstraction, or affects persistence or UI ownership. Load only the relevant architecture document and project references.
 
-## When to Use
-- Proposing or introducing new projects or library dependencies.
-- Adding new cross-layer interfaces or services.
-- Refactoring core models or application boundaries.
+## Decide
 
-## Prerequisites
-- Read `AGENTS.md` and `docs/architecture/overview.md`.
-- Verify existing dependency graph via project files.
+- Put domain rules and technology-neutral repository contracts in Core.
+- Put view state and UI interaction in Presentation; keep it independent of Infrastructure.
+- Put EF Core, files, and OS integrations in Infrastructure.
+- Keep startup, dependency wiring, and concrete window ownership in App.
+- Add or revise an ADR when a durable boundary or ownership decision changes; routine implementation details do not need one.
 
-## Workflow
-1. Check source and target layers for proposed changes.
-2. Confirm dependency direction: `App -> Presentation/Infrastructure -> Core`.
-3. Classify each new abstraction by ownership before adding it:
-   - **Core**: domain concepts and technology-agnostic domain/repository contracts.
-   - **Presentation**: UI state and presentation/application interaction contracts.
-   - **Infrastructure**: OS/persistence implementation details and infrastructure-private contracts.
-   - **App**: composition-root concerns and concrete window ownership/lifecycle wiring.
-4. Do not place UI/window-management contracts in Core merely because they are interfaces.
-5. If architectural boundaries change materially, create or update an ADR in `/docs/adr/`.
+## Check
 
-## Constraints
-- Never allow `CalendarWidget.Core` to reference other solution projects.
-- Never allow `CalendarWidget.Presentation` to reference `CalendarWidget.Infrastructure`.
-- Keep WPF/window-management concerns outside Core.
-- Repository interfaces belong in Core only when they represent domain persistence contracts.
-
-## Validation
-- Run `dotnet build` to ensure compiler enforces dependency references.
-- Verify no circular dependencies exist.
+- Trace references toward Core; Core must not depend on outer projects or WPF.
+- Prefer an existing owner and pattern over a new layer or service.
+- Build affected projects and test behavior at the layer that owns it.

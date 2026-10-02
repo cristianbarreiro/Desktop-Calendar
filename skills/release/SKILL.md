@@ -3,31 +3,15 @@ name: release
 description: Release preparation, packaging, versioning, and deployment verification for Desktop Calendar.
 ---
 
-# Release Skill
+# Release Decision Aid
 
-## Purpose
-Prepare production binaries, manage version increments, and ensure release builds satisfy all deployment criteria.
+Use only for an explicitly requested release or packaging task. An ordinary code fix does not require publishing or changing version metadata.
 
-## When to Use
-- Releasing a milestone or release candidate.
-- Building self-contained or framework-dependent production distributions.
+## Prepare
 
-## Workflow
-1. Verify all tests pass on Release configuration:
-   ```bash
-   dotnet test -c Release
-   ```
-2. Verify code formatting and analyzers:
-   ```bash
-   dotnet format --verify-no-changes
-   ```
-3. Publish WPF application:
-   ```bash
-   dotnet publish src/CalendarWidget.App/CalendarWidget.App.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64
-   ```
-4. Verify executable launches without external database dependencies (SQLite auto-initializes).
-5. Document changes in `docs/development-log.md` and bump version tag.
+- Verify intended version, runtime, distribution type, and existing release workflow before packaging.
+- Run Release build/tests and format checks; inspect working-tree status and generated package contents.
+- Keep user databases and development artifacts out of release packages.
+- Update release documentation to match what was built and validated.
 
-## Constraints
-- Never release a build containing uncommitted debugging code or failing tests.
-- Never package development database files.
+Creating a tag, publishing artifacts, or changing the release version requires an explicit release request. Never report a package or release as verified unless it was produced and checked.

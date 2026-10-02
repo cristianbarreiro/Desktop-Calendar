@@ -10,7 +10,7 @@
 - **UI Framework**: WPF (XAML)
 - **Architecture**: MVVM + Layered Architecture
 - **Storage**: SQLite via Entity Framework Core
-- **Status**: Phase 13 Complete — Packaging & Release Validated (v1.0.0)
+- **Status**: Product phases 0–13 implemented; see [`docs/project-state.md`](docs/project-state.md) for current validation, release, and next-work state.
 
 ## Architecture
 
@@ -163,3 +163,5 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 - `/knowledge/domain.md` — for domain logic
 - `/skills/` — for specialized workflows
 - `/docs/adr/` — when making architectural decisions
+
+Load the narrowest relevant source; do not copy its content into this file or read every skill by default. Skills are optional workflows and decision aids: adapt them to the task and repository evidence. For known incidents, consult `/knowledge/failure-memory.md`; use its causes and diagnostics as evidence, not as a universal recipe. `/docs/project-state.md` is the current source for implementation, validation, release, and next work.

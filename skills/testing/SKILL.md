@@ -3,31 +3,12 @@ name: testing
 description: Automated test authoring guidelines using xUnit and FluentAssertions for CalendarWidget.
 ---
 
-# Testing Skill
+# Testing Decision Aid
 
-## Purpose
-Ensure all business rules, date calculations, ViewModels, and persistence logic are thoroughly covered by automated tests.
+Use tests to protect observable behavior. Choose the smallest layer that can establish the contract:
 
-## When to Use
-- Adding or modifying business logic in `Core`.
-- Implementing persistence repositories in `Infrastructure`.
-- Creating ViewModels in `Presentation`.
+- Pure domain and transformation rules: `CalendarWidget.UnitTests`.
+- Persistence, WPF lifecycle, or OS behavior: `CalendarWidget.IntegrationTests`; isolate external state with temporary resources.
+- Cross-service races: coordinate actors with barriers, gates, or explicit seams, then assert preserved state. Do not depend on sleeps or scheduler luck.
 
-## Prerequisites
-- Familiarity with `xUnit` and `FluentAssertions`.
-
-## Workflow
-1. Place unit tests in `tests/CalendarWidget.UnitTests/`.
-2. Place integration tests (database, OS) in `tests/CalendarWidget.IntegrationTests/`.
-3. Follow the naming pattern: `MethodName_Condition_ExpectedResult`.
-4. Structure tests using AAA (Arrange, Act, Assert).
-5. Prefer in-memory database providers or clean isolated SQLite instances for integration tests.
-
-## Constraints
-- Do not test framework behavior (e.g. testing that `int x = 5` sets `x` to `5`).
-- Never disable existing tests to bypass build failures.
-
-## Validation
-```bash
-dotnet test
-```
+Name tests `Method_Condition_ExpectedResult` and keep setup, action, and assertions clear. Keep assertions meaningful; do not skip tests, weaken them, or disable parallelism to hide a failure. Reproduce failures narrowly, then expand to the suite and CI as risk requires.

@@ -3,33 +3,17 @@ name: dotnet
 description: Standard workflows, coding conventions, and CLI operations for .NET 10 and C# 14.
 ---
 
-# .NET Skill
+# .NET Workflow Aid
 
-## Purpose
-Maintain high-quality C# code conforming to Microsoft and project standards.
+Use for C#/.NET changes and CLI choices. Confirm target framework and installed SDK; this project targets .NET 10 and enables nullable reference types.
 
-## When to Use
-- Writing or editing any `.cs` or `.csproj` files.
-- Adding NuGet packages.
-- Executing .NET CLI commands.
+## Style Decisions
 
-## Prerequisites
-- .NET 10 SDK installed (`dotnet --version`).
+- Follow nearby code: file-scoped namespaces, explicit types when inference is unclear, and `sealed` for non-extensible classes.
+- Preserve nullable contracts and document public APIs.
+- Prefer the BCL or existing dependencies; explain a concrete need before adding a package.
+- Do not suppress warnings or alter project configuration just to obtain a clean build.
 
-## Workflow
-1. Use file-scoped namespaces.
-2. Mark classes `sealed` by default unless extension is intended.
-3. Keep nullable reference types satisfied without blindly using `!`.
-4. Prefer explicit types over `var` when type is not apparent.
-5. Add XML docs (`///`) to public methods and types.
-6. Use `dotnet format` to enforce formatting.
+## Validation Choices
 
-## Constraints
-- Do not disable compiler warnings in code without justification.
-- Do not add packages without justifying why an existing BCL feature is insufficient.
-
-## Validation
-```bash
-dotnet build
-dotnet format --verify-no-changes
-```
+Build the affected project for a local change; use the Release solution build/tests and `dotnet format --verify-no-changes` when the change or CI gate warrants it. Avoid concurrent builds against the same checkout outputs.
