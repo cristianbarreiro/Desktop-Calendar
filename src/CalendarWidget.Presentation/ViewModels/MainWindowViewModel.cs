@@ -10,6 +10,7 @@ namespace CalendarWidget.Presentation.ViewModels;
 public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly IWindowManager _windowManager;
+    private readonly HomeViewModel _homeViewModel;
     private readonly CalendarViewModel _calendarViewModel;
     private readonly NotesViewModel _notesViewModel;
     private readonly SettingsViewModel _settingsViewModel;
@@ -18,27 +19,40 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private ViewModelBase _currentViewModel;
 
     [ObservableProperty]
-    private NavigationTab _selectedTab = NavigationTab.Calendar;
+    private NavigationTab _selectedTab = NavigationTab.Home;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
     /// <param name="windowManager">Window orchestration service.</param>
+    /// <param name="homeViewModel">Home page view model.</param>
     /// <param name="calendarViewModel">Calendar page view model.</param>
     /// <param name="notesViewModel">Notes page view model.</param>
     /// <param name="settingsViewModel">Settings page view model.</param>
     public MainWindowViewModel(
         IWindowManager windowManager,
+        HomeViewModel homeViewModel,
         CalendarViewModel calendarViewModel,
         NotesViewModel notesViewModel,
         SettingsViewModel settingsViewModel)
     {
         _windowManager = windowManager;
+        _homeViewModel = homeViewModel;
         _calendarViewModel = calendarViewModel;
         _notesViewModel = notesViewModel;
         _settingsViewModel = settingsViewModel;
 
-        _currentViewModel = _calendarViewModel;
+        _currentViewModel = _homeViewModel;
+    }
+
+    /// <summary>
+    /// Navigates to the Home view.
+    /// </summary>
+    [RelayCommand]
+    public void NavigateHome()
+    {
+        SelectedTab = NavigationTab.Home;
+        CurrentViewModel = _homeViewModel;
     }
 
     /// <summary>

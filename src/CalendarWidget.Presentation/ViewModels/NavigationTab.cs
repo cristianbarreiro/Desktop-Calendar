@@ -6,6 +6,11 @@ namespace CalendarWidget.Presentation.ViewModels;
 public enum NavigationTab
 {
     /// <summary>
+    /// Minimal application landing view.
+    /// </summary>
+    Home,
+
+    /// <summary>
     /// Calendar grid and day details view.
     /// </summary>
     Calendar,

@@ -125,6 +125,13 @@
 
                     <!-- Navigation Items -->
                     <StackPanel Grid.Row="0" Margin="8,16,8,8">
+                        <Button Command="{Binding NavigateHomeCommand}"
+                                Content="⌂  Home"
+                                Style="{DynamicResource SidebarNavButtonStyle}"
+                                ToolTip="Home"
+                                AutomationProperties.Name="Home"
+                                AutomationProperties.AutomationId="NavHomeButton"
+                                AutomationProperties.HelpText="Navigate to Home view" />
                         <Button Command="{Binding NavigateCalendarCommand}"
                                 Content="📅  Calendar"
                                 Style="{DynamicResource SidebarNavButtonStyle}"
@@ -169,6 +176,9 @@
                             VerticalContentAlignment="Stretch"
                             Content="{Binding CurrentViewModel}">
                 <ContentControl.Resources>
+                    <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+                        <views:HomeView />
+                    </DataTemplate>
                     <DataTemplate DataType="{x:Type vm:CalendarViewModel}">
                         <views:CalendarView />
                     </DataTemplate>

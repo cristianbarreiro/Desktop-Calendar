@@ -1,0 +1,9 @@
+<UserControl x:Class="CalendarWidget.Presentation.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="24">
+        <TextBlock Text="Desktop Calendar"
+                   Style="{DynamicResource HeaderLargeTextBlockStyle}"
+                   VerticalAlignment="Center" />
+    </Grid>
+</UserControl>

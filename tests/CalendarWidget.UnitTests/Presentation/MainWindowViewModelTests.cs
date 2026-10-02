@@ -10,6 +10,7 @@ public sealed class MainWindowViewModelTests
     private readonly TestWindowManager _windowManager = new();
     private readonly CalendarGridService _gridService = new();
     private readonly TestClockService _clockService = new(new DateTime(2026, 9, 24, 10, 0, 0));
+    private readonly HomeViewModel _homeViewModel = new();
     private readonly CalendarViewModel _calendarViewModel;
     private readonly NotesViewModel _notesViewModel = new();
     private readonly SettingsViewModel _settingsViewModel = new();
@@ -19,15 +20,26 @@ public sealed class MainWindowViewModelTests
     {
         TestScopeFactory scopeFactory = new(new TestCalendarEventRepository());
         _calendarViewModel = new CalendarViewModel(_gridService, _clockService, scopeFactory);
-        _sut = new MainWindowViewModel(_windowManager, _calendarViewModel, _notesViewModel, _settingsViewModel);
+        _sut = new MainWindowViewModel(_windowManager, _homeViewModel, _calendarViewModel, _notesViewModel, _settingsViewModel);
     }
 
     [Fact]
-    public void Constructor_InitializesWithCalendarViewAndSelectedTab()
+    public void Constructor_InitializesWithHomeViewAndSelectedTab()
     {
         // Assert
-        _sut.CurrentViewModel.Should().Be(_calendarViewModel);
-        _sut.SelectedTab.Should().Be(NavigationTab.Calendar);
+        _sut.CurrentViewModel.Should().Be(_homeViewModel);
+        _sut.SelectedTab.Should().Be(NavigationTab.Home);
+    }
+
+    [Fact]
+    public void NavigateHome_WhenInvoked_SetsCurrentViewModelToHomeAndUpdatesTab()
+    {
+        _sut.NavigateCalendar();
+
+        _sut.NavigateHome();
+
+        _sut.CurrentViewModel.Should().Be(_homeViewModel);
+        _sut.SelectedTab.Should().Be(NavigationTab.Home);
     }
 
     [Fact]

@@ -48,6 +48,7 @@ public sealed class NotesViewRegressionTests : IDisposable
             services.AddSingleton<CalendarViewModel>();
             services.AddSingleton<NotesViewModel>();
             services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<HomeViewModel>();
             services.AddSingleton<MainWindowViewModel>();
 
             using ServiceProvider provider = services.BuildServiceProvider();

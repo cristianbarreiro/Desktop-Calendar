@@ -66,6 +66,7 @@ public static class Program
                 // Presentation ViewModels
                 services.AddSingleton<MainWindowViewModel>();
                 services.AddSingleton<WidgetViewModel>();
+                services.AddTransient<HomeViewModel>();
                 services.AddTransient<CalendarViewModel>();
                 services.AddTransient<NotesViewModel>();
                 services.AddTransient<SettingsViewModel>();

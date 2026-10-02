@@ -31,6 +31,7 @@ public sealed class MainWindowViewportRegressionTests : IDisposable
             services.AddSingleton<ICalendarGridService, CalendarGridService>();
             services.AddSingleton<IClockService, SystemClockService>();
             services.AddSingleton<IWindowManager, StubWindowManager>();
+            services.AddSingleton<HomeViewModel>();
             services.AddSingleton<CalendarViewModel>();
             services.AddSingleton<NotesViewModel>();
             services.AddSingleton<SettingsViewModel>();
@@ -115,6 +116,7 @@ public sealed class MainWindowViewportRegressionTests : IDisposable
 
         foreach (Action navigate in new Action[]
         {
+            viewModel.NavigateHome,
             viewModel.NavigateCalendar,
             viewModel.NavigateNotes,
             viewModel.NavigateSettings
@@ -135,6 +137,14 @@ public sealed class MainWindowViewportRegressionTests : IDisposable
 
             if (currentView is not SettingsView settingsView)
             {
+                if (currentView is HomeView homeView)
+                {
+                    homeView.ActualWidth.Should().BeApproximately(contentControl.ActualWidth, 1);
+                    homeView.ActualHeight.Should().BeApproximately(contentControl.ActualHeight, 1);
+                    homeView.Content.Should().BeOfType<Grid>().Which.Children
+                        .OfType<TextBlock>().Should().ContainSingle(text => text.Text == "Desktop Calendar");
+                }
+
                 continue;
             }
 
