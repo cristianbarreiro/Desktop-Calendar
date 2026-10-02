@@ -13,11 +13,12 @@
 ### Implementation State
 - Product implementation phases 0–13 are complete. No product feature work is active.
 - AI context hardening is delivered in this change; no product feature work is assigned next.
+- Build and installer regeneration are unified through `scripts/build_installer.ps1`, backed by the existing `scripts/package.ps1` pipeline.
 
 ### Validation State
-- Release validation: 421 tests passed (326 unit, 95 integration), twice locally on Windows/.NET 10.
-- Focused persistence and NotesView regressions pass; `dotnet format --verify-no-changes` passes.
-- GitHub Actions CI for `395b4b3` passed build, tests, and format verification.
+- Full clean Release packaging passed twice locally on Windows/.NET 10, including 421 tests (326 unit, 95 integration), formatting, both publish modes, ZIP validation, Inno Setup compilation, checksums, and manifest generation.
+- `-SkipInstaller` and `-SkipTests` modes were also exercised; skipped stages were reported explicitly. Existing `%LOCALAPPDATA%\DesktopCalendar` data remained outside the build cleanup scope.
+- GitHub Actions CI for the remote baseline `df4252d` passed. Local packaging changes are not pushed, so no CI run has validated this change yet.
 
 ### Release State
 - Existing product release remains `v1.0.0`; no new release or tag is part of this work.
@@ -177,7 +178,8 @@
 - [x] Inno Setup installer script (`installer/setup.iss`) producing `DesktopCalendar-1.0.0-win-x64-setup.exe`
 - [x] Installer upgrade-safe and uninstall-safe user data preservation (`%LOCALAPPDATA%\DesktopCalendar\calendar.db` and `settings.json` preserved)
 - [x] SHA-256 checksums generation (`artifacts/release/SHA256SUMS.txt`)
-- [x] Complete automated packaging pipeline script (`scripts/package.ps1`)
+- [x] Unified PowerShell entry point (`scripts/build_installer.ps1`) delegating to the single packaging implementation in `scripts/package.ps1`; clean generated build outputs, verify tools and version, fail-fast validation, artifact checks, and machine-readable build manifest
+- [x] Release workflow reuses the local pipeline rather than duplicating restore/build/test/format stages
 - [x] Dedicated GitHub Actions release workflow (`.github/workflows/release.yml`) with automated tag and workflow_dispatch triggers
 - [x] Clean separation between CI and Release workflows
 

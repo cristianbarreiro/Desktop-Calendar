@@ -121,15 +121,19 @@ dotnet format
 ## Packaging & Distribution
 
 ```powershell
-# Run the automated packaging pipeline (Build, Test, Format, Publish, Installer, Checksums)
-powershell -ExecutionPolicy Bypass -File scripts/package.ps1
+# Full clean build, tests, format check, distributions, installer, hashes, and manifest
+.\scripts\build_installer.ps1 -Clean
 
-# Framework-dependent package (requires .NET 10 on target machine)
-dotnet publish src/CalendarWidget.App/CalendarWidget.App.csproj -c Release -r win-x64 --self-contained false -o artifacts/publish/framework-dependent
+# Regenerate distributions without compiling an installer
+.\scripts\build_installer.ps1 -Clean -SkipInstaller
 
-# Self-contained package (includes .NET 10 runtime)
-dotnet publish src/CalendarWidget.App/CalendarWidget.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/publish/self-contained
+# Explicitly skip tests when needed (restore and build still run)
+.\scripts\build_installer.ps1 -SkipTests
 ```
+
+The pipeline can be invoked from any working directory. It writes publish outputs to `artifacts/publish/`, the Inno Setup output to `artifacts/installer/`, and release ZIPs, the setup executable, `SHA256SUMS.txt`, and `BUILD-MANIFEST.json` to `artifacts/release/`. The framework-dependent ZIP requires the .NET 10 Desktop Runtime; the self-contained ZIP and installer include the runtime. Inno Setup 6 must be installed for the default full build; use `-SkipInstaller` only when intentionally omitting it. Optional `-SkipFormat`, `-SkipFrameworkDependent`, `-SkipSelfContained`, and `-SkipChecksums` omit only their named stages/artifacts.
+
+`-Clean` removes generated `bin/`, `obj/`, and pipeline artifact outputs only. Previous pipeline artifacts are also replaced on every run to prevent stale files from being mistaken for fresh results. It never removes or writes application data under `%LOCALAPPDATA%\DesktopCalendar\` (including `calendar.db` and `settings.json`); that directory is independent of build state and remains available for install/upgrade persistence checks. The pipeline intentionally does not launch the application or installer, because application startup initializes and may migrate the real user database.
 
 ## Project Status
 
