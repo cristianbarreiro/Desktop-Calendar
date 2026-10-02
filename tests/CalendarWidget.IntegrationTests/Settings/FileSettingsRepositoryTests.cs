@@ -77,6 +77,39 @@ public sealed class FileSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveSettingsAsync_WhenReplacingExistingFile_PreservesNewSettingsWithoutArtifacts()
+    {
+        FileSettingsRepository repo = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);
+        UserSettings original = new() { DateFormat = "yyyy-MM-dd", MainWindowLeft = 100 };
+        UserSettings updated = new() { DateFormat = "dd/MM/yyyy", MainWindowLeft = 250 };
+
+        await repo.SaveSettingsAsync(original);
+        await repo.SaveSettingsAsync(updated);
+
+        UserSettings loaded = await repo.LoadSettingsAsync();
+        loaded.DateFormat.Should().Be(updated.DateFormat);
+        loaded.MainWindowLeft.Should().Be(updated.MainWindowLeft);
+        Directory.GetFiles(_tempDirectory, "*.tmp").Should().BeEmpty();
+        Directory.GetFiles(_tempDirectory, "*.bak").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task LoadSettingsAsync_WhenSaveWasInterrupted_RestoresPreviousSettings()
+    {
+        FileSettingsRepository repo = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);
+        UserSettings previous = new() { DateFormat = "yyyy-MM-dd", MainWindowLeft = 175 };
+        await repo.SaveSettingsAsync(previous);
+        File.Move(_settingsFilePath, _settingsFilePath + ".bak");
+
+        UserSettings recovered = await repo.LoadSettingsAsync();
+
+        recovered.DateFormat.Should().Be(previous.DateFormat);
+        recovered.MainWindowLeft.Should().Be(previous.MainWindowLeft);
+        File.Exists(_settingsFilePath).Should().BeTrue();
+        File.Exists(_settingsFilePath + ".bak").Should().BeFalse();
+    }
+
+    [Fact]
     public async Task SaveSettingsAsync_WhenValidationFails_ThrowsDomainValidationException()
     {
         FileSettingsRepository repo = new(_settingsFilePath, NullLogger<FileSettingsRepository>.Instance);

@@ -56,6 +56,8 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
         await _fileLock.WaitAsync(cancellationToken);
         try
         {
+            RecoverInterruptedSave();
+
             if (!File.Exists(_filePath))
             {
                 return new UserSettings();
@@ -119,6 +121,8 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
         await _fileLock.WaitAsync(cancellationToken);
         try
         {
+            RecoverInterruptedSave();
+
             string? dir = Path.GetDirectoryName(_filePath);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
             {
@@ -128,7 +132,7 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
             string json = JsonSerializer.Serialize(settings, SerializerOptions);
             string directory = Path.GetDirectoryName(_filePath) ?? Directory.GetCurrentDirectory();
             string tempFile = Path.Combine(directory, $"{Path.GetFileName(_filePath)}.{Guid.NewGuid():N}.tmp");
-            string backupFile = Path.Combine(directory, $"{Path.GetFileName(_filePath)}.{Guid.NewGuid():N}.bak");
+            string backupFile = _filePath + ".bak";
 
             await File.WriteAllTextAsync(tempFile, json, cancellationToken);
             try
@@ -172,5 +176,22 @@ public sealed class FileSettingsRepository : ISettingsRepository, IDisposable
         // This repository coordinates file-path-level synchronization across all instances.
         // Disposing the shared semaphore here would invalidate in-flight writers created by
         // other repository instances that point to the same settings file.
+    }
+
+    private void RecoverInterruptedSave()
+    {
+        string backupFile = _filePath + ".bak";
+        if (!File.Exists(backupFile))
+        {
+            return;
+        }
+
+        if (File.Exists(_filePath))
+        {
+            File.Delete(backupFile);
+            return;
+        }
+
+        File.Move(backupFile, _filePath);
     }
 }
