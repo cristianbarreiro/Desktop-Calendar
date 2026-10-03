@@ -1,3 +1,4 @@
+using System.Globalization;
 using CalendarWidget.Core.Entities;
 using CalendarWidget.Infrastructure.Persistence;
 using CalendarWidget.IntegrationTests.Helpers;
@@ -13,6 +14,48 @@ namespace CalendarWidget.IntegrationTests.Persistence;
 public sealed class MigrationTests
 {
     [Fact]
+    public async Task MigrateAsync_FromCurrentSchema_AssociatesExistingEventsWithLocalCalendar()
+    {
+        string dbPath = Path.Combine(Path.GetTempPath(), $"cw_migration_{Guid.NewGuid():N}.db");
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+        Guid eventId = Guid.NewGuid();
+        DateTime start = new(2026, 8, 12, 14, 30, 0, DateTimeKind.Utc);
+        DateTime end = start.AddHours(1);
+
+        try
+        {
+            await using AppDbContext context = new(options);
+            await context.Database.MigrateAsync("20260925191413_InitialCreate");
+            string storedStart = start.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+            string storedEnd = end.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture);
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO CalendarEvents (Id, Title, Description, StartTime, EndTime, IsAllDay, CreatedAt, UpdatedAt)
+                VALUES ({eventId}, {"Existing event"}, {null}, {storedStart}, {storedEnd}, {false}, {storedStart}, {storedStart})
+                """);
+
+            await context.Database.MigrateAsync();
+
+            CalendarEvent migrated = await context.CalendarEvents.AsNoTracking().SingleAsync(eventItem => eventItem.Id == eventId);
+            migrated.CalendarId.Should().Be(CalendarIdentity.LocalCalendarId);
+            migrated.Location.Should().BeNull();
+            migrated.Title.Should().Be("Existing event");
+            migrated.StartTime.Should().Be(start);
+            (await context.Calendars.AsNoTracking().CountAsync(calendar => calendar.Id == CalendarIdentity.LocalCalendarId))
+                .Should().Be(1);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            foreach (string file in new[] { dbPath, $"{dbPath}-wal", $"{dbPath}-shm" })
+            {
+                if (File.Exists(file)) File.Delete(file);
+            }
+        }
+    }
+
+    [Fact]
     public async Task MigrateAsync_OnCleanDatabase_CreatesSchema()
     {
         await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
@@ -21,6 +64,10 @@ public sealed class MigrationTests
         IReadOnlyList<string> tables = await GetTableNamesAsync(db.Context);
 
         tables.Should().Contain("CalendarEvents");
+        tables.Should().Contain("Calendars");
+        tables.Should().Contain("CalendarAccounts");
+        tables.Should().Contain("CalendarEventMappings");
+        tables.Should().Contain("CalendarSyncStates");
         tables.Should().Contain("Notes");
     }
 
@@ -66,6 +113,45 @@ public sealed class MigrationTests
         Note? retrieved = await repo.GetByIdAsync(note.Id);
         retrieved.Should().NotBeNull();
         retrieved!.Title.Should().Be("Surviving Note");
+    }
+
+    [Fact]
+    public async Task MigrateAsync_CalendarSyncUiState_IsPersisted()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        CalendarAccount account = new()
+        {
+            Id = Guid.NewGuid(),
+            Provider = CalendarWidget.Core.Enums.CalendarProvider.Google,
+            ProviderAccountId = "ui-test-account",
+            DisplayName = "UI Test Account",
+            CreatedAt = DateTime.UtcNow,
+            IsConnected = false,
+        };
+        CalendarSyncState state = new()
+        {
+            CalendarId = CalendarIdentity.LocalCalendarId,
+            Cursor = "opaque-cursor",
+            LastError = "offline",
+        };
+
+        db.Context.CalendarAccounts.Add(account);
+        db.Context.CalendarSyncStates.Add(state);
+        db.Context.PendingCalendarOperations.Add(new PendingCalendarOperation
+        {
+            Id = Guid.NewGuid(),
+            CalendarId = CalendarIdentity.LocalCalendarId,
+            InternalEventId = Guid.NewGuid(),
+            Type = PendingCalendarOperationType.Delete,
+            CreatedAt = DateTime.UtcNow,
+            LastError = "offline",
+        });
+        await db.Context.SaveChangesAsync();
+        db.Context.ChangeTracker.Clear();
+
+        (await db.Context.CalendarAccounts.SingleAsync()).IsConnected.Should().BeFalse();
+        (await db.Context.CalendarSyncStates.SingleAsync()).LastError.Should().Be("offline");
+        (await db.Context.PendingCalendarOperations.SingleAsync()).LastError.Should().Be("offline");
     }
 
     [Fact]

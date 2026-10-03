@@ -27,5 +27,7 @@ public sealed class CalendarEventTests
         calendarEvent.EndTime.Should().BeAfter(calendarEvent.StartTime);
         calendarEvent.IsAllDay.Should().BeFalse();
         calendarEvent.Description.Should().BeNull();
+        calendarEvent.Location.Should().BeNull();
+        calendarEvent.CalendarId.Should().Be(CalendarIdentity.LocalCalendarId);
     }
 }

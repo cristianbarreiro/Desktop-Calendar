@@ -13,4 +13,6 @@ public sealed record EventListItemModel(
     string Title,
     string TimeLabel,
     string? Description,
-    bool IsAllDay);
+    bool IsAllDay,
+    string CalendarName = "Local Calendar",
+    string SyncStatus = "Local");

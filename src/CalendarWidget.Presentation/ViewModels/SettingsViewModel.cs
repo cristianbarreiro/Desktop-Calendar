@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using CalendarWidget.Core.Entities;
 using CalendarWidget.Core.Enums;
@@ -19,6 +20,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private readonly IWindowsStartupService? _windowsStartupService;
     private readonly IDataManagementService? _dataManagementService;
     private readonly IFileDialogService? _fileDialogService;
+    private readonly ICalendarConnectionService? _calendarConnectionService;
+    private readonly IMicrosoftCalendarConnectionService? _microsoftCalendarConnectionService;
+    private readonly ICalendarSynchronizationService? _calendarSynchronizationService;
     private bool _isInitializing = true;
 
     [ObservableProperty]
@@ -98,6 +102,125 @@ public sealed partial class SettingsViewModel : ViewModelBase
         "DD/MM/YYYY"
     ];
 
+    public ObservableCollection<CalendarAccount> GoogleAccounts { get; } = [];
+    public ObservableCollection<CalendarSelectionItemViewModel> GoogleCalendars { get; } = [];
+    public ObservableCollection<CalendarAccount> MicrosoftAccounts { get; } = [];
+    public ObservableCollection<CalendarSelectionItemViewModel> MicrosoftCalendars { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(GoogleConnectionStatus))]
+    private CalendarAccount? _selectedGoogleAccount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MicrosoftConnectionStatus))]
+    private CalendarAccount? _selectedMicrosoftAccount;
+
+    public string GoogleConnectionStatus => SelectedGoogleAccount is null
+        ? "Not connected"
+        : SelectedGoogleAccount.IsConnected ? "Connected" : "Disconnected — reconnect to sync";
+
+    public string MicrosoftConnectionStatus => SelectedMicrosoftAccount is null
+        ? "Not connected"
+        : SelectedMicrosoftAccount.IsConnected ? "Connected" : "Disconnected — reconnect to sync";
+
+    [RelayCommand]
+    public async Task LoadCalendarSettingsAsync()
+    {
+        await LoadGoogleAccountsAsync();
+        if (SelectedGoogleAccount is not null)
+            await DiscoverGoogleCalendarsAsync();
+        await LoadMicrosoftAccountsAsync();
+        if (SelectedMicrosoftAccount is not null)
+            await DiscoverMicrosoftCalendarsAsync();
+    }
+
+    [RelayCommand]
+    public async Task DisconnectGoogleAccountAsync()
+    {
+        if (_calendarConnectionService is null || SelectedGoogleAccount is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            await _calendarConnectionService.DisconnectGoogleAccountAsync(SelectedGoogleAccount.Id);
+            await LoadGoogleAccountsAsync();
+            await DiscoverGoogleCalendarsAsync();
+            SuccessMessage = "Google account disconnected. Its events remain available locally.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not disconnect Google account: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task DisconnectMicrosoftAccountAsync()
+    {
+        if (_microsoftCalendarConnectionService is null || SelectedMicrosoftAccount is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            await _microsoftCalendarConnectionService.DisconnectMicrosoftAccountAsync(SelectedMicrosoftAccount.Id);
+            await LoadMicrosoftAccountsAsync();
+            await DiscoverMicrosoftCalendarsAsync();
+            SuccessMessage = "Microsoft account disconnected. Its events remain available locally.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not disconnect Microsoft account: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SyncNowAsync()
+    {
+        if (_calendarSynchronizationService is null)
+        {
+            ErrorMessage = "Calendar synchronization is unavailable.";
+            return;
+        }
+        IsLoading = true;
+        ErrorMessage = null;
+        SuccessMessage = null;
+        try
+        {
+            CalendarSynchronizationBatchResult result = await _calendarSynchronizationService.SynchronizeEnabledCalendarsAsync();
+            if (result.Calendars.Count == 0)
+            {
+                SuccessMessage = "No enabled external calendars to synchronize. Local Calendar is available offline.";
+                return;
+            }
+            if (!result.Succeeded)
+            {
+                string? detail = result.Calendars.SelectMany(item => item.Result.Failures)
+                    .Select(failure => failure.Error).FirstOrDefault();
+                ErrorMessage = $"Sync finished with {result.Failed} failure(s). {detail}";
+                return;
+            }
+            SuccessMessage = $"Sync complete: {result.Created} created/imported, {result.Updated} updated, " +
+                $"{result.Deleted} deleted, {result.Skipped} skipped, {result.Conflicts} conflicts.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Calendar sync failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="SettingsViewModel"/> class for design-time use.
     /// </summary>
@@ -115,15 +238,326 @@ public sealed partial class SettingsViewModel : ViewModelBase
         IWindowsStartupService windowsStartupService,
         IDataManagementService dataManagementService,
         IFileDialogService fileDialogService)
+        : this(settingsService, themeService, windowsStartupService, dataManagementService, fileDialogService, null, null)
+    {
+    }
+
+    public SettingsViewModel(
+        ISettingsService settingsService,
+        IThemeService themeService,
+        IWindowsStartupService windowsStartupService,
+        IDataManagementService dataManagementService,
+        IFileDialogService fileDialogService,
+        ICalendarConnectionService? calendarConnectionService,
+        ICalendarSynchronizationService? calendarSynchronizationService,
+        IMicrosoftCalendarConnectionService? microsoftCalendarConnectionService = null)
     {
         _settingsService = settingsService;
         _themeService = themeService;
         _windowsStartupService = windowsStartupService;
         _dataManagementService = dataManagementService;
         _fileDialogService = fileDialogService;
+        _calendarConnectionService = calendarConnectionService;
+        _calendarSynchronizationService = calendarSynchronizationService;
+        _microsoftCalendarConnectionService = microsoftCalendarConnectionService;
 
         LoadCurrentSettings();
         _isInitializing = false;
+    }
+
+    [RelayCommand]
+    public async Task ConnectGoogleAccountAsync()
+    {
+        if (_calendarConnectionService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            SelectedGoogleAccount = await _calendarConnectionService.ConnectGoogleAccountAsync();
+            await LoadGoogleAccountsAsync();
+            await DiscoverGoogleCalendarsAsync();
+            SuccessMessage = "Google Calendar account connected. Select calendars and save to enable synchronization.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Google account connection failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadGoogleAccountsAsync()
+    {
+        if (_calendarConnectionService is null)
+            return;
+        try
+        {
+            Guid? selectedId = SelectedGoogleAccount?.Id;
+            IReadOnlyList<CalendarAccount> accounts = await _calendarConnectionService.GetGoogleAccountsAsync();
+            GoogleAccounts.Clear();
+            foreach (CalendarAccount account in accounts)
+                GoogleAccounts.Add(account);
+            SelectedGoogleAccount = GoogleAccounts.FirstOrDefault(account => account.Id == selectedId) ?? GoogleAccounts.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not load Google accounts: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task DiscoverGoogleCalendarsAsync()
+    {
+        if (_calendarConnectionService is null || SelectedGoogleAccount is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            IReadOnlyList<Calendar> calendars = await _calendarConnectionService.DiscoverGoogleCalendarsAsync(SelectedGoogleAccount.Id);
+            GoogleCalendars.Clear();
+            foreach (Calendar calendar in calendars)
+            {
+                GoogleCalendars.Add(new CalendarSelectionItemViewModel
+                {
+                    CalendarId = calendar.Id,
+                    AccountName = SelectedGoogleAccount.DisplayName,
+                    CalendarName = calendar.Name,
+                    Provider = CalendarProvider.Google,
+                    IsAccountConnected = SelectedGoogleAccount.IsConnected,
+                    IsEnabled = calendar.IsEnabled,
+                });
+            }
+            SuccessMessage = $"Found {GoogleCalendars.Count} Google calendars.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not discover Google calendars: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SaveGoogleCalendarSelectionAsync()
+    {
+        if (_calendarConnectionService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            foreach (CalendarSelectionItemViewModel calendar in GoogleCalendars)
+                await _calendarConnectionService.SetCalendarEnabledAsync(calendar.CalendarId, calendar.IsEnabled);
+            SuccessMessage = "Google calendar selection saved.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not save Google calendar selection: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SynchronizeGoogleCalendarsAsync()
+    {
+        if (_calendarSynchronizationService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            int imported = 0;
+            int updated = 0;
+            int deleted = 0;
+            int failed = 0;
+            string? firstFailure = null;
+            foreach (CalendarSelectionItemViewModel calendar in GoogleCalendars.Where(item => item.IsEnabled))
+            {
+                CalendarSynchronizationResult result = await _calendarSynchronizationService.SynchronizeCalendarAsync(calendar.CalendarId);
+                imported += result.EventsImported;
+                updated += result.EventsUpdated;
+                deleted += result.Deleted;
+                failed += result.Failed;
+                if (firstFailure is null && result.Failures.Count > 0)
+                    firstFailure = result.Failures[0].Error;
+            }
+            if (failed > 0)
+            {
+                ErrorMessage = $"Google Calendar sync completed with {failed} failed operation(s). " +
+                    $"First failure: {firstFailure ?? "See synchronization details."} Local changes were retained where the provider write did not complete.";
+            }
+            else
+            {
+                SuccessMessage = $"Google Calendar sync complete: {imported} created/imported, {updated} updated, {deleted} deleted.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Google Calendar sync failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task ConnectMicrosoftAccountAsync()
+    {
+        if (_microsoftCalendarConnectionService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            SelectedMicrosoftAccount = await _microsoftCalendarConnectionService.ConnectMicrosoftAccountAsync();
+            await LoadMicrosoftAccountsAsync();
+            await DiscoverMicrosoftCalendarsAsync();
+            SuccessMessage = "Microsoft Calendar account connected. Select calendars and save to enable synchronization.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Microsoft account connection failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task LoadMicrosoftAccountsAsync()
+    {
+        if (_microsoftCalendarConnectionService is null)
+            return;
+        try
+        {
+            Guid? selectedId = SelectedMicrosoftAccount?.Id;
+            IReadOnlyList<CalendarAccount> accounts = await _microsoftCalendarConnectionService.GetMicrosoftAccountsAsync();
+            MicrosoftAccounts.Clear();
+            foreach (CalendarAccount account in accounts)
+                MicrosoftAccounts.Add(account);
+            SelectedMicrosoftAccount = MicrosoftAccounts.FirstOrDefault(account => account.Id == selectedId)
+                ?? MicrosoftAccounts.FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not load Microsoft accounts: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    public async Task DiscoverMicrosoftCalendarsAsync()
+    {
+        if (_microsoftCalendarConnectionService is null || SelectedMicrosoftAccount is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            IReadOnlyList<Calendar> calendars = await _microsoftCalendarConnectionService
+                .DiscoverMicrosoftCalendarsAsync(SelectedMicrosoftAccount.Id);
+            MicrosoftCalendars.Clear();
+            foreach (Calendar calendar in calendars)
+            {
+                MicrosoftCalendars.Add(new CalendarSelectionItemViewModel
+                {
+                    CalendarId = calendar.Id,
+                    AccountName = SelectedMicrosoftAccount.DisplayName,
+                    CalendarName = calendar.Name,
+                    Provider = CalendarProvider.Microsoft,
+                    IsAccountConnected = SelectedMicrosoftAccount.IsConnected,
+                    IsEnabled = calendar.IsEnabled,
+                });
+            }
+            SuccessMessage = $"Found {MicrosoftCalendars.Count} Microsoft calendars.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not discover Microsoft calendars: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SaveMicrosoftCalendarSelectionAsync()
+    {
+        if (_microsoftCalendarConnectionService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            foreach (CalendarSelectionItemViewModel calendar in MicrosoftCalendars)
+                await _microsoftCalendarConnectionService.SetMicrosoftCalendarEnabledAsync(calendar.CalendarId, calendar.IsEnabled);
+            SuccessMessage = "Microsoft calendar selection saved.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Could not save Microsoft calendar selection: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    public async Task SynchronizeMicrosoftCalendarsAsync()
+    {
+        if (_calendarSynchronizationService is null)
+            return;
+        IsLoading = true;
+        ErrorMessage = null;
+        try
+        {
+            int created = 0;
+            int updated = 0;
+            int deleted = 0;
+            int failed = 0;
+            string? firstFailure = null;
+            foreach (CalendarSelectionItemViewModel calendar in MicrosoftCalendars.Where(item => item.IsEnabled))
+            {
+                CalendarSynchronizationResult result = await _calendarSynchronizationService
+                    .SynchronizeCalendarAsync(calendar.CalendarId);
+                created += result.Created;
+                updated += result.Updated;
+                deleted += result.Deleted;
+                failed += result.Failed;
+                if (firstFailure is null && result.Failures.Count > 0)
+                    firstFailure = result.Failures[0].Error;
+            }
+            if (failed > 0)
+            {
+                ErrorMessage = $"Microsoft Calendar sync completed with {failed} failed operation(s). " +
+                    $"First failure: {firstFailure ?? "See synchronization details."}";
+            }
+            else
+            {
+                SuccessMessage = $"Microsoft Calendar sync complete: {created} created/imported, {updated} updated, {deleted} deleted.";
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Microsoft Calendar sync failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     private void LoadCurrentSettings()
@@ -453,7 +887,12 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
             if (result.Success)
             {
-                SuccessMessage = $"Data imported successfully: {result.EventsImported} events ({result.EventsSkipped} skipped), {result.NotesImported} notes ({result.NotesSkipped} skipped).";
+                SuccessMessage = $"Data imported successfully: {result.EventsImported} events ({result.EventsSkipped} skipped), " +
+                    $"{result.NotesImported} notes ({result.NotesSkipped} skipped), " +
+                    $"{result.CalendarAccountsImported} accounts ({result.CalendarAccountsSkipped} skipped), " +
+                    $"{result.CalendarsImported} calendars ({result.CalendarsSkipped} skipped), " +
+                    $"{result.EventMappingsImported} event mappings ({result.EventMappingsSkipped} skipped), " +
+                    $"{result.SyncStatesImported} sync states ({result.SyncStatesSkipped} skipped).";
                 LoadCurrentSettings();
             }
             else

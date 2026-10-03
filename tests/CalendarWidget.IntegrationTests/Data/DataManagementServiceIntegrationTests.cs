@@ -98,7 +98,7 @@ public sealed class DataManagementServiceIntegrationTests
 
         json.Should().NotBeNullOrWhiteSpace();
         using JsonDocument doc = JsonDocument.Parse(json);
-        doc.RootElement.GetProperty("version").GetInt32().Should().Be(1);
+        doc.RootElement.GetProperty("version").GetInt32().Should().Be(6);
 
         AppBackupData? backup = JsonSerializer.Deserialize<AppBackupData>(json, new JsonSerializerOptions
         {
@@ -109,6 +109,124 @@ public sealed class DataManagementServiceIntegrationTests
         backup.Should().NotBeNull();
         backup!.Events.Should().ContainSingle(e => e.Id == ev.Id && e.Title == "Team Standup");
         backup.Notes.Should().ContainSingle(n => n.Id == note.Id && n.Title == "Meeting Summary");
+        backup.Calendars.Should().ContainSingle(calendar => calendar.Id == CalendarIdentity.LocalCalendarId && calendar.IsEnabled);
+    }
+
+    [Fact]
+    public async Task ExportAndImportDataJsonAsync_PreservesCalendarSyncMetadataAndLocation()
+    {
+        await using SqliteTestContext source = await SqliteTestContext.CreateAsync();
+        CalendarAccount account = new()
+        {
+            Id = Guid.NewGuid(),
+            Provider = CalendarProvider.Google,
+            ProviderAccountId = "google-account-id",
+            DisplayName = "Calendar Account",
+            CreatedAt = DateTime.UtcNow,
+        };
+        Calendar calendar = new()
+        {
+            Id = Guid.NewGuid(),
+            Provider = CalendarProvider.Google,
+            AccountId = account.Id,
+            Name = "Personal",
+            ExternalId = "provider-calendar-id",
+            IsEnabled = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        CalendarEvent ev = new()
+        {
+            Id = Guid.NewGuid(),
+            CalendarId = calendar.Id,
+            Title = "Dentist",
+            Description = "Checkup",
+            Location = "Clinic",
+            StartTime = DateTime.UtcNow,
+            EndTime = DateTime.UtcNow.AddHours(1),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        source.Context.AddRange(account, calendar, ev);
+        source.Context.CalendarEventMappings.Add(new CalendarEventMapping
+        {
+            InternalEventId = ev.Id,
+            Provider = account.Provider,
+            AccountId = account.Id,
+            CalendarId = calendar.Id,
+            ExternalEventId = "provider-event-id",
+            ExternalVersion = "opaque-version",
+            LastSyncedAt = DateTime.UtcNow,
+            LastSyncedLocalVersion = "local-snapshot-v1",
+        });
+        source.Context.CalendarSyncStates.Add(new CalendarSyncState
+        {
+            CalendarId = calendar.Id,
+            Cursor = "opaque/provider/cursor",
+            LastSyncedAt = DateTime.UtcNow,
+            LastError = "previous provider error",
+        });
+        source.Context.PendingCalendarOperations.Add(new PendingCalendarOperation
+        {
+            Id = Guid.NewGuid(),
+            CalendarId = calendar.Id,
+            InternalEventId = ev.Id,
+            Type = PendingCalendarOperationType.Upsert,
+            CreatedAt = DateTime.UtcNow,
+            LastError = "provider offline",
+        });
+        await source.Context.SaveChangesAsync();
+
+        DataManagementService sourceService = new(
+            source.CreateScopeFactory(), new StubSettingsService(), NullLogger<DataManagementService>.Instance);
+        string json = await sourceService.ExportDataJsonAsync();
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        document.RootElement.GetProperty("version").GetInt32().Should().Be(6);
+        document.RootElement.GetProperty("calendarAccounts").GetArrayLength().Should().Be(1);
+        document.RootElement.GetProperty("eventMappings").GetArrayLength().Should().Be(1);
+        document.RootElement.GetProperty("calendarSyncStates").GetArrayLength().Should().Be(1);
+        document.RootElement.GetProperty("pendingCalendarOperations").GetArrayLength().Should().Be(1);
+        document.RootElement.GetProperty("events")[0].GetProperty("location").GetString().Should().Be("Clinic");
+        document.RootElement.GetProperty("calendars")[0].GetProperty("isEnabled").GetBoolean().Should().BeTrue();
+
+        await using SqliteTestContext destination = await SqliteTestContext.CreateAsync();
+        DataManagementService destinationService = new(
+            destination.CreateScopeFactory(), new StubSettingsService(), NullLogger<DataManagementService>.Instance);
+        DataImportResult result = await destinationService.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeTrue(result.ErrorMessage);
+        result.CalendarAccountsImported.Should().Be(1);
+        result.CalendarsImported.Should().Be(1);
+        result.EventMappingsImported.Should().Be(1);
+        result.SyncStatesImported.Should().Be(1);
+        (await destination.Context.CalendarEvents.AsNoTracking().SingleAsync()).Location.Should().Be("Clinic");
+        (await destination.Context.CalendarEventMappings.AsNoTracking().SingleAsync()).ExternalVersion.Should().Be("opaque-version");
+        (await destination.Context.CalendarEventMappings.AsNoTracking().SingleAsync()).LastSyncedLocalVersion.Should().Be("local-snapshot-v1");
+        CalendarSyncState restoredSyncState = await destination.Context.CalendarSyncStates.AsNoTracking().SingleAsync();
+        restoredSyncState.Cursor.Should().Be("opaque/provider/cursor");
+        restoredSyncState.LastError.Should().Be("previous provider error");
+        PendingCalendarOperation restoredOperation = await destination.Context.PendingCalendarOperations.AsNoTracking().SingleAsync();
+        restoredOperation.Type.Should().Be(PendingCalendarOperationType.Upsert);
+        restoredOperation.LastError.Should().Be("provider offline");
+        (await destination.Context.Calendars.AsNoTracking().SingleAsync(calendar => calendar.ExternalId == "provider-calendar-id"))
+            .IsEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ImportDataJsonAsync_VersionOneBackup_UsesMigratedLocalCalendar()
+    {
+        await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
+        DataManagementService service = new(
+            db.CreateScopeFactory(), new StubSettingsService(), NullLogger<DataManagementService>.Instance);
+        Guid id = Guid.NewGuid();
+        string json = $$"""{"version":1,"events":[{"id":"{{id}}","title":"Legacy","startTime":"2026-10-01T09:00:00Z","endTime":"2026-10-01T10:00:00Z"}],"notes":[]}""";
+
+        DataImportResult result = await service.ImportDataJsonAsync(json);
+
+        result.Success.Should().BeTrue(result.ErrorMessage);
+        CalendarEvent restored = await db.Context.CalendarEvents.AsNoTracking().SingleAsync();
+        restored.CalendarId.Should().Be(CalendarIdentity.LocalCalendarId);
+        restored.Location.Should().BeNull();
     }
 
     [Fact]
@@ -304,21 +422,51 @@ public sealed class DataManagementServiceIntegrationTests
     }
 
     [Fact]
-    public async Task ResetAllDataAsync_RemovesAllEventsAndNotes_LeavesDatabaseEmpty()
+    public async Task ResetAllDataAsync_RemovesEventsAndSyncData_PreservesLocalCalendar()
     {
         await using SqliteTestContext db = await SqliteTestContext.CreateAsync();
         EfCalendarEventRepository eventRepo = new(db.Context);
         EfNoteRepository noteRepo = new(db.Context);
-
-        await eventRepo.AddAsync(new CalendarEvent
+        CalendarAccount account = new()
         {
             Id = Guid.NewGuid(),
+            Provider = CalendarProvider.Microsoft,
+            ProviderAccountId = "reset-account",
+            DisplayName = "Reset account",
+            CreatedAt = DateTime.UtcNow,
+        };
+        Calendar calendar = new()
+        {
+            Id = Guid.NewGuid(),
+            Provider = account.Provider,
+            AccountId = account.Id,
+            Name = "Reset calendar",
+            ExternalId = "reset-calendar",
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Context.AddRange(account, calendar);
+        await db.Context.SaveChangesAsync();
+
+        CalendarEvent resetEvent = new()
+        {
+            Id = Guid.NewGuid(),
+            CalendarId = calendar.Id,
             Title = "Event 1",
             StartTime = DateTime.UtcNow,
             EndTime = DateTime.UtcNow.AddHours(1),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
+        };
+        await eventRepo.AddAsync(resetEvent);
+        db.Context.CalendarEventMappings.Add(new CalendarEventMapping
+        {
+            InternalEventId = resetEvent.Id,
+            Provider = account.Provider,
+            AccountId = account.Id,
+            CalendarId = calendar.Id,
+            ExternalEventId = "reset-event",
         });
+        db.Context.CalendarSyncStates.Add(new CalendarSyncState { CalendarId = calendar.Id, Cursor = "reset-cursor" });
 
         await noteRepo.AddAsync(new Note
         {
@@ -346,6 +494,10 @@ public sealed class DataManagementServiceIntegrationTests
 
         eventCount.Should().Be(0);
         noteCount.Should().Be(0);
+        (await db.Context.CalendarAccounts.CountAsync()).Should().Be(0);
+        (await db.Context.Calendars.CountAsync()).Should().Be(1);
+        (await db.Context.CalendarEventMappings.CountAsync()).Should().Be(0);
+        (await db.Context.CalendarSyncStates.CountAsync()).Should().Be(0);
     }
 
     [Fact]

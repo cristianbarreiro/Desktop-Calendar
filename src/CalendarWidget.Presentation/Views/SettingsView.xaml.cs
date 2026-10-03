@@ -1,4 +1,5 @@
 using System.Windows.Controls;
+using CalendarWidget.Presentation.ViewModels;
 
 namespace CalendarWidget.Presentation.Views;
 
@@ -13,5 +14,11 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+    }
+
+    private async void SettingsView_OnLoaded(object sender, System.Windows.RoutedEventArgs e)
+    {
+        if (DataContext is SettingsViewModel viewModel)
+            await viewModel.LoadCalendarSettingsAsync();
     }
 }

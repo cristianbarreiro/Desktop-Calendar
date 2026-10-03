@@ -7,6 +7,9 @@ namespace CalendarWidget.Core.Entities;
 /// </summary>
 public sealed class CalendarEvent
 {
+    /// <summary>Gets or sets the calendar that owns the event.</summary>
+    public Guid CalendarId { get; set; } = CalendarIdentity.LocalCalendarId;
+
     /// <summary>Gets or sets the unique identifier of the event.</summary>
     public Guid Id { get; set; }
 
@@ -15,6 +18,9 @@ public sealed class CalendarEvent
 
     /// <summary>Gets or sets the optional event description.</summary>
     public string? Description { get; set; }
+
+    /// <summary>Gets or sets the optional event location.</summary>
+    public string? Location { get; set; }
 
     /// <summary>Gets or sets the event start timestamp (UTC).</summary>
     public DateTime StartTime { get; set; }
@@ -45,6 +51,12 @@ public sealed class CalendarEvent
 
         if (Description is not null && Description.Length > 2000)
             throw new DomainValidationException("Event description cannot exceed 2000 characters.");
+
+        if (Location is not null && Location.Length > 500)
+            throw new DomainValidationException("Event location cannot exceed 500 characters.");
+
+        if (CalendarId == Guid.Empty)
+            throw new DomainValidationException("Event calendar is required.");
 
         if (EndTime < StartTime)
             throw new DomainValidationException("Event end time cannot be earlier than start time.");

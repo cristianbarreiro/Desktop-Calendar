@@ -83,7 +83,7 @@ public sealed class DataManagementService : IDataManagementService
 
         AppBackupData backup = new()
         {
-            Version = 1,
+            Version = 6,
             ExportedAt = DateTime.UtcNow,
             Settings = _settingsService.CurrentSettings,
             Events = events.Select(e => new CalendarEventBackupDto
@@ -91,6 +91,8 @@ public sealed class DataManagementService : IDataManagementService
                 Id = e.Id,
                 Title = e.Title,
                 Description = e.Description,
+                Location = e.Location,
+                CalendarId = e.CalendarId,
                 StartTime = e.StartTime,
                 EndTime = e.EndTime,
                 IsAllDay = e.IsAllDay,
@@ -105,6 +107,57 @@ public sealed class DataManagementService : IDataManagementService
                 CreatedAt = n.CreatedAt,
                 UpdatedAt = n.UpdatedAt,
             }).ToList(),
+            CalendarAccounts = await context.CalendarAccounts.AsNoTracking()
+                .Select(account => new CalendarAccountBackupDto
+                {
+                    Id = account.Id,
+                    Provider = account.Provider,
+                    ProviderAccountId = account.ProviderAccountId,
+                    DisplayName = account.DisplayName,
+                    IsConnected = account.IsConnected,
+                    CreatedAt = account.CreatedAt,
+                }).ToListAsync(cancellationToken),
+            Calendars = await context.Calendars.AsNoTracking()
+                .Select(calendar => new CalendarBackupDto
+                {
+                    Id = calendar.Id,
+                    Provider = calendar.Provider,
+                    AccountId = calendar.AccountId,
+                    Name = calendar.Name,
+                    ExternalId = calendar.ExternalId,
+                    IsEnabled = calendar.IsEnabled,
+                    CreatedAt = calendar.CreatedAt,
+                }).ToListAsync(cancellationToken),
+            EventMappings = await context.CalendarEventMappings.AsNoTracking()
+                .Select(mapping => new CalendarEventMappingBackupDto
+                {
+                    InternalEventId = mapping.InternalEventId,
+                    Provider = mapping.Provider,
+                    AccountId = mapping.AccountId,
+                    CalendarId = mapping.CalendarId,
+                    ExternalEventId = mapping.ExternalEventId,
+                    ExternalVersion = mapping.ExternalVersion,
+                    LastSyncedAt = mapping.LastSyncedAt,
+                    LastSyncedLocalVersion = mapping.LastSyncedLocalVersion,
+                }).ToListAsync(cancellationToken),
+            CalendarSyncStates = await context.CalendarSyncStates.AsNoTracking()
+                .Select(state => new CalendarSyncStateBackupDto
+                {
+                    CalendarId = state.CalendarId,
+                    Cursor = state.Cursor,
+                    LastSyncedAt = state.LastSyncedAt,
+                    LastError = state.LastError,
+                }).ToListAsync(cancellationToken),
+            PendingCalendarOperations = await context.PendingCalendarOperations.AsNoTracking()
+                .Select(operation => new PendingCalendarOperationBackupDto
+                {
+                    Id = operation.Id,
+                    CalendarId = operation.CalendarId,
+                    InternalEventId = operation.InternalEventId,
+                    Type = operation.Type,
+                    CreatedAt = operation.CreatedAt,
+                    LastError = operation.LastError,
+                }).ToListAsync(cancellationToken),
         };
 
         LogExportCompleted(_logger, backup.Events.Count, backup.Notes.Count, null);
@@ -146,6 +199,15 @@ public sealed class DataManagementService : IDataManagementService
             };
         }
 
+        if (backup.Version is < 1 or > 6)
+        {
+            return new DataImportResult
+            {
+                Success = false,
+                ErrorMessage = $"Backup version {backup.Version} is not supported.",
+            };
+        }
+
         // 1. Validate complete settings object before any mutation
         if (backup.Settings is not null)
         {
@@ -172,6 +234,8 @@ public sealed class DataManagementService : IDataManagementService
                 Id = dto.Id == Guid.Empty ? Guid.NewGuid() : dto.Id,
                 Title = dto.Title,
                 Description = dto.Description,
+                Location = dto.Location,
+                CalendarId = dto.CalendarId == Guid.Empty ? CalendarIdentity.LocalCalendarId : dto.CalendarId,
                 StartTime = dto.StartTime,
                 EndTime = dto.EndTime,
                 IsAllDay = dto.IsAllDay,
@@ -194,6 +258,53 @@ public sealed class DataManagementService : IDataManagementService
 
             eventsToImport.Add(ev);
         }
+
+        List<CalendarAccount> accountsToImport = backup.CalendarAccounts.Select(dto => new CalendarAccount
+        {
+            Id = dto.Id,
+            Provider = dto.Provider,
+            ProviderAccountId = dto.ProviderAccountId,
+            DisplayName = dto.DisplayName,
+            IsConnected = dto.IsConnected,
+            CreatedAt = dto.CreatedAt == default ? DateTime.UtcNow : dto.CreatedAt,
+        }).ToList();
+        List<Calendar> calendarsToImport = backup.Calendars.Select(dto => new Calendar
+        {
+            Id = dto.Id,
+            Provider = dto.Provider,
+            AccountId = dto.AccountId,
+            Name = dto.Name,
+            ExternalId = dto.ExternalId,
+            IsEnabled = dto.IsEnabled,
+            CreatedAt = dto.CreatedAt == default ? DateTime.UtcNow : dto.CreatedAt,
+        }).ToList();
+        List<CalendarEventMapping> mappingsToImport = backup.EventMappings.Select(dto => new CalendarEventMapping
+        {
+            InternalEventId = dto.InternalEventId,
+            Provider = dto.Provider,
+            AccountId = dto.AccountId,
+            CalendarId = dto.CalendarId,
+            ExternalEventId = dto.ExternalEventId,
+            ExternalVersion = dto.ExternalVersion,
+            LastSyncedAt = dto.LastSyncedAt,
+            LastSyncedLocalVersion = dto.LastSyncedLocalVersion,
+        }).ToList();
+        List<CalendarSyncState> syncStatesToImport = backup.CalendarSyncStates.Select(dto => new CalendarSyncState
+        {
+            CalendarId = dto.CalendarId,
+            Cursor = dto.Cursor,
+            LastSyncedAt = dto.LastSyncedAt,
+            LastError = dto.LastError,
+        }).ToList();
+        List<PendingCalendarOperation> pendingOperationsToImport = backup.PendingCalendarOperations.Select(dto => new PendingCalendarOperation
+        {
+            Id = dto.Id,
+            CalendarId = dto.CalendarId,
+            InternalEventId = dto.InternalEventId,
+            Type = dto.Type,
+            CreatedAt = dto.CreatedAt,
+            LastError = dto.LastError,
+        }).ToList();
 
         // 3. Validate all notes before database mutation
         List<Note> notesToImport = new(backup.Notes.Count);
@@ -260,6 +371,57 @@ public sealed class DataManagementService : IDataManagementService
                     .ToListAsync(cancellationToken))
                     .ToHashSet();
 
+                HashSet<Guid> existingAccountIds = (await context.CalendarAccounts.Select(account => account.Id)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+                HashSet<Guid> existingCalendarIds = (await context.Calendars.Select(calendar => calendar.Id)
+                    .ToListAsync(cancellationToken)).ToHashSet();
+
+                Dictionary<Guid, CalendarAccount> accountsById = await context.CalendarAccounts.AsNoTracking()
+                    .ToDictionaryAsync(account => account.Id, cancellationToken);
+                foreach (CalendarAccount account in accountsToImport)
+                    accountsById.TryAdd(account.Id, account);
+
+                Dictionary<Guid, Calendar> calendarsById = await context.Calendars.AsNoTracking()
+                    .ToDictionaryAsync(calendar => calendar.Id, cancellationToken);
+                foreach (Calendar calendar in calendarsToImport)
+                    calendarsById.TryAdd(calendar.Id, calendar);
+
+                foreach (Calendar calendar in calendarsToImport)
+                {
+                    if (calendar.AccountId is Guid accountId &&
+                        (!accountsById.TryGetValue(accountId, out CalendarAccount? account) || account.Provider != calendar.Provider))
+                        throw new InvalidDataException("Calendar backup entry references an unknown or mismatched account.");
+                }
+
+                HashSet<Guid> availableEventIds = eventsToImport.Select(ev => ev.Id).Concat(existingEventIds).ToHashSet();
+                foreach (CalendarEvent ev in eventsToImport)
+                {
+                    if (!calendarsById.ContainsKey(ev.CalendarId))
+                        throw new InvalidDataException("Event backup entry references an unknown calendar.");
+                }
+
+                foreach (CalendarEventMapping mapping in mappingsToImport)
+                {
+                    if (!availableEventIds.Contains(mapping.InternalEventId) ||
+                        !accountsById.TryGetValue(mapping.AccountId, out CalendarAccount? account) ||
+                        !calendarsById.TryGetValue(mapping.CalendarId, out Calendar? calendar) ||
+                        account.Provider != mapping.Provider || calendar.Provider != mapping.Provider ||
+                        calendar.AccountId != mapping.AccountId)
+                        throw new InvalidDataException("Event mapping backup entry references mismatched event, account, or calendar data.");
+                }
+
+                foreach (CalendarSyncState state in syncStatesToImport)
+                {
+                    if (!calendarsById.ContainsKey(state.CalendarId))
+                        throw new InvalidDataException("Sync state backup entry references an unknown calendar.");
+                }
+
+                foreach (PendingCalendarOperation operation in pendingOperationsToImport)
+                {
+                    if (!calendarsById.ContainsKey(operation.CalendarId) || !availableEventIds.Contains(operation.InternalEventId))
+                        throw new InvalidDataException("Pending operation backup entry references an unknown event or calendar.");
+                }
+
                 int eventsImported = 0;
                 int eventsSkipped = 0;
                 foreach (CalendarEvent ev in eventsToImport)
@@ -290,6 +452,67 @@ public sealed class DataManagementService : IDataManagementService
                     }
                 }
 
+                int accountsImported = 0;
+                int accountsSkipped = 0;
+                foreach (CalendarAccount account in accountsToImport)
+                {
+                    if (existingAccountIds.Add(account.Id))
+                    {
+                        context.CalendarAccounts.Add(account);
+                        accountsImported++;
+                    }
+                    else accountsSkipped++;
+                }
+
+                int calendarsImported = 0;
+                int calendarsSkipped = 0;
+                foreach (Calendar calendar in calendarsToImport)
+                {
+                    if (existingCalendarIds.Add(calendar.Id))
+                    {
+                        context.Calendars.Add(calendar);
+                        calendarsImported++;
+                    }
+                    else calendarsSkipped++;
+                }
+
+                int mappingsImported = 0;
+                int mappingsSkipped = 0;
+                foreach (CalendarEventMapping mapping in mappingsToImport)
+                {
+                    bool duplicate = await context.CalendarEventMappings.AnyAsync(existing =>
+                        existing.InternalEventId == mapping.InternalEventId &&
+                        existing.Provider == mapping.Provider &&
+                        existing.AccountId == mapping.AccountId && existing.CalendarId == mapping.CalendarId ||
+                        existing.Provider == mapping.Provider && existing.AccountId == mapping.AccountId &&
+                        existing.CalendarId == mapping.CalendarId && existing.ExternalEventId == mapping.ExternalEventId,
+                        cancellationToken);
+                    if (!duplicate)
+                    {
+                        context.CalendarEventMappings.Add(mapping);
+                        mappingsImported++;
+                    }
+                    else mappingsSkipped++;
+                }
+
+                int syncStatesImported = 0;
+                int syncStatesSkipped = 0;
+                foreach (CalendarSyncState state in syncStatesToImport)
+                {
+                    if (!await context.CalendarSyncStates.AnyAsync(existing => existing.CalendarId == state.CalendarId, cancellationToken))
+                    {
+                        context.CalendarSyncStates.Add(state);
+                        syncStatesImported++;
+                    }
+                    else syncStatesSkipped++;
+                }
+
+                foreach (PendingCalendarOperation operation in pendingOperationsToImport)
+                {
+                    if (!await context.PendingCalendarOperations.AnyAsync(existing => existing.Id == operation.Id, cancellationToken))
+                        context.PendingCalendarOperations.Add(operation);
+                }
+
                 await context.SaveChangesAsync(cancellationToken);
 
                 // Transaction & Compensation Strategy:
@@ -314,6 +537,14 @@ public sealed class DataManagementService : IDataManagementService
                     EventsSkipped = eventsSkipped,
                     NotesImported = notesImported,
                     NotesSkipped = notesSkipped,
+                    CalendarAccountsImported = accountsImported,
+                    CalendarAccountsSkipped = accountsSkipped,
+                    CalendarsImported = calendarsImported,
+                    CalendarsSkipped = calendarsSkipped,
+                    EventMappingsImported = mappingsImported,
+                    EventMappingsSkipped = mappingsSkipped,
+                    SyncStatesImported = syncStatesImported,
+                    SyncStatesSkipped = syncStatesSkipped,
                 };
             }
             catch (Exception ex)
@@ -394,6 +625,11 @@ public sealed class DataManagementService : IDataManagementService
 
         context.CalendarEvents.RemoveRange(context.CalendarEvents);
         context.Notes.RemoveRange(context.Notes);
+        context.CalendarEventMappings.RemoveRange(context.CalendarEventMappings);
+        context.CalendarSyncStates.RemoveRange(context.CalendarSyncStates);
+        context.PendingCalendarOperations.RemoveRange(context.PendingCalendarOperations);
+        context.Calendars.RemoveRange(context.Calendars.Where(calendar => calendar.Id != CalendarIdentity.LocalCalendarId));
+        context.CalendarAccounts.RemoveRange(context.CalendarAccounts);
         await context.SaveChangesAsync(cancellationToken);
 
         LogResetCompleted(_logger, null);

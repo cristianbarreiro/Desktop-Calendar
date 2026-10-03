@@ -6,6 +6,7 @@
              xmlns:vm="clr-namespace:CalendarWidget.Presentation.ViewModels"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
+             Loaded="SettingsView_OnLoaded"
              d:DesignHeight="850" d:DesignWidth="800">
 
     <UserControl.Resources>
@@ -334,6 +335,159 @@
                                           AutomationProperties.AutomationId="ChkStartWithWindows"
                                           AutomationProperties.HelpText="Launch widget on Windows startup" />
                             </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{DynamicResource SurfaceCardBrush}"
+                            BorderBrush="{DynamicResource BorderDividerBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource CornerRadiusCard}"
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Calendars"
+                                       Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                       Margin="0,0,0,8" />
+                            <TextBlock Text="Local Calendar — available offline"
+                                       Style="{DynamicResource BodyRegularTextBlockStyle}"
+                                       Margin="0,0,0,12" />
+                            <Button Command="{Binding SyncNowCommand}"
+                                    Content="Sync Now"
+                                    Style="{DynamicResource AccentButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    AutomationProperties.Name="Sync enabled calendars now" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Google Calendar Integration -->
+                    <Border Background="{DynamicResource SurfaceCardBrush}"
+                            BorderBrush="{DynamicResource BorderDividerBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource CornerRadiusCard}"
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Google Calendar"
+                                       Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                       Margin="0,0,0,8" />
+                            <TextBlock Text="Connect an account, choose calendars to sync, and import their events when you choose."
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       Margin="0,0,0,14" />
+                            <WrapPanel Margin="0,0,0,12">
+                                <Button Command="{Binding ConnectGoogleAccountCommand}"
+                                        Content="Connect Google Account"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding LoadGoogleAccountsCommand}"
+                                        Content="Refresh Accounts"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding DiscoverGoogleCalendarsCommand}"
+                                        Content="Discover Calendars"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding SaveGoogleCalendarSelectionCommand}"
+                                        Content="Save Selection"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding SynchronizeGoogleCalendarsCommand}"
+                                        Content="Sync Enabled Calendars"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                            </WrapPanel>
+                            <ComboBox ItemsSource="{Binding GoogleAccounts}"
+                                      SelectedItem="{Binding SelectedGoogleAccount}"
+                                      DisplayMemberPath="DisplayName"
+                                      MinWidth="220"
+                                      MaxWidth="460"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      AutomationProperties.Name="Google account" />
+                            <TextBlock Text="{Binding GoogleConnectionStatus}"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       Margin="0,0,0,10" />
+                            <Button Command="{Binding DisconnectGoogleAccountCommand}"
+                                    Content="Disconnect Google Account"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding GoogleCalendars}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding CalendarName}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsAccountConnected}"
+                                                  Margin="0,0,0,8"
+                                                  AutomationProperties.Name="Enable Google calendar" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Microsoft Calendar Integration -->
+                    <Border Background="{DynamicResource SurfaceCardBrush}"
+                            BorderBrush="{DynamicResource BorderDividerBrush}"
+                            BorderThickness="1"
+                            CornerRadius="{DynamicResource CornerRadiusCard}"
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Microsoft Calendar / Outlook"
+                                       Style="{DynamicResource HeaderMediumTextBlockStyle}"
+                                       Margin="0,0,0,8" />
+                            <TextBlock Text="Connect a Microsoft account, choose calendars, and import their events when you choose."
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       Margin="0,0,0,14" />
+                            <WrapPanel Margin="0,0,0,12">
+                                <Button Command="{Binding ConnectMicrosoftAccountCommand}"
+                                        Content="Connect Microsoft Account"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding LoadMicrosoftAccountsCommand}"
+                                        Content="Refresh Accounts"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding DiscoverMicrosoftCalendarsCommand}"
+                                        Content="Discover Calendars"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding SaveMicrosoftCalendarSelectionCommand}"
+                                        Content="Save Selection"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                                <Button Command="{Binding SynchronizeMicrosoftCalendarsCommand}"
+                                        Content="Sync Enabled Calendars"
+                                        Style="{DynamicResource StandardButtonStyle}"
+                                        Margin="0,0,8,8" />
+                            </WrapPanel>
+                            <ComboBox ItemsSource="{Binding MicrosoftAccounts}"
+                                      SelectedItem="{Binding SelectedMicrosoftAccount}"
+                                      DisplayMemberPath="DisplayName"
+                                      MinWidth="220"
+                                      MaxWidth="460"
+                                      HorizontalAlignment="Left"
+                                      Margin="0,0,0,12"
+                                      AutomationProperties.Name="Microsoft account" />
+                            <TextBlock Text="{Binding MicrosoftConnectionStatus}"
+                                       Style="{DynamicResource BodySubtleTextBlockStyle}"
+                                       Margin="0,0,0,10" />
+                            <Button Command="{Binding DisconnectMicrosoftAccountCommand}"
+                                    Content="Disconnect Microsoft Account"
+                                    Style="{DynamicResource StandardButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,12" />
+                            <ItemsControl ItemsSource="{Binding MicrosoftCalendars}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding CalendarName}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  IsEnabled="{Binding IsAccountConnected}"
+                                                  Margin="0,0,0,8"
+                                                  AutomationProperties.Name="Enable Microsoft calendar" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </Border>
 

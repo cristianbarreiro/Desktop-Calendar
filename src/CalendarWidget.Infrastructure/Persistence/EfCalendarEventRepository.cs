@@ -44,7 +44,15 @@ public sealed class EfCalendarEventRepository(AppDbContext context) : ICalendarE
     /// <inheritdoc />
     public async Task UpdateAsync(CalendarEvent calendarEvent, CancellationToken cancellationToken = default)
     {
-        context.CalendarEvents.Update(calendarEvent);
+        CalendarEvent? tracked = context.CalendarEvents.Local.FirstOrDefault(existing => existing.Id == calendarEvent.Id);
+        if (tracked is null)
+        {
+            context.CalendarEvents.Update(calendarEvent);
+        }
+        else if (!ReferenceEquals(tracked, calendarEvent))
+        {
+            context.Entry(tracked).CurrentValues.SetValues(calendarEvent);
+        }
         await context.SaveChangesAsync(cancellationToken);
     }
 

@@ -152,6 +152,7 @@ public sealed class CalendarViewModelEventTests
         await vm.SaveEventFormForTestAsync();
 
         repo.All.Should().ContainSingle(e => e.Title == "New Event");
+        repo.All.Single().CalendarId.Should().Be(CalendarIdentity.LocalCalendarId);
         vm.IsEventFormVisible.Should().BeFalse();
     }
 

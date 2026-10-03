@@ -1,12 +1,16 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using CalendarWidget.Core.Entities;
+using CalendarWidget.Core.Enums;
 using CalendarWidget.Core.Exceptions;
 using CalendarWidget.Core.Interfaces;
+using CalendarWidget.Core.Models;
 using CalendarWidget.Presentation.Models;
 using CalendarWidget.Presentation.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Calendar = CalendarWidget.Core.Entities.Calendar;
 
 namespace CalendarWidget.Presentation.ViewModels;
 
@@ -72,6 +76,14 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
 
     /// <summary>Gets whether a day is currently selected.</summary>
     public bool HasSelectedDay => SelectedDay is not null;
+
+    public ObservableCollection<CalendarSelectionItemViewModel> AvailableCalendars { get; } =
+    [new CalendarSelectionItemViewModel
+    {
+        CalendarId = CalendarIdentity.LocalCalendarId,
+        CalendarName = "Local Calendar",
+        Provider = CalendarProvider.Local,
+    }];
 
     [ObservableProperty]
     private bool _isLoadingEvents;
@@ -333,6 +345,55 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
         };
 
         IsEventFormVisible = true;
+        _ = LoadAvailableCalendarsAsync();
+    }
+
+    public async Task LoadAvailableCalendarsAsync()
+    {
+        try
+        {
+            using IServiceScope scope = _scopeFactory.CreateScope();
+            ICalendarCatalogRepository? catalog = scope.ServiceProvider.GetService<ICalendarCatalogRepository>();
+            if (catalog is null)
+                return;
+            IReadOnlyList<Calendar> calendars = await catalog.GetCalendarsAsync();
+            IReadOnlyList<CalendarAccount> accounts = await catalog.GetAccountsAsync();
+            Dictionary<Guid, CalendarAccount> accountsById = accounts.ToDictionary(account => account.Id);
+            Guid selectedId = EventForm.CalendarId;
+            AvailableCalendars.Clear();
+            AvailableCalendars.Add(new CalendarSelectionItemViewModel
+            {
+                CalendarId = CalendarIdentity.LocalCalendarId,
+                CalendarName = "Local Calendar",
+                Provider = CalendarProvider.Local,
+            });
+            foreach (Calendar calendar in calendars.Where(item => item.Provider != CalendarProvider.Local))
+            {
+                string accountName = calendar.AccountId is Guid accountId && accountsById.TryGetValue(accountId, out CalendarAccount? account)
+                    ? account.DisplayName
+                    : "Disconnected account";
+                AvailableCalendars.Add(new CalendarSelectionItemViewModel
+                {
+                    CalendarId = calendar.Id,
+                    CalendarName = calendar.Name,
+                    AccountName = accountName,
+                    Provider = calendar.Provider,
+                    IsEnabled = calendar.IsEnabled,
+                });
+            }
+            if (AvailableCalendars.Any(item => item.CalendarId == selectedId))
+                EventForm.CalendarId = selectedId;
+        }
+        catch (Exception)
+        {
+            StatusMessage = "Could not load available calendars; Local Calendar remains available.";
+        }
+    }
+
+    public async Task RefreshEventsAsync()
+    {
+        await RefreshGridWithEventsAsync();
+        await LoadSelectedDayEventsAsync();
     }
 
     /// <summary>Opens the event edit form populated with the given event's data.</summary>
@@ -421,11 +482,42 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
             ICalendarEventRepository repo = scope.ServiceProvider.GetRequiredService<ICalendarEventRepository>();
             IReadOnlyList<CalendarEvent> events =
                 await repo.GetByDateRangeAsync(rangeStart, rangeEnd);
-
-            SelectedDayEvents = events
-                .OrderBy(e => e.StartTime)
-                .Select(MapToListItem)
-                .ToList();
+            ICalendarCatalogRepository? catalog = scope.ServiceProvider.GetService<ICalendarCatalogRepository>();
+            ICalendarSyncRepository? sync = scope.ServiceProvider.GetService<ICalendarSyncRepository>();
+            IReadOnlyList<Calendar> calendars = catalog is null ? [] : await catalog.GetCalendarsAsync();
+            IReadOnlyList<CalendarAccount> accounts = catalog is null ? [] : await catalog.GetAccountsAsync();
+            Dictionary<Guid, Calendar> calendarsById = calendars.ToDictionary(calendar => calendar.Id);
+            Dictionary<Guid, CalendarAccount> accountsById = accounts.ToDictionary(account => account.Id);
+            List<EventListItemModel> items = [];
+            foreach (CalendarEvent calendarEvent in events.OrderBy(e => e.StartTime))
+            {
+                CalendarEventMapping? mapping = sync is null
+                    ? null
+                    : (await sync.GetMappingsAsync(calendarEvent.Id)).FirstOrDefault(item => item.CalendarId == calendarEvent.CalendarId);
+                Calendar? eventCalendar = calendarsById.GetValueOrDefault(calendarEvent.CalendarId);
+                CalendarSyncState? state = mapping is null || sync is null
+                    ? null
+                    : await sync.GetStateAsync(mapping.CalendarId);
+                bool isOffline = false;
+                if (eventCalendar is not null && eventCalendar.Provider != CalendarProvider.Local)
+                {
+                    isOffline = !eventCalendar.IsEnabled || eventCalendar.AccountId is not Guid accountId ||
+                        !accountsById.TryGetValue(accountId, out CalendarAccount? account) || !account.IsConnected;
+                }
+                string status = eventCalendar?.Provider == CalendarProvider.Local
+                    ? "Local"
+                    : state?.LastError is not null
+                        ? "Failed"
+                        : mapping is null || isOffline ||
+                          (mapping.LastSyncedAt is DateTime syncedAt && calendarEvent.UpdatedAt > syncedAt)
+                            ? isOffline ? "Pending (offline/disabled)" : "Pending"
+                            : "Synchronized";
+                string calendarName = eventCalendar is null || eventCalendar.Provider == CalendarProvider.Local
+                    ? "Local Calendar"
+                    : $"{eventCalendar.Provider} — {eventCalendar.Name}";
+                items.Add(MapToListItem(calendarEvent, calendarName, status));
+            }
+            SelectedDayEvents = items;
         }
         catch (Exception)
         {
@@ -458,6 +550,7 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
             StartTime = ev.StartTime.ToLocalTime(),
             EndTime = ev.EndTime.ToLocalTime(),
             IsAllDay = ev.IsAllDay,
+            CalendarId = ev.CalendarId,
         };
 
         IsEventFormVisible = true;
@@ -472,6 +565,7 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
         {
             using IServiceScope scope = _scopeFactory.CreateScope();
             ICalendarEventRepository repo = scope.ServiceProvider.GetRequiredService<ICalendarEventRepository>();
+            ICalendarSyncRepository? syncRepository = scope.ServiceProvider.GetService<ICalendarSyncRepository>();
 
             if (EventForm.IsEditing)
             {
@@ -497,6 +591,8 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
 
                 existing.Validate();
                 await repo.UpdateAsync(existing);
+                if (existing.CalendarId != CalendarIdentity.LocalCalendarId)
+                    await QueuePendingUpsertAsync(syncRepository, existing);
             }
             else
             {
@@ -517,12 +613,15 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
                     StartTime = startUtc,
                     EndTime = endUtc,
                     IsAllDay = EventForm.IsAllDay,
+                    CalendarId = EventForm.CalendarId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                 };
 
                 newEvent.Validate();
                 await repo.AddAsync(newEvent);
+                if (newEvent.CalendarId != CalendarIdentity.LocalCalendarId)
+                    await QueuePendingUpsertAsync(syncRepository, newEvent);
             }
 
             IsEventFormVisible = false;
@@ -540,6 +639,20 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private static Task QueuePendingUpsertAsync(ICalendarSyncRepository? sync, CalendarEvent calendarEvent)
+    {
+        if (sync is null)
+            return Task.CompletedTask;
+        return sync.SavePendingOperationAsync(new PendingCalendarOperation
+        {
+            Id = Guid.NewGuid(),
+            CalendarId = calendarEvent.CalendarId,
+            InternalEventId = calendarEvent.Id,
+            Type = PendingCalendarOperationType.Upsert,
+            CreatedAt = DateTime.UtcNow,
+        });
+    }
+
     private async Task ConfirmDeleteEventAsync()
     {
         Guid id = PendingDeleteId;
@@ -551,7 +664,22 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
         {
             using IServiceScope scope = _scopeFactory.CreateScope();
             ICalendarEventRepository repo = scope.ServiceProvider.GetRequiredService<ICalendarEventRepository>();
-            await repo.DeleteAsync(id);
+            ICalendarSynchronizationService? synchronization = scope.ServiceProvider.GetService<ICalendarSynchronizationService>();
+            if (synchronization is null)
+            {
+                await repo.DeleteAsync(id);
+            }
+            else
+            {
+                CalendarSynchronizationResult result = await synchronization.DeleteEventAsync(id);
+                if (result.Failed > 0)
+                {
+                    StatusMessage = result.Failures.Count > 0
+                        ? result.Failures[0].Error
+                        : "Calendar synchronization failed; event was retained.";
+                    return;
+                }
+            }
             await RefreshGridWithEventsAsync();
             await LoadSelectedDayEventsAsync();
         }
@@ -628,7 +756,7 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private EventListItemModel MapToListItem(CalendarEvent ev)
+    private EventListItemModel MapToListItem(CalendarEvent ev, string calendarName, string syncStatus)
     {
         string timeLabel;
         if (ev.IsAllDay)
@@ -651,7 +779,9 @@ public sealed partial class CalendarViewModel : ViewModelBase, IDisposable
             Title: ev.Title,
             TimeLabel: timeLabel,
             Description: ev.Description,
-            IsAllDay: ev.IsAllDay);
+            IsAllDay: ev.IsAllDay,
+            CalendarName: calendarName,
+            SyncStatus: syncStatus);
     }
 
     private void UpdateSelectedDateText(CalendarDayModel? day)

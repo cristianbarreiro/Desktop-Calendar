@@ -1,3 +1,4 @@
+using CalendarWidget.Core.Entities;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace CalendarWidget.Presentation.ViewModels;
@@ -28,10 +29,16 @@ public sealed partial class EventFormViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditing))]
     [NotifyPropertyChangedFor(nameof(FormTitle))]
+    [NotifyPropertyChangedFor(nameof(CanChangeCalendar))]
     private Guid? _editingId;
+
+    [ObservableProperty]
+    private Guid _calendarId = CalendarIdentity.LocalCalendarId;
 
     /// <summary>Gets whether the form is in edit mode.</summary>
     public bool IsEditing => EditingId.HasValue;
+
+    public bool CanChangeCalendar => !IsEditing;
 
     /// <summary>Gets the form dialog title based on editing state.</summary>
     public string FormTitle => IsEditing ? "Edit Event" : "New Event";
